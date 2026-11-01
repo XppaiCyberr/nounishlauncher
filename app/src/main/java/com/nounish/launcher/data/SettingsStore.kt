@@ -29,7 +29,8 @@ data class LauncherSettings(
     val isLightTheme: Boolean = false,
     val useMonospace: Boolean = false,
     val cachedCryptoPrices: Map<String, String> = emptyMap(),
-    val currentCryptoIndex: Int = 0
+    val currentCryptoIndex: Int = 0,
+    val alphabetIndexOnRight: Boolean = false
 )
 
 class SettingsStore(private val context: Context) {
@@ -50,6 +51,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_USE_MONOSPACE = booleanPreferencesKey("use_monospace")
         private val KEY_CACHED_PRICES = stringPreferencesKey("cached_crypto_prices")
         private val KEY_CRYPTO_INDEX = intPreferencesKey("current_crypto_index")
+        private val KEY_INDEX_ON_RIGHT = booleanPreferencesKey("alphabet_index_on_right")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -79,6 +81,7 @@ class SettingsStore(private val context: Context) {
 
         val cachedMap = parsePricesMap(prefs[KEY_CACHED_PRICES] ?: "")
         val cryptoIndex = prefs[KEY_CRYPTO_INDEX] ?: 0
+        val indexOnRight = prefs[KEY_INDEX_ON_RIGHT] ?: false
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -95,7 +98,8 @@ class SettingsStore(private val context: Context) {
             isLightTheme = isLight,
             useMonospace = useMono,
             cachedCryptoPrices = cachedMap,
-            currentCryptoIndex = cryptoIndex
+            currentCryptoIndex = cryptoIndex,
+            alphabetIndexOnRight = indexOnRight
         )
     }
 
@@ -178,6 +182,10 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setUseMonospace(enabled: Boolean) {
         context.dataStore.edit { it[KEY_USE_MONOSPACE] = enabled }
+    }
+
+    suspend fun setAlphabetIndexOnRight(onRight: Boolean) {
+        context.dataStore.edit { it[KEY_INDEX_ON_RIGHT] = onRight }
     }
 
     suspend fun updateCachedPrices(prices: Map<String, String>) {

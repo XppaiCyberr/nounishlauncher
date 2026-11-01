@@ -131,6 +131,7 @@ class MainActivity : ComponentActivity() {
                                     priceState = priceState,
                                     cryptoPriceEnabled = settings.cryptoPriceEnabled,
                                     autoLaunchSingleMatch = settings.autoLaunchSingleMatch,
+                                    alphabetIndexOnRight = settings.alphabetIndexOnRight,
                                     onSearchQueryChange = { query ->
                                         viewModel.onSearchQueryChanged(query)
                                     },
@@ -180,6 +181,7 @@ class MainActivity : ComponentActivity() {
                                     onUpdateCryptoQuote = { viewModel.setCryptoQuoteCurrency(it) },
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },
                                     onToggleMonospace = { viewModel.setUseMonospace(it) },
+                                    onToggleIndexOnRight = { viewModel.setAlphabetIndexOnRight(it) },
                                     onUnpinApp = { viewModel.unpinApp(it) },
                                     onUnhideApp = { viewModel.toggleHideApp(it) },
                                     onCloseSettings = { currentScreen = Screen.Home }

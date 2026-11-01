@@ -273,6 +273,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setAlphabetIndexOnRight(onRight: Boolean) {
+        viewModelScope.launch {
+            settingsStore.setAlphabetIndexOnRight(onRight)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null

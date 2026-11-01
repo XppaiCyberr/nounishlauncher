@@ -57,6 +57,7 @@ fun SettingsScreen(
     onUpdateCryptoQuote: (String) -> Unit,
     onToggleLightTheme: (Boolean) -> Unit,
     onToggleMonospace: (Boolean) -> Unit,
+    onToggleIndexOnRight: (Boolean) -> Unit,
     onUnpinApp: (String) -> Unit,
     onUnhideApp: (String) -> Unit,
     onCloseSettings: () -> Unit
@@ -152,6 +153,15 @@ fun SettingsScreen(
                     subtitle = "Instantly open app when search yields 1 result",
                     checked = settings.autoLaunchSingleMatch,
                     onCheckedChange = onToggleAutoLaunch
+                )
+            }
+
+            item {
+                SettingsSwitchRow(
+                    title = "Alphabet index on right",
+                    subtitle = if (settings.alphabetIndexOnRight) "Index on the right edge" else "Index on the left edge",
+                    checked = settings.alphabetIndexOnRight,
+                    onCheckedChange = onToggleIndexOnRight
                 )
             }
 
