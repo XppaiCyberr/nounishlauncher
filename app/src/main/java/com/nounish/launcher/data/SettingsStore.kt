@@ -36,7 +36,8 @@ data class LauncherSettings(
     val useMonospace: Boolean = false,
     val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
     val currentCryptoIndex: Int = 0,
-    val alphabetIndexOnRight: Boolean = false
+    val alphabetIndexOnRight: Boolean = false,
+    val enableIndexAnimation: Boolean = true
 )
 
 class SettingsStore(private val context: Context) {
@@ -58,6 +59,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_CACHED_PRICES = stringPreferencesKey("cached_crypto_prices")
         private val KEY_CRYPTO_INDEX = intPreferencesKey("current_crypto_index")
         private val KEY_INDEX_ON_RIGHT = booleanPreferencesKey("alphabet_index_on_right")
+        private val KEY_ENABLE_INDEX_ANIMATION = booleanPreferencesKey("enable_index_animation")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -88,6 +90,7 @@ class SettingsStore(private val context: Context) {
         val cachedMap = parsePricesMap(prefs[KEY_CACHED_PRICES] ?: "")
         val cryptoIndex = prefs[KEY_CRYPTO_INDEX] ?: 0
         val indexOnRight = prefs[KEY_INDEX_ON_RIGHT] ?: false
+        val indexAnimation = prefs[KEY_ENABLE_INDEX_ANIMATION] ?: true
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -105,7 +108,8 @@ class SettingsStore(private val context: Context) {
             useMonospace = useMono,
             cachedCryptoPrices = cachedMap,
             currentCryptoIndex = cryptoIndex,
-            alphabetIndexOnRight = indexOnRight
+            alphabetIndexOnRight = indexOnRight,
+            enableIndexAnimation = indexAnimation
         )
     }
 
@@ -192,6 +196,10 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setAlphabetIndexOnRight(onRight: Boolean) {
         context.dataStore.edit { it[KEY_INDEX_ON_RIGHT] = onRight }
+    }
+
+    suspend fun setIndexAnimationEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_ENABLE_INDEX_ANIMATION] = enabled }
     }
 
     suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {

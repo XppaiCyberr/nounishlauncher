@@ -58,6 +58,7 @@ fun SettingsScreen(
     onToggleLightTheme: (Boolean) -> Unit,
     onToggleMonospace: (Boolean) -> Unit,
     onToggleIndexOnRight: (Boolean) -> Unit,
+    onToggleIndexAnimation: (Boolean) -> Unit,
     onUnpinApp: (String) -> Unit,
     onUnhideApp: (String) -> Unit,
     onCloseSettings: () -> Unit
@@ -162,6 +163,15 @@ fun SettingsScreen(
                     subtitle = if (settings.alphabetIndexOnRight) "Index on the right edge" else "Index on the left edge",
                     checked = settings.alphabetIndexOnRight,
                     onCheckedChange = onToggleIndexOnRight
+                )
+            }
+
+            item {
+                SettingsSwitchRow(
+                    title = "Alphabet index animation",
+                    subtitle = if (settings.enableIndexAnimation) "Fluid wave animation enabled" else "Static list (no wave animation)",
+                    checked = settings.enableIndexAnimation,
+                    onCheckedChange = onToggleIndexAnimation
                 )
             }
 

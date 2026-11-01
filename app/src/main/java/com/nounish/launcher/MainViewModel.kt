@@ -301,6 +301,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setIndexAnimationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsStore.setIndexAnimationEnabled(enabled)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null

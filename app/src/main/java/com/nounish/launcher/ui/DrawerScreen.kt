@@ -74,6 +74,7 @@ fun DrawerScreen(
     cryptoPriceEnabled: Boolean,
     autoLaunchSingleMatch: Boolean,
     alphabetIndexOnRight: Boolean,
+    enableIndexAnimation: Boolean,
     onSearchQueryChange: (String) -> Unit,
     onAppClick: (AppItem) -> Unit,
     onTogglePinApp: (AppItem) -> Unit,
@@ -282,18 +283,18 @@ fun DrawerScreen(
                                 if (alphabetIndexOnRight) 16.dp.toPx() else 0.dp.toPx()
                             }
 
-                            val currentShift = (baseShiftPx + maxShiftPx * waveFactor) * interactionProgress
-                            val currentScale = 1f + (0.16f * waveFactor * interactionProgress)
+                            val currentShift = if (enableIndexAnimation) (baseShiftPx + maxShiftPx * waveFactor) * interactionProgress else 0f
+                            val currentScale = if (enableIndexAnimation) 1f + (0.16f * waveFactor * interactionProgress) else 1f
 
                             Text(
                                 text = if (isHidden) "${app.label} (hidden)" else app.label,
                                 style = typography.drawerItem,
-                                fontWeight = if (isTarget && interactionProgress > 0.4f) FontWeight.Bold else FontWeight.Normal,
+                                fontWeight = if (enableIndexAnimation && isTarget && interactionProgress > 0.4f) FontWeight.Bold else FontWeight.Normal,
                                 color = when {
-                                    isTarget && interactionProgress > 0.2f -> colors.textPrimary
-                                    interactionProgress > 0.2f && waveFactor > 0.1f -> colors.textPrimary.copy(alpha = 0.85f)
+                                    enableIndexAnimation && isTarget && interactionProgress > 0.2f -> colors.textPrimary
+                                    enableIndexAnimation && interactionProgress > 0.2f && waveFactor > 0.1f -> colors.textPrimary.copy(alpha = 0.85f)
                                     isHidden -> colors.textSecondary.copy(alpha = 0.6f)
-                                    interactionProgress > 0.2f -> colors.textSecondary.copy(alpha = 0.35f)
+                                    enableIndexAnimation && interactionProgress > 0.2f -> colors.textSecondary.copy(alpha = 0.35f)
                                     else -> colors.textPrimary
                                 },
                                 modifier = Modifier
