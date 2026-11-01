@@ -6,8 +6,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,6 +48,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -85,6 +87,7 @@ fun DrawerScreen(
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
 
     var selectedAppForMenu by remember { mutableStateOf<AppItem?>(null) }
 
@@ -102,15 +105,15 @@ fun DrawerScreen(
 
     // Niagara-style wave animation state
     var isInteractingWithIndex by remember { mutableStateOf(false) }
-    var touchYInList by remember { mutableFloatStateOf(0f) }
+    var selectedTargetIndex by remember { mutableIntStateOf(-1) }
 
     val interactionProgress by animateFloatAsState(
         targetValue = if (isInteractingWithIndex) 1f else 0f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            dampingRatio = 0.72f,
+            stiffness = 320f
         ),
-        label = "waveProgress"
+        label = "niagaraWaveProgress"
     )
 
     // Auto-launch if exactly one match remains (optional setting)
@@ -189,7 +192,7 @@ fun DrawerScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Main Content: Alphabet Index + Animated App list
+            // Main Content: Alphabet Index + Niagara-style Animated App List
             if (apps.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -210,29 +213,22 @@ fun DrawerScreen(
                         .weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // LEFT Alphabet Index (if placed on the left and not searching)
+                    // LEFT Alphabet Index (when placed on left and not searching)
                     if (!alphabetIndexOnRight && searchQuery.isEmpty()) {
                         AlphabetIndex(
                             letters = alphabet,
                             activeLetters = activeLetters,
-                            onInteractionStart = { y ->
+                            onInteractionStart = {
                                 isInteractingWithIndex = true
-                                touchYInList = y
-                            },
-                            onInteractionMove = { y ->
-                                touchYInList = y
                             },
                             onInteractionEnd = {
                                 isInteractingWithIndex = false
                             },
-                            onLetterSelected = { char, y ->
+                            onLetterSelected = { char, fraction ->
                                 val targetIndex = findTargetIndex(apps, char)
                                 if (targetIndex != null) {
-                                    val avgItemHeight = listState.layoutInfo.visibleItemsInfo
-                                        .map { it.size }
-                                        .average()
-                                        .takeIf { !it.isNaN() && it > 0 } ?: 120.0
-                                    val itemsAbove = (y / avgItemHeight).toInt().coerceAtLeast(0)
+                                    selectedTargetIndex = targetIndex
+                                    val itemsAbove = (fraction * 10).toInt().coerceIn(0, 8)
                                     val scrollIndex = (targetIndex - itemsAbove).coerceAtLeast(0)
                                     coroutineScope.launch {
                                         listState.scrollToItem(scrollIndex)
@@ -240,10 +236,10 @@ fun DrawerScreen(
                                 }
                             }
                         )
-                        Spacer(modifier = Modifier.width(18.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
                     }
 
-                    // App list with Niagara-style wave animation
+                    // App list with Niagara wave arc animation
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.weight(1f),
@@ -251,41 +247,50 @@ fun DrawerScreen(
                     ) {
                         itemsIndexed(apps, key = { _, item -> item.packageName + (item.activityName ?: "") }) { index, app ->
                             val isHidden = hiddenPackages.contains(app.packageName)
+                            val isTarget = selectedTargetIndex == index
+
+                            // Calculate wave curve factor based on distance from selectedTargetIndex
+                            val diff = if (selectedTargetIndex >= 0) abs(index - selectedTargetIndex) else 99
+                            val waveFactor = when (diff) {
+                                0 -> 1.0f
+                                1 -> 0.72f
+                                2 -> 0.44f
+                                3 -> 0.20f
+                                4 -> 0.06f
+                                else -> 0.0f
+                            }
+
+                            val maxShiftPx = with(density) {
+                                if (alphabetIndexOnRight) 90.dp.toPx() else 45.dp.toPx()
+                            }
+                            val baseShiftPx = with(density) {
+                                if (alphabetIndexOnRight) 16.dp.toPx() else 0.dp.toPx()
+                            }
+
+                            val currentShift = (baseShiftPx + maxShiftPx * waveFactor) * interactionProgress
+                            val currentScale = 1f + (0.16f * waveFactor * interactionProgress)
 
                             Text(
                                 text = if (isHidden) "${app.label} (hidden)" else app.label,
                                 style = typography.drawerItem,
-                                color = if (isHidden) colors.textSecondary.copy(alpha = 0.6f) else colors.textPrimary,
+                                fontWeight = if (isTarget && interactionProgress > 0.4f) FontWeight.Bold else FontWeight.Normal,
+                                color = when {
+                                    isTarget && interactionProgress > 0.2f -> colors.textPrimary
+                                    interactionProgress > 0.2f && waveFactor > 0.1f -> colors.textPrimary.copy(alpha = 0.85f)
+                                    isHidden -> colors.textSecondary.copy(alpha = 0.6f)
+                                    interactionProgress > 0.2f -> colors.textSecondary.copy(alpha = 0.35f)
+                                    else -> colors.textPrimary
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .graphicsLayer {
-                                        if (interactionProgress > 0.001f) {
-                                            val visibleItem = listState.layoutInfo.visibleItemsInfo.find { it.index == index }
-                                            if (visibleItem != null) {
-                                                val itemCenterY = visibleItem.offset + visibleItem.size / 2f
-                                                val dist = abs(itemCenterY - touchYInList)
-                                                val waveRadius = 240.dp.toPx()
-                                                if (dist < waveRadius) {
-                                                    val ratio = 1f - (dist / waveRadius)
-                                                    // Hermite smoothstep curve: 3x^2 - 2x^3
-                                                    val curve = ratio * ratio * (3f - 2f * ratio)
-                                                    val maxShift = 52.dp.toPx()
-                                                    val shift = maxShift * curve * interactionProgress
-
-                                                    // If index on right: shift towards right (+shift)
-                                                    // If index on left: shift outwards towards right (+shift)
-                                                    translationX = if (alphabetIndexOnRight) shift else shift
-
-                                                    val scale = 1f + (0.12f * curve * interactionProgress)
-                                                    scaleX = scale
-                                                    scaleY = scale
-                                                    transformOrigin = TransformOrigin(
-                                                        pivotFractionX = if (alphabetIndexOnRight) 1f else 0f,
-                                                        pivotFractionY = 0.5f
-                                                    )
-                                                }
-                                            }
-                                        }
+                                        translationX = currentShift
+                                        scaleX = currentScale
+                                        scaleY = currentScale
+                                        transformOrigin = TransformOrigin(
+                                            pivotFractionX = if (alphabetIndexOnRight) 1f else 0f,
+                                            pivotFractionY = 0.5f
+                                        )
                                     }
                                     .combinedClickable(
                                         onClick = { onAppClick(app) },
@@ -296,30 +301,23 @@ fun DrawerScreen(
                         }
                     }
 
-                    // RIGHT Alphabet Index (if placed on the right and not searching)
+                    // RIGHT Alphabet Index (when placed on right and not searching)
                     if (alphabetIndexOnRight && searchQuery.isEmpty()) {
-                        Spacer(modifier = Modifier.width(18.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
                         AlphabetIndex(
                             letters = alphabet,
                             activeLetters = activeLetters,
-                            onInteractionStart = { y ->
+                            onInteractionStart = {
                                 isInteractingWithIndex = true
-                                touchYInList = y
-                            },
-                            onInteractionMove = { y ->
-                                touchYInList = y
                             },
                             onInteractionEnd = {
                                 isInteractingWithIndex = false
                             },
-                            onLetterSelected = { char, y ->
+                            onLetterSelected = { char, fraction ->
                                 val targetIndex = findTargetIndex(apps, char)
                                 if (targetIndex != null) {
-                                    val avgItemHeight = listState.layoutInfo.visibleItemsInfo
-                                        .map { it.size }
-                                        .average()
-                                        .takeIf { !it.isNaN() && it > 0 } ?: 120.0
-                                    val itemsAbove = (y / avgItemHeight).toInt().coerceAtLeast(0)
+                                    selectedTargetIndex = targetIndex
+                                    val itemsAbove = (fraction * 10).toInt().coerceIn(0, 8)
                                     val scrollIndex = (targetIndex - itemsAbove).coerceAtLeast(0)
                                     coroutineScope.launch {
                                         listState.scrollToItem(scrollIndex)
@@ -419,8 +417,7 @@ fun DrawerScreen(
 private fun AlphabetIndex(
     letters: List<Char>,
     activeLetters: Set<Char>,
-    onInteractionStart: (Float) -> Unit,
-    onInteractionMove: (Float) -> Unit,
+    onInteractionStart: () -> Unit,
     onInteractionEnd: () -> Unit,
     onLetterSelected: (Char, Float) -> Unit,
     modifier: Modifier = Modifier
@@ -439,50 +436,37 @@ private fun AlphabetIndex(
         if (letter != currentHoveredLetter) {
             currentHoveredLetter = letter
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onLetterSelected(letter, clampedY)
+            onLetterSelected(letter, fraction)
         }
     }
 
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .width(24.dp)
+            .width(32.dp)
             .onGloballyPositioned { layoutCoordinates ->
                 heightPx = layoutCoordinates.size.height.toFloat()
             }
             .pointerInput(letters) {
-                detectTapGestures(
-                    onPress = { offset ->
-                        onInteractionStart(offset.y)
-                        selectLetterAt(offset.y)
-                        tryAwaitRelease()
-                        currentHoveredLetter = null
-                        onInteractionEnd()
-                    }
-                )
-            }
-            .pointerInput(letters) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        onInteractionStart(offset.y)
-                        selectLetterAt(offset.y)
-                    },
-                    onDrag = { change, _ ->
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    onInteractionStart()
+                    selectLetterAt(down.position.y)
+
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull() ?: break
+                        if (!change.pressed) {
+                            break
+                        }
                         change.consume()
-                        onInteractionMove(change.position.y)
                         selectLetterAt(change.position.y)
-                    },
-                    onDragEnd = {
-                        currentHoveredLetter = null
-                        onInteractionEnd()
-                    },
-                    onDragCancel = {
-                        currentHoveredLetter = null
-                        onInteractionEnd()
                     }
-                )
+                    currentHoveredLetter = null
+                    onInteractionEnd()
+                }
             },
-        contentAlignment = Alignment.CenterStart
+        contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier.fillMaxHeight(),
@@ -495,7 +479,7 @@ private fun AlphabetIndex(
 
                 Text(
                     text = char.toString(),
-                    fontSize = if (isHovered) 13.sp else 10.5.sp,
+                    fontSize = if (isHovered) 14.sp else 10.5.sp,
                     fontWeight = if (isHovered) FontWeight.Bold else if (isActive) FontWeight.Medium else FontWeight.Normal,
                     color = when {
                         isHovered -> colors.textPrimary
@@ -503,7 +487,7 @@ private fun AlphabetIndex(
                         else -> colors.textSecondary.copy(alpha = 0.25f)
                     },
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.width(20.dp)
+                    modifier = Modifier.width(22.dp)
                 )
             }
         }
