@@ -13,3 +13,6 @@ val LightTextPrimary = Color(0xFF121212)
 val LightTextSecondary = Color(0xFF6E6E6E)
 val LightSurface = Color(0xFFF2F2F2)
 val LightBorder = Color(0xFFE0E0E0)
+
+val CryptoGreen = Color(0xFF00E676)
+val CryptoRed = Color(0xFFFF5252)

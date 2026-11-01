@@ -58,6 +58,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nounish.launcher.data.PriceUiState
 import com.nounish.launcher.model.AppItem
+import com.nounish.launcher.ui.theme.CryptoGreen
+import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -177,16 +179,29 @@ fun DrawerScreen(
                     )
                 }
 
-                // Crypto Price Label (top right corner, section 7)
-                if (cryptoPriceEnabled && priceState.displayText.isNotEmpty()) {
-                    Text(
-                        text = priceState.displayText,
-                        style = typography.priceLabel,
-                        color = colors.textSecondary.copy(alpha = if (priceState.isStale) 0.45f else 0.9f),
+                // Crypto Price Label with 24h percentage change & red/green color
+                if (cryptoPriceEnabled && priceState.isNotEmpty) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clickable(onClick = onCycleCrypto)
                             .padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
-                    )
+                    ) {
+                        Text(
+                            text = "${priceState.coinSymbol} ${priceState.priceText}",
+                            style = typography.priceLabel,
+                            color = colors.textSecondary.copy(alpha = if (priceState.isStale) 0.45f else 0.9f)
+                        )
+                        if (priceState.changeText.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            val changeColor = if (priceState.changePercent >= 0.0) CryptoGreen else CryptoRed
+                            Text(
+                                text = priceState.changeText,
+                                style = typography.priceLabel,
+                                color = changeColor.copy(alpha = if (priceState.isStale) 0.45f else 1.0f)
+                            )
+                        }
+                    }
                 }
             }
 

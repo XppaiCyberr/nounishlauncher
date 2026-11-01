@@ -14,6 +14,12 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "launcher_settings")
 
+data class CachedCoinPrice(
+    val price: String,
+    val changeText: String = "",
+    val changePercent: Double = 0.0
+)
+
 data class LauncherSettings(
     val pinnedApps: List<String> = emptyList(),
     val hiddenApps: Set<String> = emptySet(),
@@ -28,7 +34,7 @@ data class LauncherSettings(
     val cryptoQuoteCurrency: String = "USDT",
     val isLightTheme: Boolean = false,
     val useMonospace: Boolean = false,
-    val cachedCryptoPrices: Map<String, String> = emptyMap(),
+    val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
     val currentCryptoIndex: Int = 0,
     val alphabetIndexOnRight: Boolean = false
 )
@@ -188,9 +194,11 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_INDEX_ON_RIGHT] = onRight }
     }
 
-    suspend fun updateCachedPrices(prices: Map<String, String>) {
+    suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {
         context.dataStore.edit { prefs ->
-            val encoded = prices.entries.joinToString(";") { "${it.key}:${it.value}" }
+            val encoded = prices.entries.joinToString(";") {
+                "${it.key}:${it.value.price}:${it.value.changeText}:${it.value.changePercent}"
+            }
             prefs[KEY_CACHED_PRICES] = encoded
         }
     }
@@ -199,12 +207,24 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_CRYPTO_INDEX] = index }
     }
 
-    private fun parsePricesMap(raw: String): Map<String, String> {
+    private fun parsePricesMap(raw: String): Map<String, CachedCoinPrice> {
         if (raw.isBlank()) return emptyMap()
         return try {
             raw.split(";").mapNotNull { pair ->
                 val parts = pair.split(":")
-                if (parts.size == 2) parts[0] to parts[1] else null
+                when {
+                    parts.size >= 4 -> {
+                        parts[0] to CachedCoinPrice(
+                            price = parts[1],
+                            changeText = parts[2],
+                            changePercent = parts[3].toDoubleOrNull() ?: 0.0
+                        )
+                    }
+                    parts.size == 2 -> {
+                        parts[0] to CachedCoinPrice(price = parts[1])
+                    }
+                    else -> null
+                }
             }.toMap()
         } catch (_: Exception) {
             emptyMap()

@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nounish.launcher.data.AppRepository
+import com.nounish.launcher.data.CachedCoinPrice
+import com.nounish.launcher.data.CoinTicker
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.data.PriceRepository
 import com.nounish.launcher.data.PriceUiState
@@ -112,16 +114,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         result.onSuccess { newPrices ->
             val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
-            updatedCache.putAll(newPrices)
+            newPrices.forEach { (sym, ticker) ->
+                updatedCache[sym] = CachedCoinPrice(
+                    price = ticker.price,
+                    changeText = ticker.formattedChange,
+                    changePercent = ticker.changePercent
+                )
+            }
             settingsStore.updateCachedPrices(updatedCache)
 
             val symbols = currentSettings.cryptoSymbols
             val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
             val currentSymbol = symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC"
-            val price = newPrices[currentSymbol] ?: updatedCache[currentSymbol] ?: "--"
+            val ticker = newPrices[currentSymbol] ?: updatedCache[currentSymbol]?.let {
+                CoinTicker(it.price, it.changePercent, it.changeText)
+            }
 
             _priceState.value = PriceUiState(
-                displayText = "$currentSymbol $price",
+                coinSymbol = currentSymbol,
+                priceText = ticker?.price ?: "--",
+                changeText = ticker?.formattedChange ?: "",
+                changePercent = ticker?.changePercent ?: 0.0,
                 isStale = false,
                 isLoading = false
             )
@@ -129,10 +142,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val symbols = currentSettings.cryptoSymbols
             val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
             val currentSymbol = symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC"
-            val cachedPrice = currentSettings.cachedCryptoPrices[currentSymbol]
+            val cached = currentSettings.cachedCryptoPrices[currentSymbol]
 
             _priceState.value = PriceUiState(
-                displayText = if (cachedPrice != null) "$currentSymbol $cachedPrice" else "$currentSymbol --",
+                coinSymbol = currentSymbol,
+                priceText = cached?.price ?: "--",
+                changeText = cached?.changeText ?: "",
+                changePercent = cached?.changePercent ?: 0.0,
                 isStale = true,
                 isLoading = false
             )
@@ -149,7 +165,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         if (cached != null) {
             _priceState.value = PriceUiState(
-                displayText = "$symbol $cached",
+                coinSymbol = symbol,
+                priceText = cached.price,
+                changeText = cached.changeText,
+                changePercent = cached.changePercent,
                 isStale = false,
                 isLoading = false
             )
@@ -165,9 +184,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             settingsStore.setCurrentCryptoIndex(nextIndex)
             val symbol = symbols[nextIndex]
-            val cached = currentSettings.cachedCryptoPrices[symbol] ?: "--"
+            val cached = currentSettings.cachedCryptoPrices[symbol]
             _priceState.value = _priceState.value.copy(
-                displayText = "$symbol $cached"
+                coinSymbol = symbol,
+                priceText = cached?.price ?: "--",
+                changeText = cached?.changeText ?: "",
+                changePercent = cached?.changePercent ?: 0.0
             )
             // Fetch fresh
             fetchFreshPrices()

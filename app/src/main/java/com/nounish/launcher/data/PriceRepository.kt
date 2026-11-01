@@ -3,7 +3,6 @@ package com.nounish.launcher.data
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -12,24 +11,36 @@ import java.net.URLEncoder
 import java.text.NumberFormat
 import java.util.Locale
 
+data class CoinTicker(
+    val price: String,
+    val changePercent: Double,
+    val formattedChange: String
+)
+
 data class PriceUiState(
-    val displayText: String = "",
+    val coinSymbol: String = "",
+    val priceText: String = "",
+    val changeText: String = "",
+    val changePercent: Double = 0.0,
     val isStale: Boolean = false,
     val isLoading: Boolean = false
-)
+) {
+    val isNotEmpty: Boolean
+        get() = coinSymbol.isNotEmpty() && priceText.isNotEmpty()
+}
 
 class PriceRepository {
 
     private val hosts = listOf(
+        "data-api.binance.vision",
         "api.binance.com",
-        "api.binance.me",
-        "data-api.binance.vision"
+        "api.binance.me"
     )
 
     suspend fun fetchPrices(
         symbols: List<String>,
         quoteCurrency: String
-    ): Result<Map<String, String>> = withContext(Dispatchers.IO) {
+    ): Result<Map<String, CoinTicker>> = withContext(Dispatchers.IO) {
         if (symbols.isEmpty()) return@withContext Result.success(emptyMap())
 
         val tradingPairs = symbols.map { "${it.uppercase()}${quoteCurrency.uppercase()}" }
@@ -39,7 +50,7 @@ class PriceRepository {
         var lastException: Exception? = null
 
         for (host in hosts) {
-            val urlString = "https://$host/api/v3/ticker/price?symbols=$encodedSymbols"
+            val urlString = "https://$host/api/v3/ticker/24hr?symbols=$encodedSymbols"
             var connection: HttpURLConnection? = null
             try {
                 val url = URL(urlString)
@@ -55,17 +66,24 @@ class PriceRepository {
                     val reader = BufferedReader(InputStreamReader(connection.inputStream))
                     val response = reader.use { it.readText() }
                     val jsonArray = JSONArray(response)
-                    val priceMap = mutableMapOf<String, String>()
+                    val priceMap = mutableMapOf<String, CoinTicker>()
 
                     for (i in 0 until jsonArray.length()) {
                         val item = jsonArray.getJSONObject(i)
                         val pair = item.getString("symbol")
-                        val priceRaw = item.getString("price").toDoubleOrNull() ?: 0.0
+                        val priceRaw = item.optString("lastPrice", item.optString("price", "0")).toDoubleOrNull() ?: 0.0
+                        val changePercentRaw = item.optString("priceChangePercent", "0").toDoubleOrNull() ?: 0.0
+
                         val formattedPrice = formatPrice(priceRaw)
+                        val formattedChange = formatPercent(changePercentRaw)
 
                         // Map back to base coin symbol
                         symbols.find { "${it.uppercase()}${quoteCurrency.uppercase()}" == pair }?.let { coin ->
-                            priceMap[coin.uppercase()] = formattedPrice
+                            priceMap[coin.uppercase()] = CoinTicker(
+                                price = formattedPrice,
+                                changePercent = changePercentRaw,
+                                formattedChange = formattedChange
+                            )
                         }
                     }
 
@@ -91,5 +109,10 @@ class PriceRepository {
         } else {
             String.format(Locale.US, "%.4f", price)
         }
+    }
+
+    private fun formatPercent(percent: Double): String {
+        val sign = if (percent > 0) "+" else ""
+        return "$sign${String.format(Locale.US, "%.2f", percent)}%"
     }
 }
