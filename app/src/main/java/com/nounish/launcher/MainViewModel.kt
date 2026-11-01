@@ -19,9 +19,19 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+
+data class CoinTickerUi(
+    val symbol: String,
+    val price: String,
+    val changeText: String,
+    val changePercent: Double,
+    val highPrice: String = "",
+    val lowPrice: String = ""
+)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -65,6 +75,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _priceState = MutableStateFlow(PriceUiState())
     val priceState: StateFlow<PriceUiState> = _priceState.asStateFlow()
+
+    val homeCryptoList: StateFlow<List<CoinTickerUi>> = settings.map { pref ->
+        pref.cryptoSymbols.map { sym ->
+            val cached = pref.cachedCryptoPrices[sym]
+            CoinTickerUi(
+                symbol = sym,
+                price = cached?.price ?: "--",
+                changeText = cached?.changeText ?: "",
+                changePercent = cached?.changePercent ?: 0.0,
+                highPrice = cached?.highPrice ?: "",
+                lowPrice = cached?.lowPrice ?: ""
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private var priceJob: Job? = null
 
@@ -118,7 +142,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 updatedCache[sym] = CachedCoinPrice(
                     price = ticker.price,
                     changeText = ticker.formattedChange,
-                    changePercent = ticker.changePercent
+                    changePercent = ticker.changePercent,
+                    highPrice = ticker.highPrice,
+                    lowPrice = ticker.lowPrice
                 )
             }
             settingsStore.updateCachedPrices(updatedCache)
@@ -248,6 +274,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setShowDate(enabled: Boolean) {
         viewModelScope.launch {
             settingsStore.setShowDate(enabled)
+        }
+    }
+
+    fun setShowHomeCrypto(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsStore.setShowHomeCrypto(enabled)
         }
     }
 

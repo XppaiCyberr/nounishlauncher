@@ -17,7 +17,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 data class CachedCoinPrice(
     val price: String,
     val changeText: String = "",
-    val changePercent: Double = 0.0
+    val changePercent: Double = 0.0,
+    val highPrice: String = "",
+    val lowPrice: String = ""
 )
 
 data class LauncherSettings(
@@ -25,11 +27,12 @@ data class LauncherSettings(
     val hiddenApps: Set<String> = emptySet(),
     val showClock: Boolean = true,
     val showDate: Boolean = true,
+    val showHomeCrypto: Boolean = true,
     val autoLaunchSingleMatch: Boolean = false,
     val swipeLeftPackage: String? = null,
     val swipeRightPackage: String? = null,
     val doubleTapLock: Boolean = false,
-    val cryptoPriceEnabled: Boolean = false,
+    val cryptoPriceEnabled: Boolean = true,
     val cryptoSymbols: List<String> = listOf("BTC", "ETH", "SOL"),
     val cryptoQuoteCurrency: String = "USDT",
     val isLightTheme: Boolean = false,
@@ -47,6 +50,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_HIDDEN_APPS = stringSetPreferencesKey("hidden_apps")
         private val KEY_SHOW_CLOCK = booleanPreferencesKey("show_clock")
         private val KEY_SHOW_DATE = booleanPreferencesKey("show_date")
+        private val KEY_SHOW_HOME_CRYPTO = booleanPreferencesKey("show_home_crypto")
         private val KEY_AUTO_LAUNCH = booleanPreferencesKey("auto_launch_single_match")
         private val KEY_SWIPE_LEFT = stringPreferencesKey("swipe_left_package")
         private val KEY_SWIPE_RIGHT = stringPreferencesKey("swipe_right_package")
@@ -73,11 +77,12 @@ class SettingsStore(private val context: Context) {
         val hiddenSet = prefs[KEY_HIDDEN_APPS] ?: emptySet()
         val showClock = prefs[KEY_SHOW_CLOCK] ?: true
         val showDate = prefs[KEY_SHOW_DATE] ?: true
+        val showHomeCrypto = prefs[KEY_SHOW_HOME_CRYPTO] ?: true
         val autoLaunch = prefs[KEY_AUTO_LAUNCH] ?: false
         val swipeLeft = prefs[KEY_SWIPE_LEFT]?.takeIf { it.isNotBlank() }
         val swipeRight = prefs[KEY_SWIPE_RIGHT]?.takeIf { it.isNotBlank() }
         val doubleTap = prefs[KEY_DOUBLE_TAP_LOCK] ?: false
-        val cryptoEnabled = prefs[KEY_CRYPTO_ENABLED] ?: false
+        val cryptoEnabled = prefs[KEY_CRYPTO_ENABLED] ?: true
 
         val symbolsRaw = prefs[KEY_CRYPTO_SYMBOLS] ?: "BTC,ETH,SOL"
         val symbolsList = symbolsRaw.split(",").map { it.trim().uppercase() }.filter { it.isNotEmpty() }
@@ -97,6 +102,7 @@ class SettingsStore(private val context: Context) {
             hiddenApps = hiddenSet,
             showClock = showClock,
             showDate = showDate,
+            showHomeCrypto = showHomeCrypto,
             autoLaunchSingleMatch = autoLaunch,
             swipeLeftPackage = swipeLeft,
             swipeRightPackage = swipeRight,
@@ -158,6 +164,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_SHOW_DATE] = show }
     }
 
+    suspend fun setShowHomeCrypto(show: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_HOME_CRYPTO] = show }
+    }
+
     suspend fun setAutoLaunchSingleMatch(enabled: Boolean) {
         context.dataStore.edit { it[KEY_AUTO_LAUNCH] = enabled }
     }
@@ -205,7 +215,7 @@ class SettingsStore(private val context: Context) {
     suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {
         context.dataStore.edit { prefs ->
             val encoded = prices.entries.joinToString(";") {
-                "${it.key}:${it.value.price}:${it.value.changeText}:${it.value.changePercent}"
+                "${it.key}:${it.value.price}:${it.value.changeText}:${it.value.changePercent}:${it.value.highPrice}:${it.value.lowPrice}"
             }
             prefs[KEY_CACHED_PRICES] = encoded
         }
@@ -221,6 +231,15 @@ class SettingsStore(private val context: Context) {
             raw.split(";").mapNotNull { pair ->
                 val parts = pair.split(":")
                 when {
+                    parts.size >= 6 -> {
+                        parts[0] to CachedCoinPrice(
+                            price = parts[1],
+                            changeText = parts[2],
+                            changePercent = parts[3].toDoubleOrNull() ?: 0.0,
+                            highPrice = parts[4],
+                            lowPrice = parts[5]
+                        )
+                    }
                     parts.size >= 4 -> {
                         parts[0] to CachedCoinPrice(
                             price = parts[1],

@@ -14,7 +14,9 @@ import java.util.Locale
 data class CoinTicker(
     val price: String,
     val changePercent: Double,
-    val formattedChange: String
+    val formattedChange: String,
+    val highPrice: String = "",
+    val lowPrice: String = ""
 )
 
 data class PriceUiState(
@@ -73,16 +75,22 @@ class PriceRepository {
                         val pair = item.getString("symbol")
                         val priceRaw = item.optString("lastPrice", item.optString("price", "0")).toDoubleOrNull() ?: 0.0
                         val changePercentRaw = item.optString("priceChangePercent", "0").toDoubleOrNull() ?: 0.0
+                        val highRaw = item.optString("highPrice", "0").toDoubleOrNull() ?: 0.0
+                        val lowRaw = item.optString("lowPrice", "0").toDoubleOrNull() ?: 0.0
 
                         val formattedPrice = formatPrice(priceRaw)
                         val formattedChange = formatPercent(changePercentRaw)
+                        val formattedHigh = formatPrice(highRaw)
+                        val formattedLow = formatPrice(lowRaw)
 
                         // Map back to base coin symbol
                         symbols.find { "${it.uppercase()}${quoteCurrency.uppercase()}" == pair }?.let { coin ->
                             priceMap[coin.uppercase()] = CoinTicker(
                                 price = formattedPrice,
                                 changePercent = changePercentRaw,
-                                formattedChange = formattedChange
+                                formattedChange = formattedChange,
+                                highPrice = formattedHigh,
+                                lowPrice = formattedLow
                             )
                         }
                     }

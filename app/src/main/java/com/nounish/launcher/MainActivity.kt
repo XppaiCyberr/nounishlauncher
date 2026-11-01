@@ -50,12 +50,15 @@ class MainActivity : ComponentActivity() {
             val filteredApps by viewModel.filteredApps.collectAsState()
             val searchQuery by viewModel.searchQuery.collectAsState()
             val priceState by viewModel.priceState.collectAsState()
+            val homeCryptoList by viewModel.homeCryptoList.collectAsState()
 
             var currentScreen by remember { currentScreenState }
 
-            // Manage price refresh lifecycle: only runs while drawer is active
-            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled) {
-                if (currentScreen == Screen.Drawer && settings.cryptoPriceEnabled) {
+            // Manage price refresh lifecycle: runs while drawer or home crypto is active
+            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto) {
+                val shouldPoll = settings.cryptoPriceEnabled &&
+                    (currentScreen == Screen.Drawer || (currentScreen == Screen.Home && settings.showHomeCrypto))
+                if (shouldPoll) {
                     viewModel.startPriceRefresh()
                 } else {
                     viewModel.stopPriceRefresh()
@@ -88,6 +91,8 @@ class MainActivity : ComponentActivity() {
                                     pinnedApps = pinnedApps,
                                     showClock = settings.showClock,
                                     showDate = settings.showDate,
+                                    showCrypto = settings.cryptoPriceEnabled && settings.showHomeCrypto,
+                                    cryptoCoins = homeCryptoList,
                                     onAppClick = { app ->
                                         viewModel.appRepository.launchApp(app)
                                     },
@@ -178,6 +183,7 @@ class MainActivity : ComponentActivity() {
                                     onSelectSwipeRightApp = { viewModel.setSwipeRight(it) },
                                     onToggleDoubleTapLock = { viewModel.setDoubleTapLock(it) },
                                     onToggleCryptoEnabled = { viewModel.setCryptoPriceEnabled(it) },
+                                    onToggleShowHomeCrypto = { viewModel.setShowHomeCrypto(it) },
                                     onUpdateCryptoSymbols = { viewModel.setCryptoSymbols(it) },
                                     onUpdateCryptoQuote = { viewModel.setCryptoQuoteCurrency(it) },
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },

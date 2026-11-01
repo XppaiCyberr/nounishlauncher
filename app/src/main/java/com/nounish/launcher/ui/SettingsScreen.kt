@@ -53,6 +53,7 @@ fun SettingsScreen(
     onSelectSwipeRightApp: (String?) -> Unit,
     onToggleDoubleTapLock: (Boolean) -> Unit,
     onToggleCryptoEnabled: (Boolean) -> Unit,
+    onToggleShowHomeCrypto: (Boolean) -> Unit,
     onUpdateCryptoSymbols: (List<String>) -> Unit,
     onUpdateCryptoQuote: (String) -> Unit,
     onToggleLightTheme: (Boolean) -> Unit,
@@ -248,6 +249,15 @@ fun SettingsScreen(
             }
 
             if (settings.cryptoPriceEnabled) {
+                item {
+                    SettingsSwitchRow(
+                        title = "Show crypto on home screen",
+                        subtitle = "Display live market prices in the home screen space",
+                        checked = settings.showHomeCrypto,
+                        onCheckedChange = onToggleShowHomeCrypto
+                    )
+                }
+
                 item {
                     SettingsActionRow(
                         title = "Coins",
