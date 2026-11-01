@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Nounish Launcher</string>
+    <string name="accessibility_service_description">Used solely to lock the screen via double-tap gesture when enabled.</string>
+</resources>
