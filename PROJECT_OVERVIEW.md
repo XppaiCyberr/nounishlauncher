@@ -4,7 +4,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ---
 
-## 🎯 Design Philosophy
+## Design Philosophy
 
 1. **Text-Only Interface**: Apps are represented solely by name. No icons are ever loaded or drawn into memory.
 2. **AMOLED Monochrome**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. An optional light theme is also available.
@@ -14,7 +14,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ---
 
-## ✨ Comprehensive Feature List
+## Comprehensive Feature List
 
 ### 1. Home Screen
 - **Time & Date Display**:
@@ -80,7 +80,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ---
 
-## 🏗️ Technical Stack & Architecture
+## Technical Stack & Architecture
 
 | Component | Choice | Details |
 |---|---|---|
@@ -96,7 +96,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ---
 
-## 📂 File & Directory Structure
+## File & Directory Structure
 
 ```
 nounishlauncher/
@@ -130,8 +130,7 @@ nounishlauncher/
 │           ├── drawable/                        # Vector assets for monochrome launcher icon
 │           ├── mipmap-anydpi-v26/               # Adaptive launcher icons
 │           ├── values/                          # Strings, base themes (windowBackground #000000)
-│           ├── values-v28/                      # Display cutout support
-│           └── xml/                             # Accessibility configuration
+│           └── values-v28/                      # Display cutout support
 ├── build.gradle.kts                             # Root Gradle build script
 ├── settings.gradle.kts                          # Module inclusions & repository config
 ├── gradle.properties                            # JVM memory allocation & AndroidX flags
@@ -142,7 +141,7 @@ nounishlauncher/
 
 ---
 
-## 🔄 Data & State Flow
+## Data & State Flow
 
 ```mermaid
 flowchart TD
@@ -195,7 +194,7 @@ flowchart TD
 
 ---
 
-## ⚙️ Configuration & Settings Guide
+## Configuration & Settings Guide
 
 Accessible by long-pressing any empty area on the Home screen:
 
@@ -225,7 +224,7 @@ Accessible by long-pressing any empty area on the Home screen:
 
 ---
 
-## 🛠️ Building & Releasing
+## Building & Releasing
 
 ### Requirements
 - JDK 17 or JDK 21
@@ -250,7 +249,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 
 ---
 
-## 🛡️ Security, Privacy & Google Play Protect
+## Security, Privacy & Google Play Protect
 
 - **Zero Accessibility Exploits**: The release build does not declare background accessibility service permissions in the manifest, ensuring it passes Google Play Protect without security alerts.
 - **Valid Release Signature**: Signed with a dedicated 2048-bit RSA key using APK Signature Schemes v2 and v3.

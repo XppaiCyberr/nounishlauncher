@@ -4,7 +4,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 
 ---
 
-## ✨ Features
+## Features
 
 - **Text-Only Design**: Apps are displayed solely by name. No visual noise, no notification badges, and zero icon bitmaps loaded into memory.
 - **AMOLED Monochrome**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme.
@@ -42,7 +42,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## Tech Stack & Architecture
 
 - **Language**: Kotlin 1.9.24
 - **UI Toolkit**: Jetpack Compose (Material3)
@@ -55,7 +55,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 nounishlauncher/
@@ -99,7 +99,7 @@ nounishlauncher/
 
 ---
 
-## 🚀 Building & Running
+## Building & Running
 
 ### Prerequisites
 - JDK 17 or JDK 21 (e.g. from Android Studio JBR: `C:\Program Files\Android\Android Studio\jbr`)
@@ -121,7 +121,7 @@ Output: `app/build/outputs/apk/release/app-release.apk` (**~1.04 MB**)
 
 ---
 
-## 🔒 Privacy & Permissions
+## Privacy & Permissions
 
 - **INTERNET**: Used solely for the public Binance market ticker. Completely inert when crypto features are toggled off in Settings.
 - **QUERY_ALL_PACKAGES / CATEGORY_LAUNCHER**: Used strictly on-device to query installed apps for the drawer.
