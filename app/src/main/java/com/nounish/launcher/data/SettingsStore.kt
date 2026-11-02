@@ -76,6 +76,8 @@ data class LauncherSettings(
     val marketCarouselAutoRotate: Boolean = true,
     val marketCarouselIntervalSeconds: Int = 7,
     val marketCarouselTransition: String = "slide", // "slide", "crossfade"
+    val separateMarketViews: Boolean = true,
+    val separatedMarketLayout: String = "stacked", // "stacked", "side_by_side"
     val cachedIdxQuotes: Map<String, CachedIdxQuote> = emptyMap(),
     val cachedIdxTimestamp: Long = 0L,
     val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
@@ -126,6 +128,8 @@ class SettingsStore(private val context: Context) {
         private val KEY_MARKET_CAROUSEL_AUTO_ROTATE = booleanPreferencesKey("market_carousel_auto_rotate")
         private val KEY_MARKET_CAROUSEL_INTERVAL = intPreferencesKey("market_carousel_interval")
         private val KEY_MARKET_CAROUSEL_TRANSITION = stringPreferencesKey("market_carousel_transition")
+        private val KEY_SEPARATE_MARKET_VIEWS = booleanPreferencesKey("separate_market_views")
+        private val KEY_SEPARATED_MARKET_LAYOUT = stringPreferencesKey("separated_market_layout")
         private val KEY_CACHED_IDX_QUOTES = stringPreferencesKey("cached_idx_quotes")
         private val KEY_CACHED_IDX_TIMESTAMP = longPreferencesKey("cached_idx_timestamp")
     }
@@ -184,6 +188,8 @@ class SettingsStore(private val context: Context) {
         val carouselAutoRotate = prefs[KEY_MARKET_CAROUSEL_AUTO_ROTATE] ?: true
         val carouselInterval = prefs[KEY_MARKET_CAROUSEL_INTERVAL] ?: 7
         val carouselTransition = prefs[KEY_MARKET_CAROUSEL_TRANSITION] ?: "slide"
+        val separateMarketViews = prefs[KEY_SEPARATE_MARKET_VIEWS] ?: true
+        val separatedMarketLayout = prefs[KEY_SEPARATED_MARKET_LAYOUT] ?: "stacked"
         val cachedIdxQuotes = parseIdxMap(prefs[KEY_CACHED_IDX_QUOTES] ?: "")
         val cachedIdxTimestamp = prefs[KEY_CACHED_IDX_TIMESTAMP] ?: 0L
 
@@ -223,6 +229,8 @@ class SettingsStore(private val context: Context) {
             marketCarouselAutoRotate = carouselAutoRotate,
             marketCarouselIntervalSeconds = carouselInterval,
             marketCarouselTransition = carouselTransition,
+            separateMarketViews = separateMarketViews,
+            separatedMarketLayout = separatedMarketLayout,
             cachedIdxQuotes = cachedIdxQuotes,
             cachedIdxTimestamp = cachedIdxTimestamp,
             cachedCryptoPrices = cachedMap,
@@ -404,6 +412,14 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_MARKET_CAROUSEL_TRANSITION] = transition }
     }
 
+    suspend fun setSeparateMarketViews(separate: Boolean) {
+        context.dataStore.edit { it[KEY_SEPARATE_MARKET_VIEWS] = separate }
+    }
+
+    suspend fun setSeparatedMarketLayout(layout: String) {
+        context.dataStore.edit { it[KEY_SEPARATED_MARKET_LAYOUT] = layout }
+    }
+
     suspend fun updateCachedIdxQuotes(quotes: Map<String, CachedIdxQuote>, timestamp: Long) {
         context.dataStore.edit { prefs ->
             val encoded = quotes.values.joinToString(";") {
@@ -478,6 +494,8 @@ class SettingsStore(private val context: Context) {
         root.put("marketCarouselAutoRotate", settings.marketCarouselAutoRotate)
         root.put("marketCarouselIntervalSeconds", settings.marketCarouselIntervalSeconds)
         root.put("marketCarouselTransition", settings.marketCarouselTransition)
+        root.put("separateMarketViews", settings.separateMarketViews)
+        root.put("separatedMarketLayout", settings.separatedMarketLayout)
         root.put("cryptoSymbols", JSONArray(settings.cryptoSymbols))
         root.put("cryptoQuoteCurrency", settings.cryptoQuoteCurrency)
         root.put("useWebSocketOnHome", settings.useWebSocketOnHome)
@@ -552,6 +570,8 @@ class SettingsStore(private val context: Context) {
                 if (root.has("marketCarouselAutoRotate")) prefs[KEY_MARKET_CAROUSEL_AUTO_ROTATE] = root.getBoolean("marketCarouselAutoRotate")
                 if (root.has("marketCarouselIntervalSeconds")) prefs[KEY_MARKET_CAROUSEL_INTERVAL] = root.getInt("marketCarouselIntervalSeconds")
                 if (root.has("marketCarouselTransition")) prefs[KEY_MARKET_CAROUSEL_TRANSITION] = root.getString("marketCarouselTransition")
+                if (root.has("separateMarketViews")) prefs[KEY_SEPARATE_MARKET_VIEWS] = root.getBoolean("separateMarketViews")
+                if (root.has("separatedMarketLayout")) prefs[KEY_SEPARATED_MARKET_LAYOUT] = root.getString("separatedMarketLayout")
                 if (root.has("cryptoSymbols")) {
                     val arr = root.getJSONArray("cryptoSymbols")
                     val list = mutableListOf<String>()

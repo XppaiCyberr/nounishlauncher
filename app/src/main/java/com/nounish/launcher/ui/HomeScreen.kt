@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.nounish.launcher.CoinTickerUi
 import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.IdxItemUi
@@ -72,6 +73,8 @@ fun HomeScreen(
     carouselAutoRotate: Boolean = true,
     carouselIntervalSeconds: Int = 7,
     carouselTransition: String = "slide",
+    separateMarketViews: Boolean = true,
+    separatedMarketLayout: String = "stacked",
     showAppIcons: Boolean = true,
     monochromeIcons: Boolean = true,
     fontSize: String = "medium",
@@ -127,7 +130,7 @@ fun HomeScreen(
     var appToRename by remember { mutableStateOf<AppItem?>(null) }
     var renameInputText by remember { mutableStateOf("") }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
@@ -145,7 +148,6 @@ fun HomeScreen(
         if (showClock || showDate) {
             Column(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
                     .padding(top = 16.dp)
                     .combinedClickable(
                         onClick = {
@@ -176,15 +178,15 @@ fun HomeScreen(
             }
         }
 
-        // Market Section (middle area): Auto-rotating carousel between Crypto and IDX Saham
+        // Market Section (middle area): Takes all available vertical space between Clock and Pinned Apps
         val hasCrypto = showCrypto && cryptoCoins.isNotEmpty()
         val hasIdx = showIdx && idxStocks.isNotEmpty()
 
         var currentViewIndex by remember { mutableIntStateOf(0) }
 
-        // Auto-advance slideshow timer
-        LaunchedEffect(carouselAutoRotate, carouselIntervalSeconds, hasCrypto, hasIdx) {
-            if (carouselAutoRotate && hasCrypto && hasIdx) {
+        // Auto-advance slideshow timer (for carousel mode)
+        LaunchedEffect(carouselAutoRotate, carouselIntervalSeconds, hasCrypto, hasIdx, separateMarketViews) {
+            if (!separateMarketViews && carouselAutoRotate && hasCrypto && hasIdx) {
                 val intervalMs = (carouselIntervalSeconds.coerceIn(3, 30) * 1000L)
                 while (true) {
                     delay(intervalMs)
@@ -193,216 +195,146 @@ fun HomeScreen(
             }
         }
 
-        if (hasCrypto || hasIdx) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(bottom = 60.dp)
-            ) {
-                // If both views are active, show a subtle selector tab
-                if (hasCrypto && hasIdx) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                        Text(
-                            text = "CRYPTO",
-                            style = typography.clock,
-                            fontWeight = if (currentViewIndex == 0) FontWeight.Bold else FontWeight.Normal,
-                            color = if (currentViewIndex == 0) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
-                            modifier = Modifier
-                                .clickable { currentViewIndex = 0 }
-                                .padding(vertical = 2.dp)
-                        )
-                        Text(
-                            text = "·",
-                            style = typography.clock,
-                            color = colors.textSecondary.copy(alpha = 0.35f)
-                        )
-                        Text(
-                            text = "IDX SAHAM",
-                            style = typography.clock,
-                            fontWeight = if (currentViewIndex == 1) FontWeight.Bold else FontWeight.Normal,
-                            color = if (currentViewIndex == 1) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
-                            modifier = Modifier
-                                .clickable { currentViewIndex = 1 }
-                                .padding(vertical = 2.dp)
-                        )
-                    }
-                }
-
-                val activeIndex = when {
-                    !hasCrypto -> 1
-                    !hasIdx -> 0
-                    else -> currentViewIndex
-                }
-
-                AnimatedContent(
-                    targetState = activeIndex,
-                    transitionSpec = {
-                        if (carouselTransition == "crossfade") {
-                            fadeIn(animationSpec = tween(350)) togetherWith fadeOut(animationSpec = tween(350))
-                        } else {
-                            if (targetState > initialState) {
-                                (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeIn(tween(250)))
-                                    .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeOut(tween(200)))
-                            } else {
-                                (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeIn(tween(250)))
-                                    .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeOut(tween(200)))
-                            }
-                        }
-                    },
-                    label = "marketCarouselTransition"
-                ) { targetView ->
-                    if (targetView == 0) {
-                        // Crypto Market View
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            if (hasCrypto || hasIdx) {
+                if (hasCrypto && hasIdx && separateMarketViews) {
+                    // SEPARATED MODE: Display both simultaneously to maximize screen space
+                    if (separatedMarketLayout == "side_by_side") {
+                        // Two columns (Side by side)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.Top
                         ) {
-                            cryptoCoins.forEach { coin ->
-                                var showDetails by remember { mutableStateOf(false) }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "CRYPTO",
+                                    style = typography.clock,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary.copy(alpha = 0.45f),
+                                    letterSpacing = 1.sp,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                                CryptoMarketList(cryptoCoins = cryptoCoins, compact = true)
+                            }
 
-                                Column(
-                                    modifier = Modifier
-                                        .clickable { showDetails = !showDetails }
-                                        .graphicsLayer {
-                                            alpha = if (coin.isStale) 0.55f else 1.0f
-                                        }
-                                        .padding(vertical = 4.dp)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        Text(
-                                            text = coin.symbol,
-                                            style = typography.drawerItem,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = colors.textPrimary
-                                        )
-
-                                        Text(
-                                            text = coin.price,
-                                            style = typography.drawerItem,
-                                            color = colors.textSecondary
-                                        )
-
-                                        if (coin.changeText.isNotEmpty()) {
-                                            val changeColor = if (coin.changePercent >= 0.0) CryptoGreen else CryptoRed
-                                            Text(
-                                                text = coin.changeText,
-                                                style = typography.priceLabel,
-                                                color = changeColor
-                                            )
-                                        }
-
-                                        // 24h Text sparkline trend
-                                        if (coin.sparkline.isNotEmpty()) {
-                                            val sparkColor = if (coin.changePercent >= 0.0) CryptoGreen.copy(alpha = 0.85f) else CryptoRed.copy(alpha = 0.85f)
-                                            Text(
-                                                text = coin.sparkline,
-                                                style = typography.priceLabel,
-                                                color = sparkColor
-                                            )
-                                        }
-
-                                        // Stale-data indicator
-                                        if (coin.isStale && coin.ageMarker.isNotEmpty()) {
-                                            Text(
-                                                text = coin.ageMarker,
-                                                style = typography.priceLabel,
-                                                color = colors.textSecondary.copy(alpha = 0.6f)
-                                            )
-                                        }
-                                    }
-
-                                    // Expandable 24h High/Low details on tap
-                                    if (showDetails && coin.highPrice.isNotEmpty() && coin.lowPrice.isNotEmpty()) {
-                                        Text(
-                                            text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}",
-                                            style = typography.clock,
-                                            color = colors.textSecondary.copy(alpha = 0.6f),
-                                            modifier = Modifier.padding(top = 2.dp)
-                                        )
-                                    }
-                                }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "IDX SAHAM",
+                                    style = typography.clock,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary.copy(alpha = 0.45f),
+                                    letterSpacing = 1.sp,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                                IdxMarketList(idxStocks = idxStocks, compact = true)
                             }
                         }
                     } else {
-                        // IDX Saham Market View
+                        // Stacked vertically (Default separated mode)
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            idxStocks.forEach { stock ->
-                                var showDetails by remember { mutableStateOf(false) }
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = "CRYPTO",
+                                    style = typography.clock,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary.copy(alpha = 0.45f),
+                                    letterSpacing = 1.sp,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                                CryptoMarketList(cryptoCoins = cryptoCoins, compact = false)
+                            }
 
-                                Column(
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = "IDX SAHAM",
+                                    style = typography.clock,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary.copy(alpha = 0.45f),
+                                    letterSpacing = 1.sp,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                                IdxMarketList(idxStocks = idxStocks, compact = false)
+                            }
+                        }
+                    }
+                } else {
+                    // CAROUSEL MODE (or single market active)
+                    Column {
+                        // If both views are active, show a subtle selector tab
+                        if (hasCrypto && hasIdx) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            ) {
+                                Text(
+                                    text = "CRYPTO",
+                                    style = typography.clock,
+                                    fontWeight = if (currentViewIndex == 0) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (currentViewIndex == 0) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
                                     modifier = Modifier
-                                        .clickable { showDetails = !showDetails }
-                                        .graphicsLayer {
-                                            alpha = if (stock.isStale) 0.55f else 1.0f
-                                        }
-                                        .padding(vertical = 4.dp)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        Text(
-                                            text = stock.symbol,
-                                            style = typography.drawerItem,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = colors.textPrimary
-                                        )
+                                        .clickable { currentViewIndex = 0 }
+                                        .padding(vertical = 2.dp)
+                                )
+                                Text(
+                                    text = "·",
+                                    style = typography.clock,
+                                    color = colors.textSecondary.copy(alpha = 0.35f)
+                                )
+                                Text(
+                                    text = "IDX SAHAM",
+                                    style = typography.clock,
+                                    fontWeight = if (currentViewIndex == 1) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (currentViewIndex == 1) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
+                                    modifier = Modifier
+                                        .clickable { currentViewIndex = 1 }
+                                        .padding(vertical = 2.dp)
+                                )
+                            }
+                        }
 
-                                        Text(
-                                            text = stock.priceText,
-                                            style = typography.drawerItem,
-                                            color = colors.textSecondary
-                                        )
+                        val activeIndex = when {
+                            !hasCrypto -> 1
+                            !hasIdx -> 0
+                            else -> currentViewIndex
+                        }
 
-                                        if (stock.changeText.isNotEmpty()) {
-                                            val changeColor = if (stock.changePercent >= 0.0) CryptoGreen else CryptoRed
-                                            Text(
-                                                text = stock.changeText,
-                                                style = typography.priceLabel,
-                                                color = changeColor
-                                            )
-                                        }
-
-                                        // Stale-data indicator
-                                        if (stock.isStale && stock.ageMarker.isNotEmpty()) {
-                                            Text(
-                                                text = stock.ageMarker,
-                                                style = typography.priceLabel,
-                                                color = colors.textSecondary.copy(alpha = 0.6f)
-                                            )
-                                        }
-                                    }
-
-                                    // Expandable details: 24h High/Low & Volume on tap
-                                    if (showDetails) {
-                                        val details = mutableListOf<String>()
-                                        if (stock.highPrice.isNotEmpty() && stock.lowPrice.isNotEmpty()) {
-                                            details.add("24h H: ${stock.highPrice}  ·  L: ${stock.lowPrice}")
-                                        }
-                                        if (stock.volumeText.isNotEmpty()) {
-                                            details.add("Vol: ${stock.volumeText}")
-                                        }
-                                        if (stock.name.isNotEmpty() && !stock.name.equals(stock.symbol, ignoreCase = true)) {
-                                            details.add(stock.name)
-                                        }
-                                        if (details.isNotEmpty()) {
-                                            Text(
-                                                text = details.joinToString("  ·  "),
-                                                style = typography.clock,
-                                                color = colors.textSecondary.copy(alpha = 0.6f),
-                                                modifier = Modifier.padding(top = 2.dp)
-                                            )
-                                        }
+                        AnimatedContent(
+                            targetState = activeIndex,
+                            transitionSpec = {
+                                if (carouselTransition == "crossfade") {
+                                    fadeIn(animationSpec = tween(350)) togetherWith fadeOut(animationSpec = tween(350))
+                                } else {
+                                    if (targetState > initialState) {
+                                        (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeIn(tween(250)))
+                                            .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeOut(tween(200)))
+                                    } else {
+                                        (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeIn(tween(250)))
+                                            .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeOut(tween(200)))
                                     }
                                 }
+                            },
+                            label = "marketCarouselTransition"
+                        ) { targetView ->
+                            if (targetView == 0) {
+                                CryptoMarketList(cryptoCoins = cryptoCoins, compact = false)
+                            } else {
+                                IdxMarketList(idxStocks = idxStocks, compact = false)
                             }
                         }
                     }
@@ -410,13 +342,12 @@ fun HomeScreen(
             }
         }
 
-        // Pinned shortcuts positioned in bottom-middle area for optimal one-hand reach
+        // Pinned shortcuts positioned in bottom area for optimal one-hand reach
         val fontScale = getFontScale(fontSize)
         val iconSize = (24 * fontScale).coerceIn(16f, 32f).dp
 
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
                 .fillMaxWidth()
                 .padding(bottom = 64.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -577,5 +508,166 @@ fun HomeScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun CryptoMarketList(
+    cryptoCoins: List<CoinTickerUi>,
+    compact: Boolean = false
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp)
+    ) {
+        cryptoCoins.forEach { coin ->
+            var showDetails by remember { mutableStateOf(false) }
+
+            Column(
+                modifier = Modifier
+                    .clickable { showDetails = !showDetails }
+                    .graphicsLayer {
+                        alpha = if (coin.isStale) 0.55f else 1.0f
+                    }
+                    .padding(vertical = 2.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp)
+                ) {
+                    Text(
+                        text = coin.symbol,
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textPrimary
+                    )
+
+                    Text(
+                        text = coin.price,
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        color = colors.textSecondary
+                    )
+
+                    if (coin.changeText.isNotEmpty()) {
+                        val changeColor = if (coin.changePercent >= 0.0) CryptoGreen else CryptoRed
+                        Text(
+                            text = coin.changeText,
+                            style = typography.priceLabel,
+                            color = changeColor
+                        )
+                    }
+
+                    if (!compact && coin.sparkline.isNotEmpty()) {
+                        val sparkColor = if (coin.changePercent >= 0.0) CryptoGreen.copy(alpha = 0.85f) else CryptoRed.copy(alpha = 0.85f)
+                        Text(
+                            text = coin.sparkline,
+                            style = typography.priceLabel,
+                            color = sparkColor
+                        )
+                    }
+
+                    if (coin.isStale && coin.ageMarker.isNotEmpty()) {
+                        Text(
+                            text = coin.ageMarker,
+                            style = typography.priceLabel,
+                            color = colors.textSecondary.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                if (showDetails && coin.highPrice.isNotEmpty() && coin.lowPrice.isNotEmpty()) {
+                    Text(
+                        text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}",
+                        style = typography.clock,
+                        color = colors.textSecondary.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IdxMarketList(
+    idxStocks: List<IdxItemUi>,
+    compact: Boolean = false
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp)
+    ) {
+        idxStocks.forEach { stock ->
+            var showDetails by remember { mutableStateOf(false) }
+
+            Column(
+                modifier = Modifier
+                    .clickable { showDetails = !showDetails }
+                    .graphicsLayer {
+                        alpha = if (stock.isStale) 0.55f else 1.0f
+                    }
+                    .padding(vertical = 2.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp)
+                ) {
+                    Text(
+                        text = stock.symbol,
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textPrimary
+                    )
+
+                    Text(
+                        text = stock.priceText,
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        color = colors.textSecondary
+                    )
+
+                    if (stock.changeText.isNotEmpty()) {
+                        val changeColor = if (stock.changePercent >= 0.0) CryptoGreen else CryptoRed
+                        Text(
+                            text = stock.changeText,
+                            style = typography.priceLabel,
+                            color = changeColor
+                        )
+                    }
+
+                    if (stock.isStale && stock.ageMarker.isNotEmpty()) {
+                        Text(
+                            text = stock.ageMarker,
+                            style = typography.priceLabel,
+                            color = colors.textSecondary.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                if (showDetails) {
+                    val details = mutableListOf<String>()
+                    if (stock.highPrice.isNotEmpty() && stock.lowPrice.isNotEmpty()) {
+                        details.add("24h H: ${stock.highPrice}  ·  L: ${stock.lowPrice}")
+                    }
+                    if (stock.volumeText.isNotEmpty()) {
+                        details.add("Vol: ${stock.volumeText}")
+                    }
+                    if (stock.name.isNotEmpty() && !stock.name.equals(stock.symbol, ignoreCase = true)) {
+                        details.add(stock.name)
+                    }
+                    if (details.isNotEmpty()) {
+                        Text(
+                            text = details.joinToString("  ·  "),
+                            style = typography.clock,
+                            color = colors.textSecondary.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }

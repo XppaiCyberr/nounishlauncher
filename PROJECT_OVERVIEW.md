@@ -45,8 +45,15 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Tap any stock row to expand clean 24-hour high, low, and traded share volume (`24h H: 10,250 · L: 10,000 · Vol: 78.4M`).
   - Full DataStore caching for instantaneous offline rendering with stale age markers (`·now`, `·5m`, `·1h`).
   - Toggleable in Settings under **Market Prices -> Show IDX stocks on home screen**.
+- **Separated Market Views (Maximize Middle Screen Space)**:
+  - Option to display both Crypto and IDX Saham simultaneously on the Home screen to maximize the spacious middle area between the clock and pinned shortcuts.
+  - Two selectable layout arrangements:
+    - **Stacked vertically**: Crypto on top, IDX Saham below with clean subtle section headers (`CRYPTO`, `IDX SAHAM`).
+    - **Two columns (Side by side)**: Crypto on the left column, IDX Saham on the right column.
+  - Middle market viewport automatically scales to available vertical space without crowding or colliding with the top clock or bottom pinned shortcuts.
+  - Toggleable in Settings under **Market Prices -> Separate Crypto & Saham**.
 - **Auto-Rotating Market Carousel (Auto-Advance Slideshow)**:
-  - When both Crypto and IDX Saham widgets are enabled, an auto-rotating carousel alternates between the Crypto and IDX views.
+  - When separation is disabled, an auto-rotating carousel alternates smoothly between the Crypto and IDX views.
   - Animation transitions: Horizontal slide with subtle fade (`slide`) or smooth crossfade (`crossfade`).
   - Configurable slideshow rotation interval (5s to 30s, default 7s).
   - Manual interactive tabs: Tap `CRYPTO` or `IDX SAHAM` to switch immediately and pause/resume smoothly.

@@ -947,6 +947,18 @@ class MainViewModel(
         }
     }
 
+    fun setSeparateMarketViews(separate: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setSeparateMarketViews(separate)
+        }
+    }
+
+    fun setSeparatedMarketLayout(layout: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setSeparatedMarketLayout(layout)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null

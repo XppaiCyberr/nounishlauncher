@@ -66,6 +66,8 @@ fun SettingsScreen(
     onToggleMarketCarouselAutoRotate: (Boolean) -> Unit = {},
     onUpdateMarketCarouselInterval: (Int) -> Unit = {},
     onUpdateMarketCarouselTransition: (String) -> Unit = {},
+    onToggleSeparateMarketViews: (Boolean) -> Unit = {},
+    onUpdateSeparatedMarketLayout: (String) -> Unit = {},
     onToggleShowDrawerUsdRate: (Boolean) -> Unit = {},
     onToggleWebSocketOnHome: (Boolean) -> Unit,
     onUpdateCryptoSymbols: (List<String>) -> Unit,
@@ -435,38 +437,60 @@ fun SettingsScreen(
                 if (settings.showHomeCrypto && settings.showHomeIdx) {
                     item {
                         SettingsSwitchRow(
-                            title = "Auto-rotate market carousel",
-                            subtitle = if (settings.marketCarouselAutoRotate) "Slideshow alternates between Crypto and IDX" else "Manual tap to switch",
-                            checked = settings.marketCarouselAutoRotate,
-                            onCheckedChange = onToggleMarketCarouselAutoRotate
+                            title = "Separate Crypto & Saham",
+                            subtitle = if (settings.separateMarketViews) "Display both markets simultaneously (maximize screen space)" else "Rotate between both in a single carousel",
+                            checked = settings.separateMarketViews,
+                            onCheckedChange = onToggleSeparateMarketViews
                         )
                     }
 
-                    item {
-                        SettingsActionRow(
-                            title = "Carousel transition",
-                            subtitle = if (settings.marketCarouselTransition == "slide") "Slide transition" else "Crossfade transition",
-                            onClick = {
-                                val next = if (settings.marketCarouselTransition == "slide") "crossfade" else "slide"
-                                onUpdateMarketCarouselTransition(next)
-                            }
-                        )
-                    }
-
-                    item {
-                        SettingsActionRow(
-                            title = "Carousel slide interval",
-                            subtitle = "${settings.marketCarouselIntervalSeconds} seconds",
-                            onClick = {
-                                val next = when (settings.marketCarouselIntervalSeconds) {
-                                    5 -> 7
-                                    7 -> 10
-                                    10 -> 15
-                                    else -> 5
+                    if (settings.separateMarketViews) {
+                        item {
+                            SettingsActionRow(
+                                title = "Separated market layout",
+                                subtitle = if (settings.separatedMarketLayout == "side_by_side") "Two columns (Side by side)" else "Stacked vertically",
+                                onClick = {
+                                    val next = if (settings.separatedMarketLayout == "side_by_side") "stacked" else "side_by_side"
+                                    onUpdateSeparatedMarketLayout(next)
                                 }
-                                onUpdateMarketCarouselInterval(next)
-                            }
-                        )
+                            )
+                        }
+                    } else {
+                        item {
+                            SettingsSwitchRow(
+                                title = "Auto-rotate market carousel",
+                                subtitle = if (settings.marketCarouselAutoRotate) "Slideshow alternates between Crypto and IDX" else "Manual tap to switch",
+                                checked = settings.marketCarouselAutoRotate,
+                                onCheckedChange = onToggleMarketCarouselAutoRotate
+                            )
+                        }
+
+                        item {
+                            SettingsActionRow(
+                                title = "Carousel transition",
+                                subtitle = if (settings.marketCarouselTransition == "slide") "Slide transition" else "Crossfade transition",
+                                onClick = {
+                                    val next = if (settings.marketCarouselTransition == "slide") "crossfade" else "slide"
+                                    onUpdateMarketCarouselTransition(next)
+                                }
+                            )
+                        }
+
+                        item {
+                            SettingsActionRow(
+                                title = "Carousel slide interval",
+                                subtitle = "${settings.marketCarouselIntervalSeconds} seconds",
+                                onClick = {
+                                    val next = when (settings.marketCarouselIntervalSeconds) {
+                                        5 -> 7
+                                        7 -> 10
+                                        10 -> 15
+                                        else -> 5
+                                    }
+                                    onUpdateMarketCarouselInterval(next)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -604,7 +628,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.9",
+                        text = "Nounish Launcher 1.0.10",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
