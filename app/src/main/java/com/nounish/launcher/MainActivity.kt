@@ -14,7 +14,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,7 +39,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
-    // Track active screen
+    // Track active screen (restored on process recreation)
     private val currentScreenState = mutableStateOf(Screen.Home)
 
     private val exportSettingsLauncher = registerForActivityResult(
@@ -83,6 +82,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // Process-death recovery
+        if (savedInstanceState != null) {
+            val screenName = savedInstanceState.getString("KEY_CURRENT_SCREEN")
+            if (screenName != null) {
+                try {
+                    currentScreenState.value = Screen.valueOf(screenName)
+                } catch (_: Exception) {}
+            }
+        }
 
         setContent {
             val settings by viewModel.settings.collectAsState()
@@ -263,6 +272,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("KEY_CURRENT_SCREEN", currentScreenState.value.name)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // Home button pressed while launcher is running: return home
@@ -272,8 +286,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh installed apps whenever launcher returns to foreground
-        viewModel.appRepository.reloadApps()
+        // Do NOT re-query PackageManager here. App list is kept in memory and refreshed
+        // strictly via PackageChangeReceiver when apps are installed/uninstalled.
         val settings = viewModel.settings.value
         if (settings.cryptoPriceEnabled) {
             val isHome = currentScreenState.value == Screen.Home
@@ -283,7 +297,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        // Immediately terminate WebSocket and polling when launcher is paused/asleep
+        // Immediately terminate WebSocket and polling when launcher is paused or asleep
         viewModel.stopAllPriceUpdates()
     }
 }

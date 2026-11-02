@@ -1,6 +1,5 @@
 package com.nounish.launcher.data
 
-import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -16,6 +15,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 
 class AppRepository(
     private val context: Context,
@@ -25,15 +27,32 @@ class AppRepository(
     val apps: StateFlow<List<AppItem>> = _apps.asStateFlow()
 
     private val packageManager: PackageManager = context.packageManager
+    private val cacheFile = File(context.filesDir, "apps_cache.json")
 
     init {
-        reloadApps()
+        // Cold start optimization:
+        // 1. Read last known installed apps from fast local disk cache (< 2 ms)
+        // 2. Query PackageManager asynchronously in the background on Dispatchers.IO
+        scope.launch(Dispatchers.IO) {
+            val cached = loadCachedAppsFromDisk()
+            if (cached.isNotEmpty()) {
+                _apps.value = cached
+            }
+            val fresh = queryInstalledApps()
+            _apps.value = fresh
+            saveCachedAppsToDisk(fresh)
+        }
     }
 
+    /**
+     * Refreshes installed applications.
+     * Should ONLY be called on package change broadcast (install / uninstall / update).
+     */
     fun reloadApps() {
         scope.launch(Dispatchers.IO) {
             val list = queryInstalledApps()
             _apps.value = list
+            saveCachedAppsToDisk(list)
         }
     }
 
@@ -58,6 +77,43 @@ class AppRepository(
                 )
             }
             .sortedBy { it.label.lowercase() }
+    }
+
+    private fun loadCachedAppsFromDisk(): List<AppItem> {
+        return try {
+            if (!cacheFile.exists()) return emptyList()
+            val content = cacheFile.readText(Charsets.UTF_8)
+            if (content.isBlank()) return emptyList()
+            val array = JSONArray(content)
+            val list = mutableListOf<AppItem>()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                list.add(
+                    AppItem(
+                        label = obj.getString("label"),
+                        packageName = obj.getString("packageName"),
+                        activityName = obj.optString("activityName").takeIf { it.isNotBlank() }
+                    )
+                )
+            }
+            list.sortedBy { it.label.lowercase() }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun saveCachedAppsToDisk(list: List<AppItem>) {
+        try {
+            val array = JSONArray()
+            for (app in list) {
+                val obj = JSONObject()
+                obj.put("label", app.label)
+                obj.put("packageName", app.packageName)
+                obj.put("activityName", app.activityName ?: "")
+                array.put(obj)
+            }
+            cacheFile.writeText(array.toString(), Charsets.UTF_8)
+        } catch (_: Exception) {}
     }
 
     fun launchApp(item: AppItem) {

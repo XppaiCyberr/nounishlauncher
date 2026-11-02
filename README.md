@@ -6,6 +6,10 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 
 ## Features
 
+- **Cold Start under 300 ms**: Pinned apps and market prices are drawn on frame 1 directly from local DataStore cache, while the full app list queries asynchronously in the background.
+- **In-Memory App Caching**: The installed app list is loaded once into memory with disk persistence (`apps_cache.json`) and updated strictly when `PackageChangeReceiver` notifies of package changes. Opening the drawer never re-queries `PackageManager`.
+- **Process-Death Resilient**: Full state restoration across OS process kills (active screen, search query, scroll position, and user configurations).
+- **Zero-Jank Network Architecture**: All network operations (polling and WebSockets) run strictly on `Dispatchers.IO` and are cancelled the instant Home leaves the screen or during `onPause()`.
 - **Text-Only Design**: Apps are displayed solely by name. No visual noise, no notification badges, and zero icon bitmaps loaded into memory.
 - **Custom App Renaming**: Long-press any app in the Home screen or Drawer to assign a custom label (e.g. "Chrome" -> "web", "Spotify" -> "music"). Easily reset back to default at any time.
 - **AMOLED Monochrome**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme.

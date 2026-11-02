@@ -2,6 +2,7 @@ package com.nounish.launcher
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.nounish.launcher.data.AppRepository
 import com.nounish.launcher.data.BinanceWebSocketClient
@@ -15,6 +16,7 @@ import com.nounish.launcher.data.RateLimitException
 import com.nounish.launcher.data.SettingsStore
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.service.PackageChangeReceiver
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +42,10 @@ data class CoinTickerUi(
     val sparkline: String = ""
 )
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
+class MainViewModel(
+    application: Application,
+    private val savedStateHandle: SavedStateHandle
+) : AndroidViewModel(application) {
 
     private val settingsStore = SettingsStore(application)
     val appRepository = AppRepository(application, viewModelScope)
@@ -59,11 +64,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }.sortedBy { it.displayLabel.lowercase() }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val searchQuery = MutableStateFlow("")
+    // Process-death safe search query state
+    val searchQuery: StateFlow<String> = savedStateHandle.getStateFlow("search_query", "")
 
+    // Cold start optimization:
+    // Emits immediately on frame 1 using DataStore pinnedAppLabels cache,
+    // then seamlessly updates with full AppItem once PackageManager loads.
     val pinnedApps: StateFlow<List<AppItem>> = combine(allApps, settings) { apps, pref ->
-        pref.pinnedApps.mapNotNull { pkg ->
-            apps.find { it.packageName == pkg }
+        val appMap = apps.associateBy { it.packageName }
+        pref.pinnedApps.map { pkg ->
+            val fullApp = appMap[pkg]
+            if (fullApp != null) {
+                fullApp
+            } else {
+                val label = pref.pinnedAppLabels[pkg] ?: pkg
+                val custom = pref.customAppLabels[pkg]
+                AppItem(
+                    label = label,
+                    packageName = pkg,
+                    customLabel = custom
+                )
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -118,13 +139,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var lastKlineFetchTime = 0L
 
     init {
+        // Refresh apps ONLY on package changes (installed / uninstalled / updated)
         PackageChangeReceiver.onPackageChangedListener = {
             appRepository.reloadApps()
+        }
+
+        // Cache pinned app labels to DataStore whenever apps load
+        viewModelScope.launch(Dispatchers.IO) {
+            allApps.collect { appsList ->
+                if (appsList.isNotEmpty()) {
+                    val pref = settings.value
+                    val currentLabels = pref.pinnedAppLabels
+                    val newLabels = currentLabels.toMutableMap()
+                    var changed = false
+                    appsList.forEach { app ->
+                        if (pref.pinnedApps.contains(app.packageName)) {
+                            if (newLabels[app.packageName] != app.label) {
+                                newLabels[app.packageName] = app.label
+                                changed = true
+                            }
+                        }
+                    }
+                    if (changed) {
+                        settingsStore.updatePinnedAppLabels(newLabels)
+                    }
+                }
+            }
         }
     }
 
     fun onSearchQueryChanged(newQuery: String) {
-        searchQuery.value = newQuery
+        savedStateHandle["search_query"] = newQuery
     }
 
     fun startPriceRefresh(isHomeActive: Boolean = false) {
@@ -137,7 +182,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         updatePriceDisplayFromCache(currentSettings)
 
-        // If Home screen is active and user opted into WebSocket on Home:
         if (isHomeActive && currentSettings.useWebSocketOnHome && currentSettings.showHomeCrypto) {
             stopPolling()
             startHomeWebSocket(currentSettings)
@@ -155,13 +199,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun startPolling() {
         if (priceJob?.isActive == true) return
 
-        priceJob = viewModelScope.launch {
+        priceJob = viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {
                 fetchFreshPrices()
 
-                // Calculate poll interval:
-                // Base: 15s (unmetered Wi-Fi), 60s (mobile data or battery saver), 90s (both)
-                // Exponential backoff: base * 2^consecutiveFailures (up to 240s max)
                 val baseInterval = NetworkHelper.getBasePollIntervalMs(getApplication())
                 val backoffMultiplier = (1 shl consecutiveFailures.coerceIn(0, 4))
                 val delayTime = (baseInterval * backoffMultiplier).coerceIn(15_000L, 240_000L)
@@ -190,7 +231,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 handleWebSocketTicker(sym, price, changePercent, changeText, high, low)
             },
             onError = { _ ->
-                // On error, fall back to polling with exponential backoff
                 stopHomeWebSocket()
                 consecutiveFailures++
                 startPolling()
@@ -200,8 +240,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         webSocketClient = client
         client.start()
 
-        // Also fetch initial 24h kline sparklines in background if needed
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             fetchSparklinesOnly(currentSettings)
         }
     }
@@ -223,7 +262,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val now = System.currentTimeMillis()
         val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
 
-        // Match original symbols that map to this trading pair
         currentSettings.cryptoSymbols.forEach { origSym ->
             val resolved = priceRepository.resolvePair(origSym, currentSettings.cryptoQuoteCurrency)
             val cleanOrig = origSym.trim().uppercase(Locale.US)
@@ -241,13 +279,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.updateCachedPrices(updatedCache)
         }
 
         consecutiveFailures = 0
 
-        // If top-right drawer ticker corresponds to this symbol, update it
         val symbols = currentSettings.cryptoSymbols
         val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
         val currentSymbol = (symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC").trim().uppercase(Locale.US)
@@ -269,7 +306,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun fetchSparklinesOnly(currentSettings: LauncherSettings) {
         val now = System.currentTimeMillis()
-        if (lastKlineFetchTime > 0L && now - lastKlineFetchTime < 300_000L) return // 5 min cache
+        if (lastKlineFetchTime > 0L && now - lastKlineFetchTime < 300_000L) return
         lastKlineFetchTime = now
 
         val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
@@ -405,7 +442,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (symbols.isEmpty()) return
 
         val nextIndex = (currentSettings.currentCryptoIndex + 1) % symbols.size
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setCurrentCryptoIndex(nextIndex)
             val symbol = symbols[nextIndex].trim().uppercase(Locale.US)
             val cached = currentSettings.cachedCryptoPrices[symbol]
@@ -421,38 +458,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 ageMarker = ageMarker,
                 sparkline = cached?.sparkline ?: ""
             )
-            // Fetch fresh
             fetchFreshPrices()
         }
     }
 
     fun pinApp(packageName: String) {
-        viewModelScope.launch {
-            settingsStore.pinApp(packageName)
+        viewModelScope.launch(Dispatchers.IO) {
+            val app = allApps.value.find { it.packageName == packageName }
+            val label = app?.label ?: packageName
+            settingsStore.pinApp(packageName, label)
         }
     }
 
     fun unpinApp(packageName: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.unpinApp(packageName)
         }
     }
 
     fun reorderPinnedApps(list: List<String>) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.reorderPinnedApps(list)
         }
     }
 
     fun toggleHideApp(packageName: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val isHidden = settings.value.hiddenApps.contains(packageName)
             settingsStore.setAppHidden(packageName, !isHidden)
         }
     }
 
     fun setAppCustomLabel(packageName: String, customLabel: String?) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setAppCustomLabel(packageName, customLabel)
         }
     }
@@ -466,49 +504,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setSwipeLeft(packageName: String?) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setSwipeLeftPackage(packageName)
         }
     }
 
     fun setSwipeRight(packageName: String?) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setSwipeRightPackage(packageName)
         }
     }
 
     fun setDoubleTapLock(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setDoubleTapLock(enabled)
         }
     }
 
     fun setShowClock(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowClock(enabled)
         }
     }
 
     fun setShowDate(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowDate(enabled)
         }
     }
 
     fun setShowHomeCrypto(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowHomeCrypto(enabled)
         }
     }
 
     fun setAutoLaunchSingleMatch(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setAutoLaunchSingleMatch(enabled)
         }
     }
 
     fun setCryptoPriceEnabled(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setCryptoPriceEnabled(enabled)
             if (enabled) {
                 startPriceRefresh(false)
@@ -520,45 +558,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setCryptoSymbols(symbols: List<String>) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setCryptoSymbols(symbols)
             fetchFreshPrices()
         }
     }
 
     fun setCryptoQuoteCurrency(quote: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setCryptoQuoteCurrency(quote)
             fetchFreshPrices()
         }
     }
 
     fun setUseWebSocketOnHome(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setUseWebSocketOnHome(enabled)
         }
     }
 
     fun setLightTheme(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setLightTheme(enabled)
         }
     }
 
     fun setUseMonospace(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setUseMonospace(enabled)
         }
     }
 
     fun setAlphabetIndexOnRight(onRight: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setAlphabetIndexOnRight(onRight)
         }
     }
 
     fun setIndexAnimationEnabled(enabled: Boolean) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setIndexAnimationEnabled(enabled)
         }
     }

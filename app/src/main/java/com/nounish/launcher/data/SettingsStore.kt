@@ -28,6 +28,7 @@ data class CachedCoinPrice(
 
 data class LauncherSettings(
     val pinnedApps: List<String> = emptyList(),
+    val pinnedAppLabels: Map<String, String> = emptyMap(),
     val hiddenApps: Set<String> = emptySet(),
     val customAppLabels: Map<String, String> = emptyMap(),
     val showClock: Boolean = true,
@@ -53,6 +54,7 @@ class SettingsStore(private val context: Context) {
 
     companion object {
         private val KEY_PINNED_APPS = stringPreferencesKey("pinned_apps")
+        private val KEY_PINNED_APP_LABELS = stringPreferencesKey("pinned_app_labels")
         private val KEY_HIDDEN_APPS = stringSetPreferencesKey("hidden_apps")
         private val KEY_CUSTOM_LABELS = stringPreferencesKey("custom_app_labels")
         private val KEY_SHOW_CLOCK = booleanPreferencesKey("show_clock")
@@ -82,8 +84,9 @@ class SettingsStore(private val context: Context) {
             pinnedRaw.split(",").filter { it.isNotBlank() }
         }
 
+        val pinnedLabels = parseLabelsMap(prefs[KEY_PINNED_APP_LABELS] ?: "")
         val hiddenSet = prefs[KEY_HIDDEN_APPS] ?: emptySet()
-        val customLabels = parseCustomLabels(prefs[KEY_CUSTOM_LABELS] ?: "")
+        val customLabels = parseLabelsMap(prefs[KEY_CUSTOM_LABELS] ?: "")
         val showClock = prefs[KEY_SHOW_CLOCK] ?: true
         val showDate = prefs[KEY_SHOW_DATE] ?: true
         val showHomeCrypto = prefs[KEY_SHOW_HOME_CRYPTO] ?: true
@@ -109,6 +112,7 @@ class SettingsStore(private val context: Context) {
 
         LauncherSettings(
             pinnedApps = pinnedList,
+            pinnedAppLabels = pinnedLabels,
             hiddenApps = hiddenSet,
             customAppLabels = customLabels,
             showClock = showClock,
@@ -131,12 +135,17 @@ class SettingsStore(private val context: Context) {
         )
     }
 
-    suspend fun pinApp(packageName: String) {
+    suspend fun pinApp(packageName: String, label: String? = null) {
         context.dataStore.edit { prefs ->
             val current = (prefs[KEY_PINNED_APPS] ?: "").split(",").filter { it.isNotBlank() }.toMutableList()
             if (!current.contains(packageName)) {
                 current.add(packageName)
                 prefs[KEY_PINNED_APPS] = current.joinToString(",")
+            }
+            if (!label.isNullOrBlank()) {
+                val currentLabels = parseLabelsMap(prefs[KEY_PINNED_APP_LABELS] ?: "").toMutableMap()
+                currentLabels[packageName] = label.trim()
+                prefs[KEY_PINNED_APP_LABELS] = JSONObject(currentLabels as Map<*, *>).toString()
             }
         }
     }
@@ -147,6 +156,16 @@ class SettingsStore(private val context: Context) {
             if (current.remove(packageName)) {
                 prefs[KEY_PINNED_APPS] = current.joinToString(",")
             }
+            val currentLabels = parseLabelsMap(prefs[KEY_PINNED_APP_LABELS] ?: "").toMutableMap()
+            if (currentLabels.remove(packageName) != null) {
+                prefs[KEY_PINNED_APP_LABELS] = JSONObject(currentLabels as Map<*, *>).toString()
+            }
+        }
+    }
+
+    suspend fun updatePinnedAppLabels(labels: Map<String, String>) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_PINNED_APP_LABELS] = JSONObject(labels as Map<*, *>).toString()
         }
     }
 
@@ -170,7 +189,7 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setAppCustomLabel(packageName: String, customLabel: String?) {
         context.dataStore.edit { prefs ->
-            val current = parseCustomLabels(prefs[KEY_CUSTOM_LABELS] ?: "").toMutableMap()
+            val current = parseLabelsMap(prefs[KEY_CUSTOM_LABELS] ?: "").toMutableMap()
             if (customLabel.isNullOrBlank()) {
                 current.remove(packageName)
             } else {
@@ -259,6 +278,7 @@ class SettingsStore(private val context: Context) {
         root.put("timestamp", System.currentTimeMillis())
 
         root.put("pinnedApps", JSONArray(settings.pinnedApps))
+        root.put("pinnedAppLabels", JSONObject(settings.pinnedAppLabels))
         root.put("hiddenApps", JSONArray(settings.hiddenApps))
         root.put("customAppLabels", JSONObject(settings.customAppLabels))
 
@@ -294,6 +314,11 @@ class SettingsStore(private val context: Context) {
                     val list = mutableListOf<String>()
                     for (i in 0 until arr.length()) list.add(arr.getString(i))
                     prefs[KEY_PINNED_APPS] = list.joinToString(",")
+                }
+
+                if (root.has("pinnedAppLabels")) {
+                    val obj = root.getJSONObject("pinnedAppLabels")
+                    prefs[KEY_PINNED_APP_LABELS] = obj.toString()
                 }
 
                 if (root.has("hiddenApps")) {
@@ -338,7 +363,7 @@ class SettingsStore(private val context: Context) {
         }
     }
 
-    private fun parseCustomLabels(raw: String): Map<String, String> {
+    private fun parseLabelsMap(raw: String): Map<String, String> {
         if (raw.isBlank()) return emptyMap()
         return try {
             val obj = JSONObject(raw)
