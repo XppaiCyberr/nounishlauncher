@@ -15,7 +15,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Zero-Jank Network Architecture**: All network operations (polling and WebSockets) run strictly on `Dispatchers.IO` and are cancelled the instant Home leaves the screen or during `onPause()`.
 - **Text-Only Design**: Apps are displayed solely by name. No visual noise, no notification badges, and zero icon bitmaps loaded into memory.
 - **Custom App Renaming**: Long-press any app in the Home screen or Drawer to assign a custom label (e.g. "Chrome" -> "web", "Spotify" -> "music"). Easily reset back to default at any time.
-- **AMOLED Monochrome & Typography**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme, monospace toggle, and adjustable font size scaling (Small 85%, Default 100%, Large 115%, Extra Large 130%) with live preview.
+- **AMOLED Monochrome & Typography**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme, monospace toggle, and adjustable font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%) with live preview and compact, refined layout spacing.
 - **Home Screen Essentials**:
   - **Pinned App Editing & Reordering**: Reorder pinned shortcuts with dedicated up (`↑`) and down (`↓`) controls in Settings without needing to unpin and re-pin.
   - **Strict 4–8 Pinned Limits**: Cleanly enforces the 4–8 pinned apps range. Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first." Attempting to unpin below 4 prompts: "Minimum 4 pinned apps required. Pin another app first." Fresh installs automatically seed the 4 essential apps.

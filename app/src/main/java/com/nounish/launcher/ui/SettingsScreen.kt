@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -97,14 +98,14 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(colors.background)
             .statusBarsPadding()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 16.dp)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -121,10 +122,10 @@ fun SettingsScreen(
                         color = colors.textSecondary,
                         modifier = Modifier
                             .clickable(onClick = onCloseSettings)
-                            .padding(8.dp)
+                            .padding(6.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
             }
 
             // Default Launcher button
@@ -290,7 +291,10 @@ fun SettingsScreen(
             }
 
             val fontSizeLabel = when (settings.fontSize) {
+                "micro", "tiny" -> "Micro (65%)"
+                "extra_small" -> "Extra Small (75%)"
                 "small" -> "Small (85%)"
+                "compact" -> "Compact (92%)"
                 "large" -> "Large (115%)"
                 "extra_large" -> "Extra Large (130%)"
                 else -> "Default (100%)"
@@ -386,7 +390,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -402,7 +406,7 @@ fun SettingsScreen(
                             color = colors.textSecondary,
                             modifier = Modifier
                                 .clickable { onUnhideApp(pkg) }
-                                .padding(8.dp)
+                                .padding(vertical = 4.dp, horizontal = 6.dp)
                         )
                     }
                 }
@@ -419,7 +423,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -432,7 +436,7 @@ fun SettingsScreen(
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             if (index > 0) {
                                 Text(
@@ -446,7 +450,7 @@ fun SettingsScreen(
                                             mutable.add(index - 1, item)
                                             onReorderPinnedApps(mutable)
                                         }
-                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        .padding(horizontal = 6.dp, vertical = 4.dp)
                                 )
                             }
 
@@ -462,7 +466,7 @@ fun SettingsScreen(
                                             mutable.add(index + 1, item)
                                             onReorderPinnedApps(mutable)
                                         }
-                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        .padding(horizontal = 6.dp, vertical = 4.dp)
                                 )
                             }
 
@@ -472,7 +476,7 @@ fun SettingsScreen(
                                 color = colors.textSecondary,
                                 modifier = Modifier
                                     .clickable { onUnpinApp(pkg) }
-                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                                    .padding(horizontal = 6.dp, vertical = 4.dp)
                             )
                         }
                     }
@@ -485,9 +489,9 @@ fun SettingsScreen(
             }
 
             item {
-                Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.4",
+                        text = "Nounish Launcher 1.0.5",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -497,7 +501,7 @@ fun SettingsScreen(
                         color = colors.textSecondary
                     )
                 }
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -841,7 +845,10 @@ fun SettingsScreen(
     // Font Size Dialog
     if (showFontSizeDialog) {
         val fontSizeOptions = listOf(
+            "micro" to Pair("Micro (65%)", 0.65f),
+            "extra_small" to Pair("Extra Small (75%)", 0.75f),
             "small" to Pair("Small (85%)", 0.85f),
+            "compact" to Pair("Compact (92%)", 0.92f),
             "medium" to Pair("Default (100%)", 1.0f),
             "large" to Pair("Large (115%)", 1.15f),
             "extra_large" to Pair("Extra Large (130%)", 1.30f)
@@ -858,8 +865,13 @@ fun SettingsScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    fontSizeOptions.forEach { (key, pair) ->
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 380.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(fontSizeOptions) { (key, pair) ->
                         val (label, scale) = pair
                         val isSelected = settings.fontSize == key
                         Column(
@@ -869,7 +881,7 @@ fun SettingsScreen(
                                     onUpdateFontSize(key)
                                     showFontSizeDialog = false
                                 }
-                                .padding(vertical = 8.dp)
+                                .padding(vertical = 6.dp)
                         ) {
                             Text(
                                 text = label,
@@ -905,7 +917,7 @@ private fun SettingsSectionHeader(title: String) {
         text = title.uppercase(),
         style = typography.settingsDescription,
         color = colors.textSecondary,
-        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
+        modifier = Modifier.padding(top = 10.dp, bottom = 2.dp)
     )
 }
 
@@ -923,11 +935,11 @@ private fun SettingsSwitchRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 10.dp),
+            .padding(vertical = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
             Text(
                 text = title,
                 style = typography.settingsItem,
@@ -967,7 +979,7 @@ private fun SettingsActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp)
+            .padding(vertical = 5.dp)
     ) {
         Text(
             text = title,

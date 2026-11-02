@@ -70,7 +70,10 @@ fun NounishLauncherTheme(
     }
 
     val fontScale = when (fontSize) {
+        "micro", "tiny" -> 0.65f
+        "extra_small" -> 0.75f
         "small" -> 0.85f
+        "compact" -> 0.92f
         "large" -> 1.15f
         "extra_large" -> 1.30f
         else -> 1.0f

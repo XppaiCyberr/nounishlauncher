@@ -17,7 +17,7 @@ data class LauncherTypography(
 )
 
 fun getLauncherTypography(fontFamily: FontFamily, fontScale: Float = 1.0f): LauncherTypography {
-    val scale = fontScale.coerceIn(0.7f, 1.6f)
+    val scale = fontScale.coerceIn(0.55f, 1.6f)
     return LauncherTypography(
         homeShortcut = TextStyle(
             fontFamily = fontFamily,

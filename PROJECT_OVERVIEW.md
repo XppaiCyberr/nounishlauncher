@@ -7,7 +7,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 ## Design Philosophy
 
 1. **Text-Only Interface**: Apps are represented solely by name. No icons are ever loaded or drawn into memory.
-2. **AMOLED Monochrome & Custom Typography**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. An optional light theme, monospace mode, and adjustable font size scaling (Small 85%, Default 100%, Large 115%, Extra Large 130%) are also available.
+2. **AMOLED Monochrome & Custom Typography**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. An optional light theme, monospace mode, and fine-grained font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%) are also available, alongside compact, clean settings menu margins.
 3. **Calm & Distraction-Free**: No notification dots, news feeds, unread counters, or recommendation algorithms.
 4. **Privacy-Focused & Offline by Default**: Zero analytics, telemetry, or tracking. The only network feature is the optional crypto ticker using Binance's public API (disabled by default, with zero background services).
 5. **Instantaneous & Lightweight**: App cold starts in under 300 ms with an optimized APK footprint of only **~1.05 MB**. Pinned shortcuts render on frame 1 from DataStore without waiting for `PackageManager`.
