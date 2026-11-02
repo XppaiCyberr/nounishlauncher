@@ -34,7 +34,23 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that fit seamlessly into the monochrome aesthetic.
   - **Expandable Details**: Tapping any coin row reveals its clean 24-hour high and low (`24h H: 78,068 · L: 77,262`).
   - **Stale-Data Indicator**: Dimmed text styling and age marker (`·now`, `·5m`, `·1h`) appear when offline or when viewing cached data.
-  - Toggleable in Settings under **Crypto Price -> Show crypto on home screen**.
+  - Toggleable in Settings under **Market Prices -> Show crypto on home screen**.
+- **Indonesian Stock Exchange (IDX Saham) Market Overview (Center Space)**:
+  - Displays live stock prices and indices from Bursa Efek Indonesia via `https://idx.xpp.wtf/`.
+  - Configurable display modes:
+    - **Watchlist**: Custom user-defined list of tickers (e.g. `BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`). Supports static cache for 47 major blue-chip stocks and automatic query fallback for other listed equities.
+    - **Indices**: Indonesian benchmark market indices (`IHSG`, `LQ45`).
+    - **Top Gainers**: Real-time top daily percentage gainers.
+    - **Top Losers**: Real-time top daily percentage losers.
+  - Tap any stock row to expand clean 24-hour high, low, and traded share volume (`24h H: 10,250 · L: 10,000 · Vol: 78.4M`).
+  - Full DataStore caching for instantaneous offline rendering with stale age markers (`·now`, `·5m`, `·1h`).
+  - Toggleable in Settings under **Market Prices -> Show IDX stocks on home screen**.
+- **Auto-Rotating Market Carousel (Auto-Advance Slideshow)**:
+  - When both Crypto and IDX Saham widgets are enabled, an auto-rotating carousel alternates between the Crypto and IDX views.
+  - Animation transitions: Horizontal slide with subtle fade (`slide`) or smooth crossfade (`crossfade`).
+  - Configurable slideshow rotation interval (5s to 30s, default 7s).
+  - Manual interactive tabs: Tap `CRYPTO` or `IDX SAHAM` to switch immediately and pause/resume smoothly.
+  - Toggleable in Settings under **Market Prices -> Auto-rotate market carousel**.
 - **Pinned App Shortcuts & Limits**:
   - Up to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach, with zero minimum limit (unpin down to 0 apps freely).
   - **Pinned App Reordering**: In Settings -> Pinned Apps, dedicated up (`↑`) and down (`↓`) controls allow direct reordering of shortcuts without unpinning and re-pinning.
@@ -150,6 +166,7 @@ nounishlauncher/
 │       │   │   ├── AppRepository.kt             # PackageManager loader (labels only, no icons)
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper for all preferences & cached prices
 │       │   │   ├── PriceRepository.kt           # Binance public 24hr ticker client, klines sparklines, rate limit backoff
+│       │   │   ├── IdxRepository.kt             # IDX stock quotes, indices, top gainers/losers, number formatting
 │       │   │   ├── BinanceWebSocketClient.kt    # Native RFC 6455 WebSocket client for live Home stream
 │       │   │   └── NetworkHelper.kt             # Metered network and battery saver detection
 │       │   ├── ui/

@@ -7,7 +7,10 @@ import androidx.lifecycle.viewModelScope
 import com.nounish.launcher.data.AppRepository
 import com.nounish.launcher.data.BinanceWebSocketClient
 import com.nounish.launcher.data.CachedCoinPrice
+import com.nounish.launcher.data.CachedIdxQuote
 import com.nounish.launcher.data.CoinTicker
+import com.nounish.launcher.data.IdxItemUi
+import com.nounish.launcher.data.IdxRepository
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.data.NetworkHelper
 import com.nounish.launcher.data.PriceRepository
@@ -144,7 +147,56 @@ class MainViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val idxRepository = IdxRepository()
+
+    val homeIdxList: StateFlow<List<IdxItemUi>> = settings.map { pref ->
+        val now = System.currentTimeMillis()
+        val symbolsToDisplay = when (pref.idxDisplayMode.lowercase(Locale.US)) {
+            "indices" -> listOf("IHSG", "LQ45")
+            else -> pref.idxSymbols
+        }
+        val cachedMap = pref.cachedIdxQuotes
+        val timestamp = pref.cachedIdxTimestamp
+        val isStale = timestamp <= 0L || (now - timestamp) > 300_000L
+        val ageMarker = if (isStale && timestamp > 0L) PriceRepository.formatAgeMarker(timestamp) else ""
+
+        if (pref.idxDisplayMode.lowercase(Locale.US) in listOf("gainers", "losers") && cachedMap.isNotEmpty()) {
+            cachedMap.values.take(5).map { quote ->
+                IdxItemUi(
+                    symbol = quote.symbol,
+                    name = quote.name,
+                    priceText = IdxRepository.formatPrice(quote.symbol, quote.price),
+                    changeText = IdxRepository.formatPercent(quote.changePercent),
+                    changePercent = quote.changePercent,
+                    highPrice = if (quote.high > 0) IdxRepository.formatPrice(quote.symbol, quote.high) else "",
+                    lowPrice = if (quote.low > 0) IdxRepository.formatPrice(quote.symbol, quote.low) else "",
+                    volumeText = IdxRepository.formatVolume(quote.volume),
+                    isStale = isStale,
+                    ageMarker = ageMarker
+                )
+            }
+        } else {
+            symbolsToDisplay.map { sym ->
+                val clean = sym.trim().uppercase(Locale.US).removeSuffix(".JK")
+                val quote = cachedMap[clean]
+                IdxItemUi(
+                    symbol = clean,
+                    name = quote?.name ?: clean,
+                    priceText = if (quote != null) IdxRepository.formatPrice(clean, quote.price) else "--",
+                    changeText = if (quote != null) IdxRepository.formatPercent(quote.changePercent) else "",
+                    changePercent = quote?.changePercent ?: 0.0,
+                    highPrice = if (quote != null && quote.high > 0) IdxRepository.formatPrice(clean, quote.high) else "",
+                    lowPrice = if (quote != null && quote.low > 0) IdxRepository.formatPrice(clean, quote.low) else "",
+                    volumeText = if (quote != null) IdxRepository.formatVolume(quote.volume) else "",
+                    isStale = isStale,
+                    ageMarker = ageMarker
+                )
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     private var priceJob: Job? = null
+    private var wsSecondaryPollJob: Job? = null
     private var webSocketClient: BinanceWebSocketClient? = null
     private var consecutiveFailures = 0
     private var lastKlineFetchTime = 0L
@@ -315,11 +367,22 @@ class MainViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             fetchSparklinesOnly(currentSettings)
         }
+
+        // Also poll USD rate and IDX prices periodically while WebSocket handles real-time crypto
+        wsSecondaryPollJob = viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                fetchUsdRate()
+                fetchIdxPrices()
+                delay(60_000L)
+            }
+        }
     }
 
     private fun stopHomeWebSocket() {
         webSocketClient?.close()
         webSocketClient = null
+        wsSecondaryPollJob?.cancel()
+        wsSecondaryPollJob = null
     }
 
     private fun handleWebSocketTicker(
@@ -408,6 +471,7 @@ class MainViewModel(
         if (!currentSettings.cryptoPriceEnabled) return
 
         fetchUsdRate()
+        fetchIdxPrices()
 
         if (currentSettings.cryptoSymbols.isEmpty()) return
 
@@ -571,6 +635,42 @@ class MainViewModel(
     fun refreshUsdRate() {
         viewModelScope.launch(Dispatchers.IO) {
             fetchUsdRate()
+        }
+    }
+
+    private suspend fun fetchIdxPrices() {
+        val currentSettings = settings.value
+        if (!currentSettings.showHomeIdx) return
+
+        val result = idxRepository.fetchIdxData(
+            displayMode = currentSettings.idxDisplayMode,
+            symbols = currentSettings.idxSymbols
+        )
+
+        val quotes = result.getOrNull()
+        if (!quotes.isNullOrEmpty()) {
+            val now = System.currentTimeMillis()
+            val updated = currentSettings.cachedIdxQuotes.toMutableMap()
+            quotes.forEach { q ->
+                updated[q.symbol.uppercase(Locale.US)] = CachedIdxQuote(
+                    symbol = q.symbol,
+                    name = q.name,
+                    price = q.price,
+                    change = q.change,
+                    changePercent = q.changePercent,
+                    volume = q.volume,
+                    high = q.high,
+                    low = q.low,
+                    timestamp = now
+                )
+            }
+            settingsStore.updateCachedIdxQuotes(updated, now)
+        }
+    }
+
+    fun refreshIdxPrices() {
+        viewModelScope.launch(Dispatchers.IO) {
+            fetchIdxPrices()
         }
     }
 
@@ -805,6 +905,45 @@ class MainViewModel(
     fun setShowDrawerUsdRate(show: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowDrawerUsdRate(show)
+        }
+    }
+
+    fun setShowHomeIdx(show: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowHomeIdx(show)
+            if (show) fetchIdxPrices()
+        }
+    }
+
+    fun setIdxDisplayMode(mode: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setIdxDisplayMode(mode)
+            fetchIdxPrices()
+        }
+    }
+
+    fun setIdxSymbols(symbols: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setIdxSymbols(symbols)
+            fetchIdxPrices()
+        }
+    }
+
+    fun setMarketCarouselAutoRotate(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setMarketCarouselAutoRotate(enabled)
+        }
+    }
+
+    fun setMarketCarouselInterval(seconds: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setMarketCarouselInterval(seconds)
+        }
+    }
+
+    fun setMarketCarouselTransition(transition: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setMarketCarouselTransition(transition)
         }
     }
 

@@ -26,6 +26,8 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Live Binance Crypto Market Overview**: Fills the spacious center area with real-time tickers, current prices, 24-hour daily percentage change, and text sparklines.
   - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that remain strictly text-only on the main ticker row.
   - **Expandable 24h High/Low**: Tapping any coin row reveals its clean 24-hour range (`H: 78,068 · L: 77,262`).
+  - **Indonesian Stock Exchange (IDX Saham) Price Overview**: Optional live IDX quotes (`https://idx.xpp.wtf/`) with modes for Custom Watchlist (`BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`), Indices (`IHSG`, `LQ45`), Top Gainers, or Top Losers, complete with expandable 24h high/low and volume on tap.
+  - **Auto-Rotating Market Carousel (Auto-Advance Slideshow)**: When both Crypto and IDX Saham widgets are enabled, the home center space smoothly alternates between Crypto and IDX views with a configurable slide or crossfade transition, or manual tap switching via interactive tabs.
   - **Stale-Data Indicator**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`) so you always know when data was last updated.
   - Pinned apps (4–8 items) in large (`28 sp`) light-weight text, left-aligned for ergonomic one-handed thumb reach.
   - Quick action dialog on long-press to rename, unpin, or open system app settings.
@@ -98,6 +100,7 @@ nounishlauncher/
 │       │   │   ├── AppRepository.kt             # PackageManager loader (labels only, no icons)
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper, JSON backup/restore serialization
 │       │   │   ├── PriceRepository.kt           # Binance 24hr ticker, klines sparkline, rate-limit backoff
+│       │   │   ├── IdxRepository.kt             # IDX stock quotes, indices, top gainers/losers, number formatting
 │       │   │   ├── BinanceWebSocketClient.kt    # Native RFC 6455 WebSocket client for live Home stream
 │       │   │   └── NetworkHelper.kt             # Metered network and battery saver detection
 │       │   ├── ui/

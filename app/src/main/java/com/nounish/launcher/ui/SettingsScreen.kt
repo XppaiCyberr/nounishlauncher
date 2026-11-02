@@ -60,6 +60,12 @@ fun SettingsScreen(
     onToggleDoubleTapLock: (Boolean) -> Unit,
     onToggleCryptoEnabled: (Boolean) -> Unit,
     onToggleShowHomeCrypto: (Boolean) -> Unit,
+    onToggleShowHomeIdx: (Boolean) -> Unit = {},
+    onUpdateIdxDisplayMode: (String) -> Unit = {},
+    onUpdateIdxSymbols: (List<String>) -> Unit = {},
+    onToggleMarketCarouselAutoRotate: (Boolean) -> Unit = {},
+    onUpdateMarketCarouselInterval: (Int) -> Unit = {},
+    onUpdateMarketCarouselTransition: (String) -> Unit = {},
     onToggleShowDrawerUsdRate: (Boolean) -> Unit = {},
     onToggleWebSocketOnHome: (Boolean) -> Unit,
     onUpdateCryptoSymbols: (List<String>) -> Unit,
@@ -85,6 +91,8 @@ fun SettingsScreen(
     var showAppPickerForSwipe by remember { mutableStateOf<String?>(null) } // "left" or "right"
     var showEditCoinsDialog by remember { mutableStateOf(false) }
     var showEditQuoteDialog by remember { mutableStateOf(false) }
+    var showIdxModeDialog by remember { mutableStateOf(false) }
+    var showIdxSymbolsDialog by remember { mutableStateOf(false) }
     var showClockFormatDialog by remember { mutableStateOf(false) }
     var showDateFormatDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
@@ -388,6 +396,79 @@ fun SettingsScreen(
                         onClick = { showEditQuoteDialog = true }
                     )
                 }
+
+                item {
+                    SettingsSwitchRow(
+                        title = "Show IDX stocks on home screen",
+                        subtitle = "Display live Indonesian stock exchange quotes on Home",
+                        checked = settings.showHomeIdx,
+                        onCheckedChange = onToggleShowHomeIdx
+                    )
+                }
+
+                if (settings.showHomeIdx) {
+                    item {
+                        val modeLabel = when (settings.idxDisplayMode) {
+                            "indices" -> "Market Indices (IHSG, LQ45)"
+                            "gainers" -> "Top Gainers"
+                            "losers" -> "Top Losers"
+                            else -> "Watchlist (${settings.idxSymbols.joinToString(", ")})"
+                        }
+                        SettingsActionRow(
+                            title = "IDX display mode",
+                            subtitle = modeLabel,
+                            onClick = { showIdxModeDialog = true }
+                        )
+                    }
+
+                    if (settings.idxDisplayMode == "watchlist") {
+                        item {
+                            SettingsActionRow(
+                                title = "IDX Watchlist",
+                                subtitle = settings.idxSymbols.joinToString(", "),
+                                onClick = { showIdxSymbolsDialog = true }
+                            )
+                        }
+                    }
+                }
+
+                if (settings.showHomeCrypto && settings.showHomeIdx) {
+                    item {
+                        SettingsSwitchRow(
+                            title = "Auto-rotate market carousel",
+                            subtitle = if (settings.marketCarouselAutoRotate) "Slideshow alternates between Crypto and IDX" else "Manual tap to switch",
+                            checked = settings.marketCarouselAutoRotate,
+                            onCheckedChange = onToggleMarketCarouselAutoRotate
+                        )
+                    }
+
+                    item {
+                        SettingsActionRow(
+                            title = "Carousel transition",
+                            subtitle = if (settings.marketCarouselTransition == "slide") "Slide transition" else "Crossfade transition",
+                            onClick = {
+                                val next = if (settings.marketCarouselTransition == "slide") "crossfade" else "slide"
+                                onUpdateMarketCarouselTransition(next)
+                            }
+                        )
+                    }
+
+                    item {
+                        SettingsActionRow(
+                            title = "Carousel slide interval",
+                            subtitle = "${settings.marketCarouselIntervalSeconds} seconds",
+                            onClick = {
+                                val next = when (settings.marketCarouselIntervalSeconds) {
+                                    5 -> 7
+                                    7 -> 10
+                                    10 -> 15
+                                    else -> 5
+                                }
+                                onUpdateMarketCarouselInterval(next)
+                            }
+                        )
+                    }
+                }
             }
 
             // Backup & Restore Section
@@ -523,7 +604,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.8",
+                        text = "Nounish Launcher 1.0.9",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -731,6 +812,152 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showEditQuoteDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // IDX Display Mode Dialog
+    if (showIdxModeDialog) {
+        val modes = listOf(
+            "watchlist" to "Custom Watchlist (Selected stocks & indices)",
+            "indices" to "Market Indices (IHSG, LQ45)",
+            "gainers" to "Top Gainers (Largest % increase)",
+            "losers" to "Top Losers (Largest % decline)"
+        )
+
+        AlertDialog(
+            onDismissRequest = { showIdxModeDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text("IDX Display Mode", style = typography.settingsHeading, color = colors.textPrimary)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    modes.forEach { (mode, desc) ->
+                        val isSelected = settings.idxDisplayMode == mode
+                        Text(
+                            text = desc,
+                            style = typography.settingsItem,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateIdxDisplayMode(mode)
+                                    showIdxModeDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showIdxModeDialog = false }) {
+                    Text("Close", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // IDX Watchlist Symbols Dialog
+    if (showIdxSymbolsDialog) {
+        var textValue by remember { mutableStateOf(settings.idxSymbols.joinToString(", ")) }
+        val suggestedPresets = listOf("IHSG", "BBCA", "BBRI", "BMRI", "TLKM", "ASII", "GOTO", "LQ45")
+
+        AlertDialog(
+            onDismissRequest = { showIdxSymbolsDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text("IDX Watchlist", style = typography.settingsHeading, color = colors.textPrimary)
+            },
+            text = {
+                Column {
+                    Text(
+                        "Enter Indonesian stock tickers or indices (comma separated):",
+                        style = typography.settingsDescription,
+                        color = colors.textSecondary
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Preset buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        suggestedPresets.take(4).forEach { sym ->
+                            Text(
+                                text = sym,
+                                fontSize = 12.sp,
+                                color = colors.textPrimary,
+                                modifier = Modifier
+                                    .background(colors.surface)
+                                    .clickable {
+                                        val currentList = textValue.split(",").map { it.trim().uppercase() }.filter { it.isNotEmpty() }.toMutableList()
+                                        if (!currentList.contains(sym)) {
+                                            currentList.add(sym)
+                                            textValue = currentList.joinToString(", ")
+                                        }
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        suggestedPresets.drop(4).forEach { sym ->
+                            Text(
+                                text = sym,
+                                fontSize = 12.sp,
+                                color = colors.textPrimary,
+                                modifier = Modifier
+                                    .background(colors.surface)
+                                    .clickable {
+                                        val currentList = textValue.split(",").map { it.trim().uppercase() }.filter { it.isNotEmpty() }.toMutableList()
+                                        if (!currentList.contains(sym)) {
+                                            currentList.add(sym)
+                                            textValue = currentList.joinToString(", ")
+                                        }
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    BasicTextField(
+                        value = textValue,
+                        onValueChange = { textValue = it },
+                        textStyle = typography.settingsItem.copy(color = colors.textPrimary),
+                        cursorBrush = SolidColor(colors.textPrimary),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.background)
+                            .padding(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val list = textValue.split(",")
+                        .map { it.trim().uppercase().removeSuffix(".JK") }
+                        .filter { it.isNotEmpty() }
+                    if (list.isNotEmpty()) {
+                        onUpdateIdxSymbols(list)
+                    }
+                    showIdxSymbolsDialog = false
+                }) {
+                    Text("Save", color = colors.textPrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showIdxSymbolsDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }

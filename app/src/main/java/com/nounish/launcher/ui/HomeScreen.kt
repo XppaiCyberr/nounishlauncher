@@ -2,6 +2,15 @@ package com.nounish.launcher.ui
 
 import android.content.Intent
 import android.provider.AlarmClock
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -24,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nounish.launcher.CoinTickerUi
 import com.nounish.launcher.data.AppIcon
+import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
@@ -56,6 +67,11 @@ fun HomeScreen(
     dateFormatPattern: String = "EEEE, d MMMM",
     showCrypto: Boolean,
     cryptoCoins: List<CoinTickerUi>,
+    showIdx: Boolean = true,
+    idxStocks: List<IdxItemUi> = emptyList(),
+    carouselAutoRotate: Boolean = true,
+    carouselIntervalSeconds: Int = 7,
+    carouselTransition: String = "slide",
     showAppIcons: Boolean = true,
     monochromeIcons: Boolean = true,
     fontSize: String = "medium",
@@ -160,79 +176,234 @@ fun HomeScreen(
             }
         }
 
-        // Binance Crypto Market Section (middle area)
-        if (showCrypto && cryptoCoins.isNotEmpty()) {
+        // Market Section (middle area): Auto-rotating carousel between Crypto and IDX Saham
+        val hasCrypto = showCrypto && cryptoCoins.isNotEmpty()
+        val hasIdx = showIdx && idxStocks.isNotEmpty()
+
+        var currentViewIndex by remember { mutableIntStateOf(0) }
+
+        // Auto-advance slideshow timer
+        LaunchedEffect(carouselAutoRotate, carouselIntervalSeconds, hasCrypto, hasIdx) {
+            if (carouselAutoRotate && hasCrypto && hasIdx) {
+                val intervalMs = (carouselIntervalSeconds.coerceIn(3, 30) * 1000L)
+                while (true) {
+                    delay(intervalMs)
+                    currentViewIndex = (currentViewIndex + 1) % 2
+                }
+            }
+        }
+
+        if (hasCrypto || hasIdx) {
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(bottom = 60.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(bottom = 60.dp)
             ) {
-                cryptoCoins.forEach { coin ->
-                    var showDetails by remember { mutableStateOf(false) }
-
-                    Column(
-                        modifier = Modifier
-                            .clickable { showDetails = !showDetails }
-                            .graphicsLayer {
-                                alpha = if (coin.isStale) 0.55f else 1.0f
-                            }
-                            .padding(vertical = 4.dp)
+                // If both views are active, show a subtle selector tab
+                if (hasCrypto && hasIdx) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = coin.symbol,
-                                style = typography.drawerItem,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textPrimary
-                            )
+                        Text(
+                            text = "CRYPTO",
+                            style = typography.clock,
+                            fontWeight = if (currentViewIndex == 0) FontWeight.Bold else FontWeight.Normal,
+                            color = if (currentViewIndex == 0) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
+                            modifier = Modifier
+                                .clickable { currentViewIndex = 0 }
+                                .padding(vertical = 2.dp)
+                        )
+                        Text(
+                            text = "·",
+                            style = typography.clock,
+                            color = colors.textSecondary.copy(alpha = 0.35f)
+                        )
+                        Text(
+                            text = "IDX SAHAM",
+                            style = typography.clock,
+                            fontWeight = if (currentViewIndex == 1) FontWeight.Bold else FontWeight.Normal,
+                            color = if (currentViewIndex == 1) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
+                            modifier = Modifier
+                                .clickable { currentViewIndex = 1 }
+                                .padding(vertical = 2.dp)
+                        )
+                    }
+                }
 
-                            Text(
-                                text = coin.price,
-                                style = typography.drawerItem,
-                                color = colors.textSecondary
-                            )
+                val activeIndex = when {
+                    !hasCrypto -> 1
+                    !hasIdx -> 0
+                    else -> currentViewIndex
+                }
 
-                            if (coin.changeText.isNotEmpty()) {
-                                val changeColor = if (coin.changePercent >= 0.0) CryptoGreen else CryptoRed
-                                Text(
-                                    text = coin.changeText,
-                                    style = typography.priceLabel,
-                                    color = changeColor
-                                )
-                            }
-
-                            // 24h Text sparkline trend
-                            if (coin.sparkline.isNotEmpty()) {
-                                val sparkColor = if (coin.changePercent >= 0.0) CryptoGreen.copy(alpha = 0.85f) else CryptoRed.copy(alpha = 0.85f)
-                                Text(
-                                    text = coin.sparkline,
-                                    style = typography.priceLabel,
-                                    color = sparkColor
-                                )
-                            }
-
-                            // Stale-data indicator
-                            if (coin.isStale && coin.ageMarker.isNotEmpty()) {
-                                Text(
-                                    text = coin.ageMarker,
-                                    style = typography.priceLabel,
-                                    color = colors.textSecondary.copy(alpha = 0.6f)
-                                )
+                AnimatedContent(
+                    targetState = activeIndex,
+                    transitionSpec = {
+                        if (carouselTransition == "crossfade") {
+                            fadeIn(animationSpec = tween(350)) togetherWith fadeOut(animationSpec = tween(350))
+                        } else {
+                            if (targetState > initialState) {
+                                (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeIn(tween(250)))
+                                    .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeOut(tween(200)))
+                            } else {
+                                (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeIn(tween(250)))
+                                    .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeOut(tween(200)))
                             }
                         }
+                    },
+                    label = "marketCarouselTransition"
+                ) { targetView ->
+                    if (targetView == 0) {
+                        // Crypto Market View
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            cryptoCoins.forEach { coin ->
+                                var showDetails by remember { mutableStateOf(false) }
 
-                        // Expandable 24h High/Low details on tap
-                        if (showDetails && coin.highPrice.isNotEmpty() && coin.lowPrice.isNotEmpty()) {
-                            Text(
-                                text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}",
-                                style = typography.clock,
-                                color = colors.textSecondary.copy(alpha = 0.6f),
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
+                                Column(
+                                    modifier = Modifier
+                                        .clickable { showDetails = !showDetails }
+                                        .graphicsLayer {
+                                            alpha = if (coin.isStale) 0.55f else 1.0f
+                                        }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Text(
+                                            text = coin.symbol,
+                                            style = typography.drawerItem,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = colors.textPrimary
+                                        )
+
+                                        Text(
+                                            text = coin.price,
+                                            style = typography.drawerItem,
+                                            color = colors.textSecondary
+                                        )
+
+                                        if (coin.changeText.isNotEmpty()) {
+                                            val changeColor = if (coin.changePercent >= 0.0) CryptoGreen else CryptoRed
+                                            Text(
+                                                text = coin.changeText,
+                                                style = typography.priceLabel,
+                                                color = changeColor
+                                            )
+                                        }
+
+                                        // 24h Text sparkline trend
+                                        if (coin.sparkline.isNotEmpty()) {
+                                            val sparkColor = if (coin.changePercent >= 0.0) CryptoGreen.copy(alpha = 0.85f) else CryptoRed.copy(alpha = 0.85f)
+                                            Text(
+                                                text = coin.sparkline,
+                                                style = typography.priceLabel,
+                                                color = sparkColor
+                                            )
+                                        }
+
+                                        // Stale-data indicator
+                                        if (coin.isStale && coin.ageMarker.isNotEmpty()) {
+                                            Text(
+                                                text = coin.ageMarker,
+                                                style = typography.priceLabel,
+                                                color = colors.textSecondary.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                    }
+
+                                    // Expandable 24h High/Low details on tap
+                                    if (showDetails && coin.highPrice.isNotEmpty() && coin.lowPrice.isNotEmpty()) {
+                                        Text(
+                                            text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}",
+                                            style = typography.clock,
+                                            color = colors.textSecondary.copy(alpha = 0.6f),
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // IDX Saham Market View
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            idxStocks.forEach { stock ->
+                                var showDetails by remember { mutableStateOf(false) }
+
+                                Column(
+                                    modifier = Modifier
+                                        .clickable { showDetails = !showDetails }
+                                        .graphicsLayer {
+                                            alpha = if (stock.isStale) 0.55f else 1.0f
+                                        }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Text(
+                                            text = stock.symbol,
+                                            style = typography.drawerItem,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = colors.textPrimary
+                                        )
+
+                                        Text(
+                                            text = stock.priceText,
+                                            style = typography.drawerItem,
+                                            color = colors.textSecondary
+                                        )
+
+                                        if (stock.changeText.isNotEmpty()) {
+                                            val changeColor = if (stock.changePercent >= 0.0) CryptoGreen else CryptoRed
+                                            Text(
+                                                text = stock.changeText,
+                                                style = typography.priceLabel,
+                                                color = changeColor
+                                            )
+                                        }
+
+                                        // Stale-data indicator
+                                        if (stock.isStale && stock.ageMarker.isNotEmpty()) {
+                                            Text(
+                                                text = stock.ageMarker,
+                                                style = typography.priceLabel,
+                                                color = colors.textSecondary.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                    }
+
+                                    // Expandable details: 24h High/Low & Volume on tap
+                                    if (showDetails) {
+                                        val details = mutableListOf<String>()
+                                        if (stock.highPrice.isNotEmpty() && stock.lowPrice.isNotEmpty()) {
+                                            details.add("24h H: ${stock.highPrice}  ·  L: ${stock.lowPrice}")
+                                        }
+                                        if (stock.volumeText.isNotEmpty()) {
+                                            details.add("Vol: ${stock.volumeText}")
+                                        }
+                                        if (stock.name.isNotEmpty() && !stock.name.equals(stock.symbol, ignoreCase = true)) {
+                                            details.add(stock.name)
+                                        }
+                                        if (details.isNotEmpty()) {
+                                            Text(
+                                                text = details.joinToString("  ·  "),
+                                                style = typography.clock,
+                                                color = colors.textSecondary.copy(alpha = 0.6f),
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

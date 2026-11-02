@@ -101,16 +101,17 @@ class MainActivity : ComponentActivity() {
             val searchQuery by viewModel.searchQuery.collectAsState()
             val usdRateState by viewModel.usdRateState.collectAsState()
             val homeCryptoList by viewModel.homeCryptoList.collectAsState()
+            val homeIdxList by viewModel.homeIdxList.collectAsState()
 
             var currentScreen by remember { currentScreenState }
 
-            // Manage price refresh lifecycle: runs while drawer or home crypto is active
-            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.useWebSocketOnHome) {
+            // Manage price refresh lifecycle: runs while drawer or home crypto/idx is active
+            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.useWebSocketOnHome) {
                 when {
                     !settings.cryptoPriceEnabled -> {
                         viewModel.stopAllPriceUpdates()
                     }
-                    currentScreen == Screen.Home && settings.showHomeCrypto -> {
+                    currentScreen == Screen.Home && (settings.showHomeCrypto || settings.showHomeIdx) -> {
                         viewModel.startPriceRefresh(isHomeActive = true)
                     }
                     currentScreen == Screen.Drawer -> {
@@ -154,6 +155,11 @@ class MainActivity : ComponentActivity() {
                                     dateFormatPattern = settings.dateFormatPattern,
                                     showCrypto = settings.cryptoPriceEnabled && settings.showHomeCrypto,
                                     cryptoCoins = homeCryptoList,
+                                    showIdx = settings.cryptoPriceEnabled && settings.showHomeIdx,
+                                    idxStocks = homeIdxList,
+                                    carouselAutoRotate = settings.marketCarouselAutoRotate,
+                                    carouselIntervalSeconds = settings.marketCarouselIntervalSeconds,
+                                    carouselTransition = settings.marketCarouselTransition,
                                     showAppIcons = settings.showAppIcons,
                                     monochromeIcons = settings.monochromeIcons,
                                     fontSize = settings.fontSize,
@@ -263,6 +269,12 @@ class MainActivity : ComponentActivity() {
                                     onToggleDoubleTapLock = { viewModel.setDoubleTapLock(it) },
                                     onToggleCryptoEnabled = { viewModel.setCryptoPriceEnabled(it) },
                                     onToggleShowHomeCrypto = { viewModel.setShowHomeCrypto(it) },
+                                    onToggleShowHomeIdx = { viewModel.setShowHomeIdx(it) },
+                                    onUpdateIdxDisplayMode = { viewModel.setIdxDisplayMode(it) },
+                                    onUpdateIdxSymbols = { viewModel.setIdxSymbols(it) },
+                                    onToggleMarketCarouselAutoRotate = { viewModel.setMarketCarouselAutoRotate(it) },
+                                    onUpdateMarketCarouselInterval = { viewModel.setMarketCarouselInterval(it) },
+                                    onUpdateMarketCarouselTransition = { viewModel.setMarketCarouselTransition(it) },
                                     onToggleShowDrawerUsdRate = { viewModel.setShowDrawerUsdRate(it) },
                                     onToggleWebSocketOnHome = { viewModel.setUseWebSocketOnHome(it) },
                                     onUpdateCryptoSymbols = { viewModel.setCryptoSymbols(it) },
@@ -313,7 +325,11 @@ class MainActivity : ComponentActivity() {
         val settings = viewModel.settings.value
         if (settings.cryptoPriceEnabled) {
             val isHome = currentScreenState.value == Screen.Home
-            viewModel.startPriceRefresh(isHomeActive = isHome)
+            if (isHome && (settings.showHomeCrypto || settings.showHomeIdx)) {
+                viewModel.startPriceRefresh(isHomeActive = true)
+            } else if (!isHome) {
+                viewModel.startPriceRefresh(isHomeActive = false)
+            }
         }
     }
 
