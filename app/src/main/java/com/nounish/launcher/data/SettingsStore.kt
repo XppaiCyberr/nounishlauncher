@@ -47,6 +47,7 @@ data class LauncherSettings(
     val useWebSocketOnHome: Boolean = false,
     val isLightTheme: Boolean = false,
     val useMonospace: Boolean = false,
+    val fontSize: String = "medium", // "small" (85%), "medium" (100%), "large" (115%), "extra_large" (130%)
     val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
     val currentCryptoIndex: Int = 0,
     val alphabetIndexOnRight: Boolean = false,
@@ -76,6 +77,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_USE_WEBSOCKET_ON_HOME = booleanPreferencesKey("use_websocket_on_home")
         private val KEY_LIGHT_THEME = booleanPreferencesKey("is_light_theme")
         private val KEY_USE_MONOSPACE = booleanPreferencesKey("use_monospace")
+        private val KEY_FONT_SIZE = stringPreferencesKey("font_size")
         private val KEY_CACHED_PRICES = stringPreferencesKey("cached_crypto_prices")
         private val KEY_CRYPTO_INDEX = intPreferencesKey("current_crypto_index")
         private val KEY_INDEX_ON_RIGHT = booleanPreferencesKey("alphabet_index_on_right")
@@ -113,6 +115,7 @@ class SettingsStore(private val context: Context) {
         val useWebSocket = prefs[KEY_USE_WEBSOCKET_ON_HOME] ?: false
         val isLight = prefs[KEY_LIGHT_THEME] ?: false
         val useMono = prefs[KEY_USE_MONOSPACE] ?: false
+        val fontSize = prefs[KEY_FONT_SIZE] ?: "medium"
 
         val cachedMap = parsePricesMap(prefs[KEY_CACHED_PRICES] ?: "")
         val cryptoIndex = prefs[KEY_CRYPTO_INDEX] ?: 0
@@ -140,6 +143,7 @@ class SettingsStore(private val context: Context) {
             useWebSocketOnHome = useWebSocket,
             isLightTheme = isLight,
             useMonospace = useMono,
+            fontSize = fontSize,
             cachedCryptoPrices = cachedMap,
             currentCryptoIndex = cryptoIndex,
             alphabetIndexOnRight = indexOnRight,
@@ -275,6 +279,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_USE_MONOSPACE] = enabled }
     }
 
+    suspend fun setFontSize(size: String) {
+        context.dataStore.edit { it[KEY_FONT_SIZE] = size }
+    }
+
     suspend fun setAlphabetIndexOnRight(onRight: Boolean) {
         context.dataStore.edit { it[KEY_INDEX_ON_RIGHT] = onRight }
     }
@@ -325,6 +333,7 @@ class SettingsStore(private val context: Context) {
 
         root.put("isLightTheme", settings.isLightTheme)
         root.put("useMonospace", settings.useMonospace)
+        root.put("fontSize", settings.fontSize)
         root.put("alphabetIndexOnRight", settings.alphabetIndexOnRight)
         root.put("enableIndexAnimation", settings.enableIndexAnimation)
 
@@ -385,6 +394,7 @@ class SettingsStore(private val context: Context) {
 
                 if (root.has("isLightTheme")) prefs[KEY_LIGHT_THEME] = root.getBoolean("isLightTheme")
                 if (root.has("useMonospace")) prefs[KEY_USE_MONOSPACE] = root.getBoolean("useMonospace")
+                if (root.has("fontSize")) prefs[KEY_FONT_SIZE] = root.getString("fontSize")
                 if (root.has("alphabetIndexOnRight")) prefs[KEY_INDEX_ON_RIGHT] = root.getBoolean("alphabetIndexOnRight")
                 if (root.has("enableIndexAnimation")) prefs[KEY_ENABLE_INDEX_ANIMATION] = root.getBoolean("enableIndexAnimation")
             }

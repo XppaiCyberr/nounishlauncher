@@ -48,6 +48,7 @@ object LauncherTheme {
 fun NounishLauncherTheme(
     isLightTheme: Boolean = false,
     useMonospace: Boolean = false,
+    fontSize: String = "medium",
     content: @Composable () -> Unit
 ) {
     val colors = if (isLightTheme) {
@@ -68,8 +69,14 @@ fun NounishLauncherTheme(
         )
     }
 
+    val fontScale = when (fontSize) {
+        "small" -> 0.85f
+        "large" -> 1.15f
+        "extra_large" -> 1.30f
+        else -> 1.0f
+    }
     val fontFamily = if (useMonospace) FontFamily.Monospace else FontFamily.Default
-    val typography = getLauncherTypography(fontFamily)
+    val typography = getLauncherTypography(fontFamily, fontScale)
 
     val materialColors = if (isLightTheme) {
         lightColorScheme(

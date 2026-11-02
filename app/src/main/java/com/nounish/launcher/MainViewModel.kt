@@ -707,6 +707,12 @@ class MainViewModel(
         }
     }
 
+    fun setFontSize(size: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setFontSize(size)
+        }
+    }
+
     fun setAlphabetIndexOnRight(onRight: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setAlphabetIndexOnRight(onRight)

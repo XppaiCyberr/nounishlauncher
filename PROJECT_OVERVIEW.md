@@ -7,7 +7,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 ## Design Philosophy
 
 1. **Text-Only Interface**: Apps are represented solely by name. No icons are ever loaded or drawn into memory.
-2. **AMOLED Monochrome**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. An optional light theme is also available.
+2. **AMOLED Monochrome & Custom Typography**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. An optional light theme, monospace mode, and adjustable font size scaling (Small 85%, Default 100%, Large 115%, Extra Large 130%) are also available.
 3. **Calm & Distraction-Free**: No notification dots, news feeds, unread counters, or recommendation algorithms.
 4. **Privacy-Focused & Offline by Default**: Zero analytics, telemetry, or tracking. The only network feature is the optional crypto ticker using Binance's public API (disabled by default, with zero background services).
 5. **Instantaneous & Lightweight**: App cold starts in under 300 ms with an optimized APK footprint of only **~1.05 MB**. Pinned shortcuts render on frame 1 from DataStore without waiting for `PackageManager`.
@@ -32,7 +32,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Displays coin symbol, current price, and 24-hour daily percentage change.
   - Color-coded percentage changes: **Green** (`#00E676`) for gains, **Red** (`#FF5252`) for losses.
   - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that fit seamlessly into the monochrome aesthetic.
-  - **Expandable Details**: Tapping any coin row reveals its 24-hour high, low, and full trendline (`24h H: 78,068 · L: 77,262 · Trend: ▂▂ ▂▆▆█▆▄▃▂▂`).
+  - **Expandable Details**: Tapping any coin row reveals its clean 24-hour high and low (`24h H: 78,068 · L: 77,262`).
   - **Stale-Data Indicator**: Dimmed text styling and age marker (`·now`, `·5m`, `·1h`) appear when offline or when viewing cached data.
   - Toggleable in Settings under **Crypto Price -> Show crypto on home screen**.
 - **Pinned App Shortcuts & Limits**:

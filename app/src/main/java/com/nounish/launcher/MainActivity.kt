@@ -124,7 +124,8 @@ class MainActivity : ComponentActivity() {
 
             NounishLauncherTheme(
                 isLightTheme = settings.isLightTheme,
-                useMonospace = settings.useMonospace
+                useMonospace = settings.useMonospace,
+                fontSize = settings.fontSize
             ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Back button handling
@@ -265,6 +266,7 @@ class MainActivity : ComponentActivity() {
                                     onUpdateCryptoQuote = { viewModel.setCryptoQuoteCurrency(it) },
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },
                                     onToggleMonospace = { viewModel.setUseMonospace(it) },
+                                    onUpdateFontSize = { viewModel.setFontSize(it) },
                                     onToggleIndexOnRight = { viewModel.setAlphabetIndexOnRight(it) },
                                     onToggleIndexAnimation = { viewModel.setIndexAnimationEnabled(it) },
                                     onReorderPinnedApps = { viewModel.reorderPinnedApps(it) },

@@ -222,7 +222,7 @@ fun HomeScreen(
                         // Expandable 24h High/Low details on tap
                         if (showDetails && coin.highPrice.isNotEmpty() && coin.lowPrice.isNotEmpty()) {
                             Text(
-                                text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}${if (coin.sparkline.isNotEmpty()) "  ·  Trend: ${coin.sparkline}" else ""}",
+                                text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}",
                                 style = typography.clock,
                                 color = colors.textSecondary.copy(alpha = 0.6f),
                                 modifier = Modifier.padding(top = 2.dp)

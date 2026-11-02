@@ -64,6 +64,7 @@ fun SettingsScreen(
     onUpdateCryptoQuote: (String) -> Unit,
     onToggleLightTheme: (Boolean) -> Unit,
     onToggleMonospace: (Boolean) -> Unit,
+    onUpdateFontSize: (String) -> Unit,
     onToggleIndexOnRight: (Boolean) -> Unit,
     onToggleIndexAnimation: (Boolean) -> Unit,
     onReorderPinnedApps: (List<String>) -> Unit,
@@ -82,6 +83,7 @@ fun SettingsScreen(
     var showEditQuoteDialog by remember { mutableStateOf(false) }
     var showClockFormatDialog by remember { mutableStateOf(false) }
     var showDateFormatDialog by remember { mutableStateOf(false) }
+    var showFontSizeDialog by remember { mutableStateOf(false) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
         allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
@@ -287,6 +289,21 @@ fun SettingsScreen(
                 )
             }
 
+            val fontSizeLabel = when (settings.fontSize) {
+                "small" -> "Small (85%)"
+                "large" -> "Large (115%)"
+                "extra_large" -> "Extra Large (130%)"
+                else -> "Default (100%)"
+            }
+
+            item {
+                SettingsActionRow(
+                    title = "Font size",
+                    subtitle = fontSizeLabel,
+                    onClick = { showFontSizeDialog = true }
+                )
+            }
+
             // Crypto Price Section
             item {
                 SettingsSectionHeader(title = "Crypto Price (Optional)")
@@ -470,7 +487,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.3",
+                        text = "Nounish Launcher 1.0.4",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -815,6 +832,64 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDateFormatDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Font Size Dialog
+    if (showFontSizeDialog) {
+        val fontSizeOptions = listOf(
+            "small" to Pair("Small (85%)", 0.85f),
+            "medium" to Pair("Default (100%)", 1.0f),
+            "large" to Pair("Large (115%)", 1.15f),
+            "extra_large" to Pair("Extra Large (130%)", 1.30f)
+        )
+
+        AlertDialog(
+            onDismissRequest = { showFontSizeDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Font size",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    fontSizeOptions.forEach { (key, pair) ->
+                        val (label, scale) = pair
+                        val isSelected = settings.fontSize == key
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateFontSize(key)
+                                    showFontSizeDialog = false
+                                }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                style = typography.settingsItem,
+                                color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                            Text(
+                                text = "Sample: Phone, Chrome, Settings",
+                                fontSize = (14 * scale).sp,
+                                color = colors.textSecondary.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showFontSizeDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }

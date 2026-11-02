@@ -15,7 +15,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Zero-Jank Network Architecture**: All network operations (polling and WebSockets) run strictly on `Dispatchers.IO` and are cancelled the instant Home leaves the screen or during `onPause()`.
 - **Text-Only Design**: Apps are displayed solely by name. No visual noise, no notification badges, and zero icon bitmaps loaded into memory.
 - **Custom App Renaming**: Long-press any app in the Home screen or Drawer to assign a custom label (e.g. "Chrome" -> "web", "Spotify" -> "music"). Easily reset back to default at any time.
-- **AMOLED Monochrome**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme.
+- **AMOLED Monochrome & Typography**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme, monospace toggle, and adjustable font size scaling (Small 85%, Default 100%, Large 115%, Extra Large 130%) with live preview.
 - **Home Screen Essentials**:
   - **Pinned App Editing & Reordering**: Reorder pinned shortcuts with dedicated up (`↑`) and down (`↓`) controls in Settings without needing to unpin and re-pin.
   - **Strict 4–8 Pinned Limits**: Cleanly enforces the 4–8 pinned apps range. Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first." Attempting to unpin below 4 prompts: "Minimum 4 pinned apps required. Pin another app first." Fresh installs automatically seed the 4 essential apps.
@@ -24,8 +24,8 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Date Format Customization**: Pick from common presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or input any custom `SimpleDateFormat` pattern.
   - Live clock and date (configurable, tap clock to open system clock).
   - **Live Binance Crypto Market Overview**: Fills the spacious center area with real-time tickers, current prices, 24-hour daily percentage change, and text sparklines.
-  - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that remain strictly text-only.
-  - **Expandable 24h High/Low**: Tapping any coin row reveals its 24-hour range (`H: 78,068 · L: 77,262`) along with its full 24h trendline.
+  - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that remain strictly text-only on the main ticker row.
+  - **Expandable 24h High/Low**: Tapping any coin row reveals its clean 24-hour range (`H: 78,068 · L: 77,262`).
   - **Stale-Data Indicator**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`) so you always know when data was last updated.
   - Pinned apps (4–8 items) in large (`28 sp`) light-weight text, left-aligned for ergonomic one-handed thumb reach.
   - Quick action dialog on long-press to rename, unpin, or open system app settings.

@@ -16,59 +16,60 @@ data class LauncherTypography(
     val settingsDescription: TextStyle
 )
 
-fun getLauncherTypography(fontFamily: FontFamily): LauncherTypography {
+fun getLauncherTypography(fontFamily: FontFamily, fontScale: Float = 1.0f): LauncherTypography {
+    val scale = fontScale.coerceIn(0.7f, 1.6f)
     return LauncherTypography(
         homeShortcut = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Light,
-            fontSize = 28.sp,
-            lineHeight = 38.sp,
+            fontSize = (28 * scale).sp,
+            lineHeight = (38 * scale).sp,
             letterSpacing = 0.5.sp
         ),
         drawerItem = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Normal,
-            fontSize = 18.sp,
-            lineHeight = 26.sp,
+            fontSize = (18 * scale).sp,
+            lineHeight = (26 * scale).sp,
             letterSpacing = 0.2.sp
         ),
         clock = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Normal,
-            fontSize = 14.sp,
-            lineHeight = 18.sp,
+            fontSize = (14 * scale).sp,
+            lineHeight = (18 * scale).sp,
             letterSpacing = 0.5.sp
         ),
         priceLabel = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Medium,
-            fontSize = 14.sp,
-            lineHeight = 18.sp,
+            fontSize = (14 * scale).sp,
+            lineHeight = (18 * scale).sp,
             letterSpacing = 0.5.sp
         ),
         searchInput = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Normal,
-            fontSize = 18.sp,
-            lineHeight = 24.sp
+            fontSize = (18 * scale).sp,
+            lineHeight = (24 * scale).sp
         ),
         settingsHeading = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 20.sp,
-            lineHeight = 26.sp
+            fontSize = (20 * scale).sp,
+            lineHeight = (26 * scale).sp
         ),
         settingsItem = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Normal,
-            fontSize = 16.sp,
-            lineHeight = 22.sp
+            fontSize = (16 * scale).sp,
+            lineHeight = (22 * scale).sp
         ),
         settingsDescription = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Normal,
-            fontSize = 13.sp,
-            lineHeight = 18.sp
+            fontSize = (13 * scale).sp,
+            lineHeight = (18 * scale).sp
         )
     )
 }
