@@ -30,7 +30,9 @@ data class CoinTickerUi(
     val changeText: String,
     val changePercent: Double,
     val highPrice: String = "",
-    val lowPrice: String = ""
+    val lowPrice: String = "",
+    val isStale: Boolean = false,
+    val ageMarker: String = ""
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -45,7 +47,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = LauncherSettings()
     )
 
-    val allApps: StateFlow<List<AppItem>> = appRepository.apps
+    val allApps: StateFlow<List<AppItem>> = combine(appRepository.apps, settings) { apps, pref ->
+        apps.map { app ->
+            val custom = pref.customAppLabels[app.packageName]
+            if (custom != null) app.copy(customLabel = custom) else app
+        }.sortedBy { it.displayLabel.lowercase() }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val searchQuery = MutableStateFlow("")
 
@@ -61,11 +68,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             apps.filter { !pref.hiddenApps.contains(it.packageName) }
         } else {
             apps.filter { app ->
-                val matches = app.label.contains(trimmed, ignoreCase = true) ||
+                val matches = app.displayLabel.contains(trimmed, ignoreCase = true) ||
+                              app.label.contains(trimmed, ignoreCase = true) ||
                               app.packageName.contains(trimmed, ignoreCase = true)
                 if (pref.hiddenApps.contains(app.packageName)) {
                     // Hidden apps only appear when searched by exact or close name
-                    app.label.equals(trimmed, ignoreCase = true) || app.packageName.equals(trimmed, ignoreCase = true)
+                    app.displayLabel.equals(trimmed, ignoreCase = true) ||
+                    app.label.equals(trimmed, ignoreCase = true) ||
+                    app.packageName.equals(trimmed, ignoreCase = true)
                 } else {
                     matches
                 }
@@ -77,15 +87,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val priceState: StateFlow<PriceUiState> = _priceState.asStateFlow()
 
     val homeCryptoList: StateFlow<List<CoinTickerUi>> = settings.map { pref ->
+        val now = System.currentTimeMillis()
         pref.cryptoSymbols.map { sym ->
             val cached = pref.cachedCryptoPrices[sym]
+            val timestamp = cached?.timestamp ?: 0L
+            val isStale = timestamp <= 0L || (now - timestamp) > 60_000L
+            val ageMarker = if (cached != null && isStale) PriceRepository.formatAgeMarker(timestamp) else ""
             CoinTickerUi(
                 symbol = sym,
                 price = cached?.price ?: "--",
                 changeText = cached?.changeText ?: "",
                 changePercent = cached?.changePercent ?: 0.0,
                 highPrice = cached?.highPrice ?: "",
-                lowPrice = cached?.lowPrice ?: ""
+                lowPrice = cached?.lowPrice ?: "",
+                isStale = isStale,
+                ageMarker = ageMarker
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -144,7 +160,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     changeText = ticker.formattedChange,
                     changePercent = ticker.changePercent,
                     highPrice = ticker.highPrice,
-                    lowPrice = ticker.lowPrice
+                    lowPrice = ticker.lowPrice,
+                    timestamp = ticker.timestamp
                 )
             }
             settingsStore.updateCachedPrices(updatedCache)
@@ -153,7 +170,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
             val currentSymbol = symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC"
             val ticker = newPrices[currentSymbol] ?: updatedCache[currentSymbol]?.let {
-                CoinTicker(it.price, it.changePercent, it.changeText)
+                CoinTicker(it.price, it.changePercent, it.changeText, it.highPrice, it.lowPrice, it.timestamp)
             }
 
             _priceState.value = PriceUiState(
@@ -162,6 +179,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 changeText = ticker?.formattedChange ?: "",
                 changePercent = ticker?.changePercent ?: 0.0,
                 isStale = false,
+                ageMarker = "",
                 isLoading = false
             )
         }.onFailure {
@@ -169,6 +187,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
             val currentSymbol = symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC"
             val cached = currentSettings.cachedCryptoPrices[currentSymbol]
+            val ageMarker = PriceRepository.formatAgeMarker(cached?.timestamp ?: 0L)
 
             _priceState.value = PriceUiState(
                 coinSymbol = currentSymbol,
@@ -176,6 +195,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 changeText = cached?.changeText ?: "",
                 changePercent = cached?.changePercent ?: 0.0,
                 isStale = true,
+                ageMarker = ageMarker,
                 isLoading = false
             )
         }
@@ -190,12 +210,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val cached = currentSettings.cachedCryptoPrices[symbol]
 
         if (cached != null) {
+            val now = System.currentTimeMillis()
+            val isStale = (now - cached.timestamp) > 60_000L
+            val ageMarker = if (isStale) PriceRepository.formatAgeMarker(cached.timestamp) else ""
             _priceState.value = PriceUiState(
                 coinSymbol = symbol,
                 priceText = cached.price,
                 changeText = cached.changeText,
                 changePercent = cached.changePercent,
-                isStale = false,
+                isStale = isStale,
+                ageMarker = ageMarker,
                 isLoading = false
             )
         }
@@ -211,11 +235,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             settingsStore.setCurrentCryptoIndex(nextIndex)
             val symbol = symbols[nextIndex]
             val cached = currentSettings.cachedCryptoPrices[symbol]
+            val now = System.currentTimeMillis()
+            val isStale = (cached == null) || (now - cached.timestamp > 60_000L)
+            val ageMarker = if (cached != null && isStale) PriceRepository.formatAgeMarker(cached.timestamp) else ""
             _priceState.value = _priceState.value.copy(
                 coinSymbol = symbol,
                 priceText = cached?.price ?: "--",
                 changeText = cached?.changeText ?: "",
-                changePercent = cached?.changePercent ?: 0.0
+                changePercent = cached?.changePercent ?: 0.0,
+                isStale = isStale,
+                ageMarker = ageMarker
             )
             // Fetch fresh
             fetchFreshPrices()
@@ -245,6 +274,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val isHidden = settings.value.hiddenApps.contains(packageName)
             settingsStore.setAppHidden(packageName, !isHidden)
         }
+    }
+
+    fun setAppCustomLabel(packageName: String, customLabel: String?) {
+        viewModelScope.launch {
+            settingsStore.setAppCustomLabel(packageName, customLabel)
+        }
+    }
+
+    fun exportSettingsJson(): String {
+        return settingsStore.exportSettingsJson(settings.value)
+    }
+
+    suspend fun importSettingsJson(json: String): Boolean {
+        return settingsStore.importSettingsJson(json)
     }
 
     fun setSwipeLeft(packageName: String?) {

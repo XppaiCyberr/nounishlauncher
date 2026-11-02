@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,13 +16,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -35,8 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.service.LockScreenService
@@ -62,6 +61,8 @@ fun SettingsScreen(
     onToggleIndexAnimation: (Boolean) -> Unit,
     onUnpinApp: (String) -> Unit,
     onUnhideApp: (String) -> Unit,
+    onExportSettings: () -> Unit,
+    onImportSettings: () -> Unit,
     onCloseSettings: () -> Unit
 ) {
     val colors = LauncherTheme.colors
@@ -73,10 +74,10 @@ fun SettingsScreen(
     var showEditQuoteDialog by remember { mutableStateOf(false) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
-        allApps.find { it.packageName == settings.swipeLeftPackage }?.label ?: "None"
+        allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
     }
     val swipeRightAppName = remember(settings.swipeRightPackage, allApps) {
-        allApps.find { it.packageName == settings.swipeRightPackage }?.label ?: "None"
+        allApps.find { it.packageName == settings.swipeRightPackage }?.displayLabel ?: "None"
     }
 
     Box(
@@ -242,7 +243,7 @@ fun SettingsScreen(
             item {
                 SettingsSwitchRow(
                     title = "Enable crypto price label",
-                    subtitle = if (settings.cryptoPriceEnabled) "Fetches from Binance while drawer is open" else "Disabled (Zero network usage)",
+                    subtitle = if (settings.cryptoPriceEnabled) "Fetches from Binance while active" else "Disabled (Zero network usage)",
                     checked = settings.cryptoPriceEnabled,
                     onCheckedChange = onToggleCryptoEnabled
                 )
@@ -275,6 +276,27 @@ fun SettingsScreen(
                 }
             }
 
+            // Backup & Restore Section
+            item {
+                SettingsSectionHeader(title = "Backup & Restore")
+            }
+
+            item {
+                SettingsActionRow(
+                    title = "Export settings (JSON)",
+                    subtitle = "Export pinned apps, hidden apps, custom labels, and settings to a JSON file",
+                    onClick = onExportSettings
+                )
+            }
+
+            item {
+                SettingsActionRow(
+                    title = "Import settings (JSON)",
+                    subtitle = "Restore launcher setup from a JSON backup file",
+                    onClick = onImportSettings
+                )
+            }
+
             // Hidden Apps Section
             if (settings.hiddenApps.isNotEmpty()) {
                 item {
@@ -291,7 +313,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = app?.label ?: pkg,
+                            text = app?.displayLabel ?: pkg,
                             style = typography.settingsItem,
                             color = colors.textPrimary,
                             modifier = Modifier.weight(1f)
@@ -324,7 +346,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = app?.label ?: pkg,
+                            text = app?.displayLabel ?: pkg,
                             style = typography.settingsItem,
                             color = colors.textPrimary,
                             modifier = Modifier.weight(1f)
@@ -395,7 +417,7 @@ fun SettingsScreen(
                     }
                     items(allApps) { app ->
                         Text(
-                            text = app.label,
+                            text = app.displayLabel,
                             style = typography.settingsItem,
                             color = colors.textPrimary,
                             modifier = Modifier
@@ -431,7 +453,7 @@ fun SettingsScreen(
             text = {
                 Column {
                     Text(
-                        "Enter coin symbols separated by comma (e.g. BTC, ETH, SOL):",
+                        "Enter Binance coin symbols or pairs separated by commas (e.g. BTC, ETH, SOL, PEPE, BTCUSDT, ETHBIDR):",
                         style = typography.settingsDescription,
                         color = colors.textSecondary
                     )
@@ -472,6 +494,8 @@ fun SettingsScreen(
     // Edit Quote Currency Dialog
     if (showEditQuoteDialog) {
         var textValue by remember { mutableStateOf(settings.cryptoQuoteCurrency) }
+        val commonQuotes = listOf("USDT", "USDC", "EUR", "BIDR", "TRY", "BRL", "GBP", "AUD", "BTC")
+
         AlertDialog(
             onDismissRequest = { showEditQuoteDialog = false },
             containerColor = colors.surface,
@@ -481,16 +505,60 @@ fun SettingsScreen(
             text = {
                 Column {
                     Text(
-                        "Enter quote currency symbol (e.g. USDT, BUSD, EUR):",
+                        "Choose a preset or type a custom quote currency (e.g. USDT, BIDR for IDR, EUR):",
                         style = typography.settingsDescription,
                         color = colors.textSecondary
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    // Preset buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        commonQuotes.take(4).forEach { quote ->
+                            Text(
+                                text = quote,
+                                fontSize = 12.sp,
+                                color = if (textValue.equals(quote, ignoreCase = true)) colors.background else colors.textPrimary,
+                                modifier = Modifier
+                                    .background(if (textValue.equals(quote, ignoreCase = true)) colors.textPrimary else colors.surface)
+                                    .clickable { textValue = quote }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        commonQuotes.drop(4).forEach { quote ->
+                            Text(
+                                text = quote,
+                                fontSize = 12.sp,
+                                color = if (textValue.equals(quote, ignoreCase = true)) colors.background else colors.textPrimary,
+                                modifier = Modifier
+                                    .background(if (textValue.equals(quote, ignoreCase = true)) colors.textPrimary else colors.surface)
+                                    .clickable { textValue = quote }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Custom quote symbol:",
+                        style = typography.settingsDescription,
+                        color = colors.textSecondary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     BasicTextField(
                         value = textValue,
                         onValueChange = { textValue = it },
                         textStyle = typography.settingsItem.copy(color = colors.textPrimary),
                         cursorBrush = SolidColor(colors.textPrimary),
+                        singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(colors.background)

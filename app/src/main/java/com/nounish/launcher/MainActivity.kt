@@ -2,10 +2,12 @@ package com.nounish.launcher
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -20,11 +22,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.nounish.launcher.service.LockScreenService
 import com.nounish.launcher.ui.DrawerScreen
 import com.nounish.launcher.ui.HomeScreen
 import com.nounish.launcher.ui.SettingsScreen
 import com.nounish.launcher.ui.theme.NounishLauncherTheme
+import kotlinx.coroutines.launch
 
 enum class Screen {
     Home,
@@ -38,6 +42,43 @@ class MainActivity : ComponentActivity() {
 
     // Track active screen
     private val currentScreenState = mutableStateOf(Screen.Home)
+
+    private val exportSettingsLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            try {
+                contentResolver.openOutputStream(it)?.use { stream ->
+                    val json = viewModel.exportSettingsJson()
+                    stream.write(json.toByteArray(Charsets.UTF_8))
+                }
+                Toast.makeText(this, "Settings exported successfully", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Failed to export settings", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private val importSettingsLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            lifecycleScope.launch {
+                try {
+                    val json = contentResolver.openInputStream(it)?.use { stream ->
+                        stream.bufferedReader(Charsets.UTF_8).readText()
+                    }
+                    if (json != null && viewModel.importSettingsJson(json)) {
+                        Toast.makeText(this@MainActivity, "Settings restored successfully", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@MainActivity, "Failed to parse settings backup file", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Error importing settings", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -102,6 +143,9 @@ class MainActivity : ComponentActivity() {
                                     onUnpinApp = { app ->
                                         viewModel.unpinApp(app.packageName)
                                     },
+                                    onRenameApp = { app, newLabel ->
+                                        viewModel.setAppCustomLabel(app.packageName, newLabel)
+                                    },
                                     onOpenDrawer = {
                                         viewModel.onSearchQueryChanged("")
                                         currentScreen = Screen.Drawer
@@ -156,6 +200,9 @@ class MainActivity : ComponentActivity() {
                                     onToggleHideApp = { app ->
                                         viewModel.toggleHideApp(app.packageName)
                                     },
+                                    onRenameApp = { app, newLabel ->
+                                        viewModel.setAppCustomLabel(app.packageName, newLabel)
+                                    },
                                     onAppInfoClick = { app ->
                                         viewModel.appRepository.openAppInfo(app.packageName)
                                     },
@@ -192,6 +239,12 @@ class MainActivity : ComponentActivity() {
                                     onToggleIndexAnimation = { viewModel.setIndexAnimationEnabled(it) },
                                     onUnpinApp = { viewModel.unpinApp(it) },
                                     onUnhideApp = { viewModel.toggleHideApp(it) },
+                                    onExportSettings = {
+                                        exportSettingsLauncher.launch("nounish_launcher_backup.json")
+                                    },
+                                    onImportSettings = {
+                                        importSettingsLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
+                                    },
                                     onCloseSettings = { currentScreen = Screen.Home }
                                 )
                             }

@@ -79,6 +79,7 @@ fun DrawerScreen(
     onAppClick: (AppItem) -> Unit,
     onTogglePinApp: (AppItem) -> Unit,
     onToggleHideApp: (AppItem) -> Unit,
+    onRenameApp: (AppItem, String?) -> Unit,
     onAppInfoClick: (AppItem) -> Unit,
     onUninstallClick: (AppItem) -> Unit,
     onCycleCrypto: () -> Unit,
@@ -93,11 +94,13 @@ fun DrawerScreen(
     val density = LocalDensity.current
 
     var selectedAppForMenu by remember { mutableStateOf<AppItem?>(null) }
+    var appToRename by remember { mutableStateOf<AppItem?>(null) }
+    var renameInputText by remember { mutableStateOf("") }
 
     val alphabet = remember { ('A'..'Z').toList() + listOf('#') }
     val activeLetters = remember(apps) {
         apps.mapNotNull {
-            val first = it.label.firstOrNull()?.uppercaseChar()
+            val first = it.displayLabel.firstOrNull()?.uppercaseChar()
             when {
                 first == null -> null
                 first in 'A'..'Z' -> first
@@ -180,18 +183,21 @@ fun DrawerScreen(
                     )
                 }
 
-                // Crypto Price Label with 24h percentage change & red/green color
+                // Crypto Price Label with 24h percentage change & stale-data indicator
                 if (cryptoPriceEnabled && priceState.isNotEmpty) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clickable(onClick = onCycleCrypto)
                             .padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
+                            .graphicsLayer {
+                                alpha = if (priceState.isStale) 0.55f else 1.0f
+                            }
                     ) {
                         Text(
                             text = "${priceState.coinSymbol} ${priceState.priceText}",
                             style = typography.priceLabel,
-                            color = colors.textSecondary.copy(alpha = if (priceState.isStale) 0.45f else 0.9f)
+                            color = colors.textSecondary
                         )
                         if (priceState.changeText.isNotEmpty()) {
                             Spacer(modifier = Modifier.width(6.dp))
@@ -199,7 +205,15 @@ fun DrawerScreen(
                             Text(
                                 text = priceState.changeText,
                                 style = typography.priceLabel,
-                                color = changeColor.copy(alpha = if (priceState.isStale) 0.45f else 1.0f)
+                                color = changeColor
+                            )
+                        }
+                        if (priceState.isStale && priceState.ageMarker.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = priceState.ageMarker,
+                                style = typography.priceLabel,
+                                color = colors.textSecondary.copy(alpha = 0.6f)
                             )
                         }
                     }
@@ -287,7 +301,7 @@ fun DrawerScreen(
                             val currentScale = if (enableIndexAnimation) 1f + (0.16f * waveFactor * interactionProgress) else 1f
 
                             Text(
-                                text = if (isHidden) "${app.label} (hidden)" else app.label,
+                                text = if (isHidden) "${app.displayLabel} (hidden)" else app.displayLabel,
                                 style = typography.drawerItem,
                                 fontWeight = if (enableIndexAnimation && isTarget && interactionProgress > 0.4f) FontWeight.Bold else FontWeight.Normal,
                                 color = when {
@@ -359,13 +373,27 @@ fun DrawerScreen(
             containerColor = colors.surface,
             title = {
                 Text(
-                    text = app.label,
+                    text = app.displayLabel,
                     style = typography.settingsHeading,
                     color = colors.textPrimary
                 )
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Rename app",
+                        style = typography.settingsItem,
+                        color = colors.textPrimary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                renameInputText = app.customLabel ?: app.label
+                                appToRename = app
+                                selectedAppForMenu = null
+                            }
+                            .padding(vertical = 12.dp)
+                    )
+
                     Text(
                         text = if (isPinned) "Unpin from home" else "Pin to home",
                         style = typography.settingsItem,
@@ -423,6 +451,66 @@ fun DrawerScreen(
             dismissButton = {
                 TextButton(onClick = { selectedAppForMenu = null }) {
                     Text("Close", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Rename dialog
+    appToRename?.let { app ->
+        AlertDialog(
+            onDismissRequest = { appToRename = null },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Rename app",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Original name: ${app.label}",
+                        style = typography.settingsDescription,
+                        color = colors.textSecondary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    BasicTextField(
+                        value = renameInputText,
+                        onValueChange = { renameInputText = it },
+                        textStyle = typography.settingsItem.copy(color = colors.textPrimary),
+                        cursorBrush = SolidColor(colors.textPrimary),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.background)
+                            .padding(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Row {
+                    if (app.customLabel != null) {
+                        TextButton(onClick = {
+                            onRenameApp(app, null)
+                            appToRename = null
+                        }) {
+                            Text("Reset", color = colors.textSecondary)
+                        }
+                    }
+                    TextButton(onClick = {
+                        val trimmed = renameInputText.trim()
+                        onRenameApp(app, if (trimmed == app.label) null else trimmed)
+                        appToRename = null
+                    }) {
+                        Text("Save", color = colors.textPrimary)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { appToRename = null }) {
+                    Text("Cancel", color = colors.textSecondary)
                 }
             }
         )
@@ -514,7 +602,7 @@ private fun findTargetIndex(apps: List<AppItem>, target: Char): Int? {
     if (apps.isEmpty()) return null
     if (target == '#') {
         val idx = apps.indexOfFirst {
-            val first = it.label.firstOrNull()?.uppercaseChar() ?: ' '
+            val first = it.displayLabel.firstOrNull()?.uppercaseChar() ?: ' '
             first !in 'A'..'Z'
         }
         return if (idx >= 0) idx else 0
@@ -522,13 +610,13 @@ private fun findTargetIndex(apps: List<AppItem>, target: Char): Int? {
 
     // Exact match first
     val exactIdx = apps.indexOfFirst {
-        it.label.firstOrNull()?.uppercaseChar() == target
+        it.displayLabel.firstOrNull()?.uppercaseChar() == target
     }
     if (exactIdx >= 0) return exactIdx
 
     // Find first app starting with a letter after target
     val nextIdx = apps.indexOfFirst {
-        val first = it.label.firstOrNull()?.uppercaseChar() ?: ' '
+        val first = it.displayLabel.firstOrNull()?.uppercaseChar() ?: ' '
         first in 'A'..'Z' && first > target
     }
     if (nextIdx >= 0) return nextIdx

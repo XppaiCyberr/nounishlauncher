@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,6 +53,7 @@ fun HomeScreen(
     onAppClick: (AppItem) -> Unit,
     onAppInfoClick: (AppItem) -> Unit,
     onUnpinApp: (AppItem) -> Unit,
+    onRenameApp: (AppItem, String?) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     onSwipeLeft: () -> Unit,
@@ -73,6 +77,8 @@ fun HomeScreen(
     val dateFormat = remember { SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()) }
 
     var selectedAppForDialog by remember { mutableStateOf<AppItem?>(null) }
+    var appToRename by remember { mutableStateOf<AppItem?>(null) }
+    var renameInputText by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -137,6 +143,9 @@ fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .clickable { showDetails = !showDetails }
+                            .graphicsLayer {
+                                alpha = if (coin.isStale) 0.55f else 1.0f
+                            }
                             .padding(vertical = 4.dp)
                     ) {
                         Row(
@@ -162,6 +171,14 @@ fun HomeScreen(
                                     text = coin.changeText,
                                     style = typography.priceLabel,
                                     color = changeColor
+                                )
+                            }
+
+                            if (coin.isStale && coin.ageMarker.isNotEmpty()) {
+                                Text(
+                                    text = coin.ageMarker,
+                                    style = typography.priceLabel,
+                                    color = colors.textSecondary.copy(alpha = 0.6f)
                                 )
                             }
                         }
@@ -197,7 +214,7 @@ fun HomeScreen(
             } else {
                 pinnedApps.take(8).forEach { app ->
                     Text(
-                        text = app.label,
+                        text = app.displayLabel,
                         style = typography.homeShortcut,
                         color = colors.textPrimary,
                         modifier = Modifier
@@ -219,7 +236,69 @@ fun HomeScreen(
             containerColor = colors.surface,
             title = {
                 Text(
-                    text = app.label,
+                    text = app.displayLabel,
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Rename",
+                        style = typography.settingsItem,
+                        color = colors.textPrimary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                renameInputText = app.customLabel ?: app.label
+                                appToRename = app
+                                selectedAppForDialog = null
+                            }
+                            .padding(vertical = 12.dp)
+                    )
+                    Text(
+                        text = "Unpin from home",
+                        style = typography.settingsItem,
+                        color = colors.textPrimary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onUnpinApp(app)
+                                selectedAppForDialog = null
+                            }
+                            .padding(vertical = 12.dp)
+                    )
+                    Text(
+                        text = "App info",
+                        style = typography.settingsItem,
+                        color = colors.textPrimary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onAppInfoClick(app)
+                                selectedAppForDialog = null
+                            }
+                            .padding(vertical = 12.dp)
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { selectedAppForDialog = null }) {
+                    Text("Close", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Rename dialog
+    appToRename?.let { app ->
+        AlertDialog(
+            onDismissRequest = { appToRename = null },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Rename app",
                     style = typography.settingsHeading,
                     color = colors.textPrimary
                 )
@@ -227,26 +306,46 @@ fun HomeScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = app.packageName,
+                        text = "Original name: ${app.label}",
                         style = typography.settingsDescription,
                         color = colors.textSecondary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    BasicTextField(
+                        value = renameInputText,
+                        onValueChange = { renameInputText = it },
+                        textStyle = typography.settingsItem.copy(color = colors.textPrimary),
+                        cursorBrush = SolidColor(colors.textPrimary),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.background)
+                            .padding(12.dp)
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    onUnpinApp(app)
-                    selectedAppForDialog = null
-                }) {
-                    Text("Unpin", color = colors.textPrimary)
+                Row {
+                    if (app.customLabel != null) {
+                        TextButton(onClick = {
+                            onRenameApp(app, null)
+                            appToRename = null
+                        }) {
+                            Text("Reset", color = colors.textSecondary)
+                        }
+                    }
+                    TextButton(onClick = {
+                        val trimmed = renameInputText.trim()
+                        onRenameApp(app, if (trimmed == app.label) null else trimmed)
+                        appToRename = null
+                    }) {
+                        Text("Save", color = colors.textPrimary)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    onAppInfoClick(app)
-                    selectedAppForDialog = null
-                }) {
-                    Text("App Info", color = colors.textSecondary)
+                TextButton(onClick = { appToRename = null }) {
+                    Text("Cancel", color = colors.textSecondary)
                 }
             }
         )

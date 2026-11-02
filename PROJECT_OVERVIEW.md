@@ -10,7 +10,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 2. **AMOLED Monochrome**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. An optional light theme is also available.
 3. **Calm & Distraction-Free**: No notification dots, news feeds, unread counters, or recommendation algorithms.
 4. **Privacy-Focused & Offline by Default**: Zero analytics, telemetry, or tracking. The only network feature is the optional crypto ticker using Binance's public API (disabled by default, with zero background services).
-5. **Instantaneous & Lightweight**: App cold starts in milliseconds with an optimized APK footprint of only **~1.04 MB**.
+5. **Instantaneous & Lightweight**: App cold starts in milliseconds with an optimized APK footprint of only **~1.05 MB**.
 
 ---
 
@@ -23,21 +23,24 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Toggles available to show/hide time and date independently.
 - **Live Binance Crypto Market Overview (Center Space)**:
   - Fills the spacious center area between the clock and pinned shortcuts.
-  - Shows real-time tickers for your configured watchlist (e.g. `BTC`, `ETH`, `SOL`).
+  - Shows real-time tickers for your configured watchlist (e.g. `BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`).
   - Displays coin symbol, current price, and 24-hour daily percentage change.
   - Color-coded percentage changes: **Green** (`#00E676`) for gains, **Red** (`#FF5252`) for losses.
   - **Expandable Details**: Tapping any coin row reveals its 24-hour high and low (`24h H: 78,068  ·  L: 77,262`).
-  - Toggleable in Settings under **Crypto Price &rarr; Show crypto on home screen**.
+  - **Stale-Data Indicator**: Dimmed text styling and age marker (`·now`, `·5m`, `·1h`) appear when offline or when viewing cached data.
+  - Toggleable in Settings under **Crypto Price -> Show crypto on home screen**.
 - **Pinned App Shortcuts**:
   - 4 to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach.
   - Large (`28 sp`), light-weight typography with generous vertical spacing.
-  - Long-press any shortcut to unpin or open system App Info.
+  - Respects custom labels assigned by the user.
+  - Long-press any shortcut to rename, unpin, or open system App Info.
 - **Blank Area Long-Press**: Opens launcher Settings.
 
 ### 2. App Drawer & Search
 - **Instant Search**:
   - Swipe up from anywhere on the Home screen to open the app list.
   - Minimalist search input at the top filters apps in real time as you type.
+  - Searches through both original app labels and user custom labels.
   - **Auto-Launch (Optional)**: Automatically launches the app when search results narrow down to exactly 1 match.
 - **Alphabetical Fast-Scroll Index**:
   - Vertical `A–Z` + `#` scrubber for quick navigation.
@@ -53,6 +56,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Organic Spring Physics**: When released, the list gently springs back to baseline with a physics-based spring animation.
   - **Animation Toggle**: Option in Settings to disable the wave animation for a static, zero-motion list.
 - **App Context Menu (Long-Press on any item)**:
+  - **Rename App**: Assign a custom alias or label (e.g. "Chrome" -> "web"). Includes a one-tap Reset to default option.
   - **Pin to Home / Unpin from Home**
   - **Hide App / Unhide App**
   - **App Info** (System settings)
@@ -62,7 +66,12 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - Hide distracting or rarely used apps from the main drawer list.
 - Hidden apps only appear when explicitly typed into the search bar or in the **Hidden Apps** manager in Settings.
 
-### 4. Gestures
+### 4. Settings Backup & Restore (JSON)
+- **Zero-Telemetry Local Backup**: Export all pinned apps, hidden apps, custom app labels, and settings into an offline JSON file.
+- **Storage Access Framework (SAF)**: Integrates seamlessly with Android's system document picker (`CreateDocument` and `OpenDocument`) for safe, permissionless file import and export.
+- **Backwards Compatible**: Parses existing and future setting backups gracefully.
+
+### 5. Gestures
 - **Swipe Up**: Open App Drawer.
 - **Swipe Down**: Close App Drawer.
 - **Swipe Left**: Launch user-assigned quick app.
@@ -71,12 +80,14 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Long-Press**: Open Settings.
 - **System Back Button**: Prevents accidentally closing the launcher; returns to Home from Drawer or Settings.
 
-### 5. Crypto Price Ticker (Binance Public API)
+### 6. Crypto Price Ticker (Binance Public API)
 - **Zero API Key Required**: Queries Binance's public 24-hour ticker endpoint (`https://data-api.binance.vision/api/v3/ticker/24hr` with automatic failover to `api.binance.com` and `api.binance.me`).
-- **Drawer Header Label**: Discreet price label in the top-right corner of the drawer. Tap to cycle through coins (`BTC` &rarr; `ETH` &rarr; `SOL`).
-- **Home Screen Widget**: Full multi-coin watchlist with expandable 24h high/low data.
+- **Custom Coin Watchlist**: Add any coin symbol (e.g. `BTC`, `ETH`, `SOL`, `PEPE`) or full trading pair (e.g. `BTCUSDT`, `ETHBIDR`).
+- **Quote Currency Selector**: Supports presets for `USDT`, `USDC`, `EUR`, `BIDR` (IDR), `TRY`, `BRL`, `GBP`, `AUD`, `BTC`, or any custom quote currency.
+- **Stale-Data Indicator**: When offline or if API calls fail, cached prices are clearly marked with their age (`·now`, `·5m`, `·1h`) and dimmed so old data is never mistaken for live prices.
+- **Drawer Header Label**: Discreet price label in the top-right corner of the drawer. Tap to cycle through coins.
+- **Home Screen Widget**: Multi-coin watchlist with expandable 24h high/low data.
 - **Power & Battery Protection**: Polling only runs while the Home screen or Drawer is actively visible (refreshes every 15s). The moment another app opens or the screen turns off, all polling stops immediately.
-- **Offline Resilient**: Prices and percentages are cached in Jetpack DataStore. If offline or if requests fail, cached data renders immediately with dimmed styling.
 
 ---
 
@@ -90,6 +101,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 | **Architecture** | Single Activity + MVI / MVVM | `MainActivity` hosting screens via fast crossfades (`< 120 ms`) |
 | **State Management** | Kotlin Coroutines & `StateFlow` | Reactive UI binding without boilerplate |
 | **Persistence** | Jetpack DataStore Preferences | Asynchronous, non-blocking disk persistence |
+| **Backup / Restore** | Android SAF (`CreateDocument` / `OpenDocument`) | Permissionless, offline JSON export and import |
 | **Network Engine** | Java `HttpURLConnection` | Zero bulky external networking libraries; parses JSON with `org.json` |
 | **Code Shrinking** | R8 Full Mode | Minified bytecode and resource shrinking |
 | **Release Signing** | Custom Keystore (v2 + v3) | Avoids generic debug key flags and passes Google Play Protect |
@@ -106,18 +118,18 @@ nounishlauncher/
 │   └── src/main/
 │       ├── AndroidManifest.xml                  # HOME launcher declaration, package queries
 │       ├── java/com/nounish/launcher/
-│       │   ├── MainActivity.kt                  # SingleTask launcher activity, back handler & screen transitions
-│       │   ├── MainViewModel.kt                 # StateFlow coordination (apps, search, settings, crypto)
+│       │   ├── MainActivity.kt                  # SingleTask launcher activity, SAF backup/restore, screen transitions
+│       │   ├── MainViewModel.kt                 # StateFlow coordination (apps, search, settings, crypto, labels)
 │       │   ├── model/
-│       │   │   └── AppItem.kt                   # Data model for app label, packageName, activityName
+│       │   │   └── AppItem.kt                   # Data model for app label, customLabel, displayLabel, packageName
 │       │   ├── data/
 │       │   │   ├── AppRepository.kt             # PackageManager loader (labels only, no icons)
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper for all preferences & cached prices
-│       │   │   └── PriceRepository.kt           # Binance public 24hr ticker client with failover hosts
+│       │   │   └── PriceRepository.kt           # Binance public 24hr ticker client with failover hosts & age formatting
 │       │   ├── ui/
-│       │   │   ├── HomeScreen.kt                # Clock, date, Binance market overview, pinned shortcuts
-│       │   │   ├── DrawerScreen.kt              # Search bar, left/right alphabet scrubber, Niagara wave list
-│       │   │   ├── SettingsScreen.kt            # Categorized launcher settings & customization options
+│       │   │   ├── HomeScreen.kt                # Clock, date, Binance market overview, pinned shortcuts, rename dialog
+│       │   │   ├── DrawerScreen.kt              # Search bar, left/right alphabet scrubber, Niagara wave list, rename
+│       │   │   ├── SettingsScreen.kt            # Categorized launcher settings, backup/restore, coins & quotes
 │       │   │   ├── GestureModifier.kt           # Pointer detection for swipes, taps, and long-presses
 │       │   │   └── theme/
 │       │   │       ├── Color.kt                 # AMOLED pitch black, light theme, crypto green/red colors
@@ -148,6 +160,7 @@ flowchart TD
     subgraph System ["Android System"]
         PM[PackageManager]
         BCR[PackageChangeReceiver]
+        SAF[Storage Access Framework]
         Binance[Binance Public API]
     end
 
@@ -178,6 +191,7 @@ flowchart TD
     SetStore --> SettingsState
     Binance --> PriceRepo
     PriceRepo --> PriceState
+    SAF <-->|Export / Import JSON| SetStore
 
     AllApps --> FilteredApps
     SettingsState --> FilteredApps
@@ -215,9 +229,12 @@ Accessible by long-pressing any empty area on the Home screen:
 5. **Crypto Price (Binance)**:
    - `Enable crypto price label`: Master toggle for all crypto features.
    - `Show crypto on home screen`: Displays the multi-coin market widget on the Home screen.
-   - `Coins`: Comma-separated list of symbols (e.g. `BTC, ETH, SOL, DOGE, AVAX`).
-   - `Quote currency`: Pair currency (default: `USDT`, supports `USD`, `EUR`, `BUSD`).
-6. **Management**:
+   - `Coins`: Comma-separated list of symbols (e.g. `BTC, ETH, SOL, PEPE, BTCUSDT, ETHBIDR`).
+   - `Quote currency`: Pair currency presets (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`) or custom quote.
+6. **Backup & Restore**:
+   - `Export settings (JSON)`: Save all settings, pinned apps, hidden apps, and custom labels to a JSON file.
+   - `Import settings (JSON)`: Restore setup from a previous JSON backup file.
+7. **Management**:
    - `Hidden Apps`: View and unhide hidden applications.
    - `Pinned Apps`: View and remove pinned home screen applications.
    - `Set as default launcher`: Direct shortcut to Android's default home app settings.
@@ -244,7 +261,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 
 ### Outputs
-- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.04 MB**)
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.05 MB**)
 - **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk` (**~8.7 MB**)
 
 ---
@@ -253,6 +270,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 
 - **Zero Accessibility Exploits**: The release build does not declare background accessibility service permissions in the manifest, ensuring it passes Google Play Protect without security alerts.
 - **Valid Release Signature**: Signed with a dedicated 2048-bit RSA key using APK Signature Schemes v2 and v3.
+- **Zero Telemetry**: Backup and restore operations are 100% offline via Android Storage Access Framework.
 - **Minimal Permissions**:
   - `INTERNET`: Exclusively for public Binance price tickers. Completely dormant when crypto features are turned off.
   - `QUERY_ALL_PACKAGES` / `CATEGORY_LAUNCHER`: Used strictly on-device to enumerate installed apps.
