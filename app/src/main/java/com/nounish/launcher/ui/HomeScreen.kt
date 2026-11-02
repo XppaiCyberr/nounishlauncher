@@ -48,6 +48,9 @@ fun HomeScreen(
     pinnedApps: List<AppItem>,
     showClock: Boolean,
     showDate: Boolean,
+    clockTimeFormat: String = "system",
+    showClockSeconds: Boolean = false,
+    dateFormatPattern: String = "EEEE, d MMMM",
     showCrypto: Boolean,
     cryptoCoins: List<CoinTickerUi>,
     onAppClick: (AppItem) -> Unit,
@@ -73,8 +76,30 @@ fun HomeScreen(
         }
     }
 
-    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val dateFormat = remember { SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()) }
+    val formattedTime = remember(currentTime, clockTimeFormat, showClockSeconds) {
+        val is24 = when (clockTimeFormat) {
+            "24h" -> true
+            "12h", "12h_no_am_pm" -> false
+            else -> android.text.format.DateFormat.is24HourFormat(context)
+        }
+        val pattern = when {
+            is24 && showClockSeconds -> "HH:mm:ss"
+            is24 -> "HH:mm"
+            clockTimeFormat == "12h_no_am_pm" && showClockSeconds -> "h:mm:ss"
+            clockTimeFormat == "12h_no_am_pm" -> "h:mm"
+            showClockSeconds -> "h:mm:ss a"
+            else -> "h:mm a"
+        }
+        SimpleDateFormat(pattern, Locale.getDefault()).format(currentTime)
+    }
+
+    val formattedDate = remember(currentTime, dateFormatPattern) {
+        try {
+            SimpleDateFormat(dateFormatPattern, Locale.getDefault()).format(currentTime)
+        } catch (_: Exception) {
+            SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(currentTime)
+        }
+    }
 
     var selectedAppForDialog by remember { mutableStateOf<AppItem?>(null) }
     var appToRename by remember { mutableStateOf<AppItem?>(null) }
@@ -114,14 +139,14 @@ fun HomeScreen(
             ) {
                 if (showClock) {
                     Text(
-                        text = timeFormat.format(currentTime),
+                        text = formattedTime,
                         style = typography.clock,
                         color = colors.textSecondary
                     )
                 }
                 if (showDate) {
                     Text(
-                        text = dateFormat.format(currentTime),
+                        text = formattedDate,
                         style = typography.clock,
                         color = colors.textSecondary.copy(alpha = 0.7f)
                     )

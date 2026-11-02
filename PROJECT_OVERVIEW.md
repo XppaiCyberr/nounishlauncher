@@ -23,6 +23,9 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Clean, minimal time and date in the top-left corner (`14 sp`, secondary color).
   - Tapping the clock launches the system's default alarm/clock app.
   - Toggles available to show/hide time and date independently.
+  - **Clock Format Options**: Select between System Default (respects Android's 24-hour setting), 24-hour (`HH:mm`), 12-hour with AM/PM (`h:mm a`), or 12-hour without AM/PM (`h:mm`).
+  - **Optional Seconds**: Live second display (`:ss`) for atomic precision.
+  - **Date Format Presets & Custom Pattern**: Choose from presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or specify any custom `SimpleDateFormat` pattern.
 - **Live Binance Crypto Market Overview (Center Space)**:
   - Fills the spacious center area between the clock and pinned shortcuts.
   - Shows real-time tickers for your configured watchlist (e.g. `BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`).
@@ -32,8 +35,10 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Expandable Details**: Tapping any coin row reveals its 24-hour high, low, and full trendline (`24h H: 78,068 · L: 77,262 · Trend: ▂▂ ▂▆▆█▆▄▃▂▂`).
   - **Stale-Data Indicator**: Dimmed text styling and age marker (`·now`, `·5m`, `·1h`) appear when offline or when viewing cached data.
   - Toggleable in Settings under **Crypto Price -> Show crypto on home screen**.
-- **Pinned App Shortcuts**:
+- **Pinned App Shortcuts & Limits**:
   - 4 to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach.
+  - **Pinned App Reordering**: In Settings -> Pinned Apps, dedicated up (`↑`) and down (`↓`) controls allow direct reordering of shortcuts without unpinning and re-pinning.
+  - **Strict 4–8 Range Enforcement**: Cleanly enforces the 4–8 range. Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first." Attempting to unpin below 4 prompts: "Minimum 4 pinned apps required. Pin another app first." Fresh installs automatically seed 4 essential default apps.
   - Large (`28 sp`), light-weight typography with generous vertical spacing.
   - Respects custom labels assigned by the user.
   - **Prunes Dead Entries**: If a pinned app is uninstalled, it is automatically dropped from pinned shortcuts and DataStore, leaving zero dead entries.

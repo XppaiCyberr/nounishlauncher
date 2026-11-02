@@ -158,6 +158,16 @@ class MainViewModel(
                 if (appsList.isNotEmpty()) {
                     val pref = settings.value
 
+                    // If brand new install with 0 pinned apps, auto-seed default 4 essential apps
+                    if (pref.pinnedApps.isEmpty()) {
+                        val defaults = findDefaultPinnedApps(appsList)
+                        if (defaults.isNotEmpty()) {
+                            settingsStore.reorderPinnedApps(defaults.map { it.key })
+                            val labelsMap = defaults.associate { it.key to it.label }
+                            settingsStore.updatePinnedAppLabels(labelsMap)
+                        }
+                    }
+
                     // Prune uninstalled apps from pinned list
                     val currentPinned = pref.pinnedApps
                     val validPinned = currentPinned.filter { pinnedId ->
@@ -185,6 +195,27 @@ class MainViewModel(
                 }
             }
         }
+    }
+
+    private fun findDefaultPinnedApps(apps: List<AppItem>): List<AppItem> {
+        if (apps.size <= 4) return apps
+        val defaults = mutableListOf<AppItem>()
+        val dialer = apps.find { it.packageName.contains("dialer") || it.packageName.contains("phone") }
+        if (dialer != null) defaults.add(dialer)
+        val sms = apps.find { it.packageName.contains("messaging") || it.packageName.contains("mms") || it.packageName.contains("sms") }
+        if (sms != null && !defaults.contains(sms)) defaults.add(sms)
+        val browser = apps.find { it.packageName.contains("chrome") || it.packageName.contains("browser") }
+        if (browser != null && !defaults.contains(browser)) defaults.add(browser)
+        val camera = apps.find { it.packageName.contains("camera") }
+        if (camera != null && !defaults.contains(camera)) defaults.add(camera)
+
+        for (app in apps) {
+            if (defaults.size >= 4) break
+            if (!defaults.contains(app)) {
+                defaults.add(app)
+            }
+        }
+        return defaults.take(4)
     }
 
     private fun findMatchingApp(apps: List<AppItem>, pinnedId: String): AppItem? {
@@ -496,25 +527,39 @@ class MainViewModel(
         }
     }
 
-    fun pinApp(item: AppItem) {
+    fun pinApp(item: AppItem): Boolean {
+        val alreadyPinned = settings.value.pinnedApps.contains(item.key) ||
+                            settings.value.pinnedApps.contains(item.packageName)
+        if (!alreadyPinned && settings.value.pinnedApps.size >= 8) {
+            return false
+        }
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.pinApp(item.key, item.label)
         }
+        return true
     }
 
-    fun unpinApp(item: AppItem) {
+    fun unpinApp(item: AppItem): Boolean {
+        if (settings.value.pinnedApps.size <= 4) {
+            return false
+        }
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.unpinApp(item.key)
             settingsStore.unpinApp(item.packageName)
         }
+        return true
     }
 
-    fun unpinAppById(id: String) {
+    fun unpinAppById(id: String): Boolean {
+        if (settings.value.pinnedApps.size <= 4) {
+            return false
+        }
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.unpinApp(id)
             val cleanPkg = id.substringBefore("/").substringBefore("#")
             settingsStore.unpinApp(cleanPkg)
         }
+        return true
     }
 
     fun reorderPinnedApps(list: List<String>) {
@@ -582,9 +627,27 @@ class MainViewModel(
         }
     }
 
+    fun setClockTimeFormat(format: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setClockTimeFormat(format)
+        }
+    }
+
+    fun setShowClockSeconds(show: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowClockSeconds(show)
+        }
+    }
+
     fun setShowDate(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowDate(enabled)
+        }
+    }
+
+    fun setDateFormatPattern(pattern: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setDateFormatPattern(pattern)
         }
     }
 

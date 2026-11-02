@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Switch
@@ -32,19 +33,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.service.LockScreenService
 import com.nounish.launcher.ui.theme.LauncherTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(
     settings: LauncherSettings,
     allApps: List<AppItem>,
     onToggleShowClock: (Boolean) -> Unit,
+    onUpdateClockTimeFormat: (String) -> Unit,
+    onToggleClockSeconds: (Boolean) -> Unit,
     onToggleShowDate: (Boolean) -> Unit,
+    onUpdateDateFormatPattern: (String) -> Unit,
     onToggleAutoLaunch: (Boolean) -> Unit,
     onSelectSwipeLeftApp: (String?) -> Unit,
     onSelectSwipeRightApp: (String?) -> Unit,
@@ -58,6 +66,7 @@ fun SettingsScreen(
     onToggleMonospace: (Boolean) -> Unit,
     onToggleIndexOnRight: (Boolean) -> Unit,
     onToggleIndexAnimation: (Boolean) -> Unit,
+    onReorderPinnedApps: (List<String>) -> Unit,
     onUnpinApp: (String) -> Unit,
     onUnhideApp: (String) -> Unit,
     onExportSettings: () -> Unit,
@@ -71,6 +80,8 @@ fun SettingsScreen(
     var showAppPickerForSwipe by remember { mutableStateOf<String?>(null) } // "left" or "right"
     var showEditCoinsDialog by remember { mutableStateOf(false) }
     var showEditQuoteDialog by remember { mutableStateOf(false) }
+    var showClockFormatDialog by remember { mutableStateOf(false) }
+    var showDateFormatDialog by remember { mutableStateOf(false) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
         allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
@@ -123,7 +134,7 @@ fun SettingsScreen(
                 )
             }
 
-            // General Section
+            // Home Screen Section
             item {
                 SettingsSectionHeader(title = "Home Screen")
             }
@@ -136,12 +147,54 @@ fun SettingsScreen(
                 )
             }
 
+            if (settings.showClock) {
+                val clockFormatLabel = when (settings.clockTimeFormat) {
+                    "24h" -> "24-hour (14:30)"
+                    "12h" -> "12-hour with AM/PM (2:30 PM)"
+                    "12h_no_am_pm" -> "12-hour (2:30)"
+                    else -> "System default"
+                }
+
+                item {
+                    SettingsActionRow(
+                        title = "Clock format",
+                        subtitle = clockFormatLabel,
+                        onClick = { showClockFormatDialog = true }
+                    )
+                }
+
+                item {
+                    SettingsSwitchRow(
+                        title = "Show seconds",
+                        subtitle = if (settings.showClockSeconds) "Seconds displayed (:ss)" else "Seconds hidden",
+                        checked = settings.showClockSeconds,
+                        onCheckedChange = onToggleClockSeconds
+                    )
+                }
+            }
+
             item {
                 SettingsSwitchRow(
                     title = "Show date",
                     checked = settings.showDate,
                     onCheckedChange = onToggleShowDate
                 )
+            }
+
+            if (settings.showDate) {
+                val datePreview = try {
+                    SimpleDateFormat(settings.dateFormatPattern, Locale.getDefault()).format(Date())
+                } catch (_: Exception) {
+                    settings.dateFormatPattern
+                }
+
+                item {
+                    SettingsActionRow(
+                        title = "Date format",
+                        subtitle = datePreview,
+                        onClick = { showDateFormatDialog = true }
+                    )
+                }
             }
 
             // App Drawer Section
@@ -341,11 +394,11 @@ fun SettingsScreen(
             // Pinned Apps Section
             if (settings.pinnedApps.isNotEmpty()) {
                 item {
-                    SettingsSectionHeader(title = "Pinned Apps (${settings.pinnedApps.size})")
+                    SettingsSectionHeader(title = "Pinned Apps (${settings.pinnedApps.size}/8)")
                 }
 
-                items(settings.pinnedApps) { pkg ->
-                    val app = allApps.find { it.packageName == pkg }
+                itemsIndexed(settings.pinnedApps) { index, pkg ->
+                    val app = allApps.find { it.key == pkg || it.packageName == pkg }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -359,14 +412,52 @@ fun SettingsScreen(
                             color = colors.textPrimary,
                             modifier = Modifier.weight(1f)
                         )
-                        Text(
-                            text = "Remove",
-                            style = typography.settingsDescription,
-                            color = colors.textSecondary,
-                            modifier = Modifier
-                                .clickable { onUnpinApp(pkg) }
-                                .padding(8.dp)
-                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (index > 0) {
+                                Text(
+                                    text = "↑",
+                                    style = typography.settingsItem,
+                                    color = colors.textPrimary,
+                                    modifier = Modifier
+                                        .clickable {
+                                            val mutable = settings.pinnedApps.toMutableList()
+                                            val item = mutable.removeAt(index)
+                                            mutable.add(index - 1, item)
+                                            onReorderPinnedApps(mutable)
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                )
+                            }
+
+                            if (index < settings.pinnedApps.size - 1) {
+                                Text(
+                                    text = "↓",
+                                    style = typography.settingsItem,
+                                    color = colors.textPrimary,
+                                    modifier = Modifier
+                                        .clickable {
+                                            val mutable = settings.pinnedApps.toMutableList()
+                                            val item = mutable.removeAt(index)
+                                            mutable.add(index + 1, item)
+                                            onReorderPinnedApps(mutable)
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                )
+                            }
+
+                            Text(
+                                text = "Remove",
+                                style = typography.settingsDescription,
+                                color = colors.textSecondary,
+                                modifier = Modifier
+                                    .clickable { onUnpinApp(pkg) }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -379,7 +470,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.2",
+                        text = "Nounish Launcher 1.0.3",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -587,6 +678,143 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showEditQuoteDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Clock Format Dialog
+    if (showClockFormatDialog) {
+        val clockOptions = listOf(
+            "system" to "System default",
+            "24h" to "24-hour (14:30)",
+            "12h" to "12-hour with AM/PM (2:30 PM)",
+            "12h_no_am_pm" to "12-hour without AM/PM (2:30)"
+        )
+
+        AlertDialog(
+            onDismissRequest = { showClockFormatDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Clock format",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    clockOptions.forEach { (key, label) ->
+                        val isSelected = settings.clockTimeFormat == key
+                        Text(
+                            text = label,
+                            style = typography.settingsItem,
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateClockTimeFormat(key)
+                                    showClockFormatDialog = false
+                                }
+                                .padding(vertical = 10.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showClockFormatDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Date Format Dialog
+    if (showDateFormatDialog) {
+        val now = Date()
+        val datePresets = listOf(
+            "EEEE, d MMMM" to "Full",
+            "EEE, d MMM" to "Short",
+            "d MMMM yyyy" to "Standard with year",
+            "yyyy-MM-dd" to "ISO 8601",
+            "EEE, MMM d" to "US style",
+            "d MMM" to "Compact"
+        )
+        var customPatternText by remember { mutableStateOf(settings.dateFormatPattern) }
+
+        AlertDialog(
+            onDismissRequest = { showDateFormatDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Date format",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    datePresets.forEach { (pattern, label) ->
+                        val sample = try {
+                            SimpleDateFormat(pattern, Locale.getDefault()).format(now)
+                        } catch (_: Exception) {
+                            pattern
+                        }
+                        val isSelected = settings.dateFormatPattern == pattern
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateDateFormatPattern(pattern)
+                                    showDateFormatDialog = false
+                                }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "$label ($sample)",
+                                style = typography.settingsItem,
+                                color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Or custom pattern:",
+                        style = typography.settingsDescription,
+                        color = colors.textSecondary
+                    )
+                    BasicTextField(
+                        value = customPatternText,
+                        onValueChange = { customPatternText = it },
+                        textStyle = typography.settingsItem.copy(color = colors.textPrimary),
+                        cursorBrush = SolidColor(colors.textPrimary),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.background)
+                            .padding(10.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val trimmed = customPatternText.trim()
+                    if (trimmed.isNotEmpty()) {
+                        onUpdateDateFormatPattern(trimmed)
+                    }
+                    showDateFormatDialog = false
+                }) {
+                    Text("Apply", color = colors.textPrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDateFormatDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }

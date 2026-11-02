@@ -33,6 +33,9 @@ data class LauncherSettings(
     val customAppLabels: Map<String, String> = emptyMap(),
     val showClock: Boolean = true,
     val showDate: Boolean = true,
+    val clockTimeFormat: String = "system", // "system", "24h", "12h", "12h_no_am_pm"
+    val showClockSeconds: Boolean = false,
+    val dateFormatPattern: String = "EEEE, d MMMM",
     val showHomeCrypto: Boolean = true,
     val autoLaunchSingleMatch: Boolean = false,
     val swipeLeftPackage: String? = null,
@@ -59,6 +62,9 @@ class SettingsStore(private val context: Context) {
         private val KEY_CUSTOM_LABELS = stringPreferencesKey("custom_app_labels")
         private val KEY_SHOW_CLOCK = booleanPreferencesKey("show_clock")
         private val KEY_SHOW_DATE = booleanPreferencesKey("show_date")
+        private val KEY_CLOCK_TIME_FORMAT = stringPreferencesKey("clock_time_format")
+        private val KEY_SHOW_CLOCK_SECONDS = booleanPreferencesKey("show_clock_seconds")
+        private val KEY_DATE_FORMAT_PATTERN = stringPreferencesKey("date_format_pattern")
         private val KEY_SHOW_HOME_CRYPTO = booleanPreferencesKey("show_home_crypto")
         private val KEY_AUTO_LAUNCH = booleanPreferencesKey("auto_launch_single_match")
         private val KEY_SWIPE_LEFT = stringPreferencesKey("swipe_left_package")
@@ -89,6 +95,9 @@ class SettingsStore(private val context: Context) {
         val customLabels = parseLabelsMap(prefs[KEY_CUSTOM_LABELS] ?: "")
         val showClock = prefs[KEY_SHOW_CLOCK] ?: true
         val showDate = prefs[KEY_SHOW_DATE] ?: true
+        val clockFormat = prefs[KEY_CLOCK_TIME_FORMAT] ?: "system"
+        val showSeconds = prefs[KEY_SHOW_CLOCK_SECONDS] ?: false
+        val datePattern = prefs[KEY_DATE_FORMAT_PATTERN] ?: "EEEE, d MMMM"
         val showHomeCrypto = prefs[KEY_SHOW_HOME_CRYPTO] ?: true
         val autoLaunch = prefs[KEY_AUTO_LAUNCH] ?: false
         val swipeLeft = prefs[KEY_SWIPE_LEFT]?.takeIf { it.isNotBlank() }
@@ -117,6 +126,9 @@ class SettingsStore(private val context: Context) {
             customAppLabels = customLabels,
             showClock = showClock,
             showDate = showDate,
+            clockTimeFormat = clockFormat,
+            showClockSeconds = showSeconds,
+            dateFormatPattern = datePattern,
             showHomeCrypto = showHomeCrypto,
             autoLaunchSingleMatch = autoLaunch,
             swipeLeftPackage = swipeLeft,
@@ -207,6 +219,18 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_SHOW_DATE] = show }
     }
 
+    suspend fun setClockTimeFormat(format: String) {
+        context.dataStore.edit { it[KEY_CLOCK_TIME_FORMAT] = format }
+    }
+
+    suspend fun setShowClockSeconds(show: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_CLOCK_SECONDS] = show }
+    }
+
+    suspend fun setDateFormatPattern(pattern: String) {
+        context.dataStore.edit { it[KEY_DATE_FORMAT_PATTERN] = pattern }
+    }
+
     suspend fun setShowHomeCrypto(show: Boolean) {
         context.dataStore.edit { it[KEY_SHOW_HOME_CRYPTO] = show }
     }
@@ -284,6 +308,9 @@ class SettingsStore(private val context: Context) {
 
         root.put("showClock", settings.showClock)
         root.put("showDate", settings.showDate)
+        root.put("clockTimeFormat", settings.clockTimeFormat)
+        root.put("showClockSeconds", settings.showClockSeconds)
+        root.put("dateFormatPattern", settings.dateFormatPattern)
         root.put("showHomeCrypto", settings.showHomeCrypto)
         root.put("autoLaunchSingleMatch", settings.autoLaunchSingleMatch)
 
@@ -335,6 +362,10 @@ class SettingsStore(private val context: Context) {
 
                 if (root.has("showClock")) prefs[KEY_SHOW_CLOCK] = root.getBoolean("showClock")
                 if (root.has("showDate")) prefs[KEY_SHOW_DATE] = root.getBoolean("showDate")
+                if (root.has("clockTimeFormat")) prefs[KEY_CLOCK_TIME_FORMAT] = root.getString("clockTimeFormat")
+                if (root.has("showClockSeconds")) prefs[KEY_SHOW_CLOCK_SECONDS] = root.getBoolean("showClockSeconds")
+                if (root.has("dateFormatPattern")) prefs[KEY_DATE_FORMAT_PATTERN] = root.getString("dateFormatPattern")
+
                 if (root.has("showHomeCrypto")) prefs[KEY_SHOW_HOME_CRYPTO] = root.getBoolean("showHomeCrypto")
                 if (root.has("autoLaunchSingleMatch")) prefs[KEY_AUTO_LAUNCH] = root.getBoolean("autoLaunchSingleMatch")
 

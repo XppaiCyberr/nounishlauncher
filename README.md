@@ -16,7 +16,12 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Text-Only Design**: Apps are displayed solely by name. No visual noise, no notification badges, and zero icon bitmaps loaded into memory.
 - **Custom App Renaming**: Long-press any app in the Home screen or Drawer to assign a custom label (e.g. "Chrome" -> "web", "Spotify" -> "music"). Easily reset back to default at any time.
 - **AMOLED Monochrome**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme.
-- **Home Screen**:
+- **Home Screen Essentials**:
+  - **Pinned App Editing & Reordering**: Reorder pinned shortcuts with dedicated up (`↑`) and down (`↓`) controls in Settings without needing to unpin and re-pin.
+  - **Strict 4–8 Pinned Limits**: Cleanly enforces the 4–8 pinned apps range. Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first." Attempting to unpin below 4 prompts: "Minimum 4 pinned apps required. Pin another app first." Fresh installs automatically seed the 4 essential apps.
+  - **Clock Options**: Choose between System Default (respects Android's 24-hour setting), 24-hour (`HH:mm`), 12-hour with AM/PM (`h:mm a`), or 12-hour without AM/PM (`h:mm`).
+  - **Optional Seconds**: Live second display (`:ss`) for atomic precision.
+  - **Date Format Customization**: Pick from common presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or input any custom `SimpleDateFormat` pattern.
   - Live clock and date (configurable, tap clock to open system clock).
   - **Live Binance Crypto Market Overview**: Fills the spacious center area with real-time tickers, current prices, 24-hour daily percentage change, and text sparklines.
   - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that remain strictly text-only.
