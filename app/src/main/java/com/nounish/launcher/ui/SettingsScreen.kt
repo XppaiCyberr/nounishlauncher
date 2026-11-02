@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
@@ -53,6 +51,7 @@ fun SettingsScreen(
     onToggleDoubleTapLock: (Boolean) -> Unit,
     onToggleCryptoEnabled: (Boolean) -> Unit,
     onToggleShowHomeCrypto: (Boolean) -> Unit,
+    onToggleWebSocketOnHome: (Boolean) -> Unit,
     onUpdateCryptoSymbols: (List<String>) -> Unit,
     onUpdateCryptoQuote: (String) -> Unit,
     onToggleLightTheme: (Boolean) -> Unit,
@@ -256,6 +255,15 @@ fun SettingsScreen(
                         subtitle = "Display live market prices in the home screen space",
                         checked = settings.showHomeCrypto,
                         onCheckedChange = onToggleShowHomeCrypto
+                    )
+                }
+
+                item {
+                    SettingsSwitchRow(
+                        title = "Live WebSocket for Home screen",
+                        subtitle = if (settings.useWebSocketOnHome) "Stream live tick-by-tick prices on Home (closed on pause)" else "Disabled (Standard polling with backoff)",
+                        checked = settings.useWebSocketOnHome,
+                        onCheckedChange = onToggleWebSocketOnHome
                     )
                 }
 

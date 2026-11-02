@@ -150,7 +150,7 @@ fun HomeScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
                                 text = coin.symbol,
@@ -174,6 +174,17 @@ fun HomeScreen(
                                 )
                             }
 
+                            // 24h Text sparkline trend
+                            if (coin.sparkline.isNotEmpty()) {
+                                val sparkColor = if (coin.changePercent >= 0.0) CryptoGreen.copy(alpha = 0.85f) else CryptoRed.copy(alpha = 0.85f)
+                                Text(
+                                    text = coin.sparkline,
+                                    style = typography.priceLabel,
+                                    color = sparkColor
+                                )
+                            }
+
+                            // Stale-data indicator
                             if (coin.isStale && coin.ageMarker.isNotEmpty()) {
                                 Text(
                                     text = coin.ageMarker,
@@ -186,7 +197,7 @@ fun HomeScreen(
                         // Expandable 24h High/Low details on tap
                         if (showDetails && coin.highPrice.isNotEmpty() && coin.lowPrice.isNotEmpty()) {
                             Text(
-                                text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}",
+                                text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}${if (coin.sparkline.isNotEmpty()) "  ·  Trend: ${coin.sparkline}" else ""}",
                                 style = typography.clock,
                                 color = colors.textSecondary.copy(alpha = 0.6f),
                                 modifier = Modifier.padding(top = 2.dp)

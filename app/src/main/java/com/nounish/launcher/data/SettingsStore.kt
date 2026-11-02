@@ -22,7 +22,8 @@ data class CachedCoinPrice(
     val changePercent: Double = 0.0,
     val highPrice: String = "",
     val lowPrice: String = "",
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val sparkline: String = ""
 )
 
 data class LauncherSettings(
@@ -39,6 +40,7 @@ data class LauncherSettings(
     val cryptoPriceEnabled: Boolean = true,
     val cryptoSymbols: List<String> = listOf("BTC", "ETH", "SOL"),
     val cryptoQuoteCurrency: String = "USDT",
+    val useWebSocketOnHome: Boolean = false,
     val isLightTheme: Boolean = false,
     val useMonospace: Boolean = false,
     val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
@@ -63,6 +65,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_CRYPTO_ENABLED = booleanPreferencesKey("crypto_price_enabled")
         private val KEY_CRYPTO_SYMBOLS = stringPreferencesKey("crypto_symbols")
         private val KEY_CRYPTO_QUOTE = stringPreferencesKey("crypto_quote_currency")
+        private val KEY_USE_WEBSOCKET_ON_HOME = booleanPreferencesKey("use_websocket_on_home")
         private val KEY_LIGHT_THEME = booleanPreferencesKey("is_light_theme")
         private val KEY_USE_MONOSPACE = booleanPreferencesKey("use_monospace")
         private val KEY_CACHED_PRICES = stringPreferencesKey("cached_crypto_prices")
@@ -95,6 +98,7 @@ class SettingsStore(private val context: Context) {
             .ifEmpty { listOf("BTC", "ETH", "SOL") }
 
         val cryptoQuote = prefs[KEY_CRYPTO_QUOTE] ?: "USDT"
+        val useWebSocket = prefs[KEY_USE_WEBSOCKET_ON_HOME] ?: false
         val isLight = prefs[KEY_LIGHT_THEME] ?: false
         val useMono = prefs[KEY_USE_MONOSPACE] ?: false
 
@@ -117,6 +121,7 @@ class SettingsStore(private val context: Context) {
             cryptoPriceEnabled = cryptoEnabled,
             cryptoSymbols = symbolsList,
             cryptoQuoteCurrency = cryptoQuote,
+            useWebSocketOnHome = useWebSocket,
             isLightTheme = isLight,
             useMonospace = useMono,
             cachedCryptoPrices = cachedMap,
@@ -215,6 +220,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_CRYPTO_QUOTE] = quote.trim().uppercase() }
     }
 
+    suspend fun setUseWebSocketOnHome(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_USE_WEBSOCKET_ON_HOME] = enabled }
+    }
+
     suspend fun setLightTheme(enabled: Boolean) {
         context.dataStore.edit { it[KEY_LIGHT_THEME] = enabled }
     }
@@ -234,7 +243,7 @@ class SettingsStore(private val context: Context) {
     suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {
         context.dataStore.edit { prefs ->
             val encoded = prices.entries.joinToString(";") {
-                "${it.key}:${it.value.price}:${it.value.changeText}:${it.value.changePercent}:${it.value.highPrice}:${it.value.lowPrice}:${it.value.timestamp}"
+                "${it.key}:${it.value.price}:${it.value.changeText}:${it.value.changePercent}:${it.value.highPrice}:${it.value.lowPrice}:${it.value.timestamp}:${it.value.sparkline}"
             }
             prefs[KEY_CACHED_PRICES] = encoded
         }
@@ -265,6 +274,7 @@ class SettingsStore(private val context: Context) {
         root.put("cryptoPriceEnabled", settings.cryptoPriceEnabled)
         root.put("cryptoSymbols", JSONArray(settings.cryptoSymbols))
         root.put("cryptoQuoteCurrency", settings.cryptoQuoteCurrency)
+        root.put("useWebSocketOnHome", settings.useWebSocketOnHome)
 
         root.put("isLightTheme", settings.isLightTheme)
         root.put("useMonospace", settings.useMonospace)
@@ -315,6 +325,7 @@ class SettingsStore(private val context: Context) {
                     prefs[KEY_CRYPTO_SYMBOLS] = list.joinToString(",")
                 }
                 if (root.has("cryptoQuoteCurrency")) prefs[KEY_CRYPTO_QUOTE] = root.getString("cryptoQuoteCurrency")
+                if (root.has("useWebSocketOnHome")) prefs[KEY_USE_WEBSOCKET_ON_HOME] = root.getBoolean("useWebSocketOnHome")
 
                 if (root.has("isLightTheme")) prefs[KEY_LIGHT_THEME] = root.getBoolean("isLightTheme")
                 if (root.has("useMonospace")) prefs[KEY_USE_MONOSPACE] = root.getBoolean("useMonospace")
@@ -349,6 +360,17 @@ class SettingsStore(private val context: Context) {
             raw.split(";").mapNotNull { pair ->
                 val parts = pair.split(":")
                 when {
+                    parts.size >= 8 -> {
+                        parts[0] to CachedCoinPrice(
+                            price = parts[1],
+                            changeText = parts[2],
+                            changePercent = parts[3].toDoubleOrNull() ?: 0.0,
+                            highPrice = parts[4],
+                            lowPrice = parts[5],
+                            timestamp = parts[6].toLongOrNull() ?: System.currentTimeMillis(),
+                            sparkline = parts[7]
+                        )
+                    }
                     parts.size >= 7 -> {
                         parts[0] to CachedCoinPrice(
                             price = parts[1],

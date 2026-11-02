@@ -4,11 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nounish.launcher.data.AppRepository
+import com.nounish.launcher.data.BinanceWebSocketClient
 import com.nounish.launcher.data.CachedCoinPrice
 import com.nounish.launcher.data.CoinTicker
 import com.nounish.launcher.data.LauncherSettings
+import com.nounish.launcher.data.NetworkHelper
 import com.nounish.launcher.data.PriceRepository
 import com.nounish.launcher.data.PriceUiState
+import com.nounish.launcher.data.RateLimitException
 import com.nounish.launcher.data.SettingsStore
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.service.PackageChangeReceiver
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class CoinTickerUi(
     val symbol: String,
@@ -32,7 +36,8 @@ data class CoinTickerUi(
     val highPrice: String = "",
     val lowPrice: String = "",
     val isStale: Boolean = false,
-    val ageMarker: String = ""
+    val ageMarker: String = "",
+    val sparkline: String = ""
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -72,7 +77,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                               app.label.contains(trimmed, ignoreCase = true) ||
                               app.packageName.contains(trimmed, ignoreCase = true)
                 if (pref.hiddenApps.contains(app.packageName)) {
-                    // Hidden apps only appear when searched by exact or close name
                     app.displayLabel.equals(trimmed, ignoreCase = true) ||
                     app.label.equals(trimmed, ignoreCase = true) ||
                     app.packageName.equals(trimmed, ignoreCase = true)
@@ -89,24 +93,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val homeCryptoList: StateFlow<List<CoinTickerUi>> = settings.map { pref ->
         val now = System.currentTimeMillis()
         pref.cryptoSymbols.map { sym ->
-            val cached = pref.cachedCryptoPrices[sym]
+            val cleanSym = sym.trim().uppercase(Locale.US)
+            val cached = pref.cachedCryptoPrices[cleanSym]
             val timestamp = cached?.timestamp ?: 0L
             val isStale = timestamp <= 0L || (now - timestamp) > 60_000L
             val ageMarker = if (cached != null && isStale) PriceRepository.formatAgeMarker(timestamp) else ""
             CoinTickerUi(
-                symbol = sym,
+                symbol = cleanSym,
                 price = cached?.price ?: "--",
                 changeText = cached?.changeText ?: "",
                 changePercent = cached?.changePercent ?: 0.0,
                 highPrice = cached?.highPrice ?: "",
                 lowPrice = cached?.lowPrice ?: "",
                 isStale = isStale,
-                ageMarker = ageMarker
+                ageMarker = ageMarker,
+                sparkline = cached?.sparkline ?: ""
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private var priceJob: Job? = null
+    private var webSocketClient: BinanceWebSocketClient? = null
+    private var consecutiveFailures = 0
+    private var lastKlineFetchTime = 0L
 
     init {
         PackageChangeReceiver.onPackageChangedListener = {
@@ -118,27 +127,171 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         searchQuery.value = newQuery
     }
 
-    fun startPriceRefresh() {
+    fun startPriceRefresh(isHomeActive: Boolean = false) {
         val currentSettings = settings.value
         if (!currentSettings.cryptoPriceEnabled) {
+            stopAllPriceUpdates()
             _priceState.value = PriceUiState()
             return
         }
 
         updatePriceDisplayFromCache(currentSettings)
 
-        priceJob?.cancel()
+        // If Home screen is active and user opted into WebSocket on Home:
+        if (isHomeActive && currentSettings.useWebSocketOnHome && currentSettings.showHomeCrypto) {
+            stopPolling()
+            startHomeWebSocket(currentSettings)
+        } else {
+            stopHomeWebSocket()
+            startPolling()
+        }
+    }
+
+    fun stopAllPriceUpdates() {
+        stopPolling()
+        stopHomeWebSocket()
+    }
+
+    private fun startPolling() {
+        if (priceJob?.isActive == true) return
+
         priceJob = viewModelScope.launch {
             while (isActive) {
                 fetchFreshPrices()
-                delay(15_000L)
+
+                // Calculate poll interval:
+                // Base: 15s (unmetered Wi-Fi), 60s (mobile data or battery saver), 90s (both)
+                // Exponential backoff: base * 2^consecutiveFailures (up to 240s max)
+                val baseInterval = NetworkHelper.getBasePollIntervalMs(getApplication())
+                val backoffMultiplier = (1 shl consecutiveFailures.coerceIn(0, 4))
+                val delayTime = (baseInterval * backoffMultiplier).coerceIn(15_000L, 240_000L)
+
+                delay(delayTime)
             }
         }
     }
 
-    fun stopPriceRefresh() {
+    private fun stopPolling() {
         priceJob?.cancel()
         priceJob = null
+    }
+
+    private fun startHomeWebSocket(currentSettings: LauncherSettings) {
+        if (webSocketClient != null) return
+
+        val pairs = currentSettings.cryptoSymbols.map { sym ->
+            priceRepository.resolvePair(sym, currentSettings.cryptoQuoteCurrency)
+        }.distinct()
+
+        val client = BinanceWebSocketClient(
+            scope = viewModelScope,
+            pairs = pairs,
+            onTickerUpdate = { sym, price, changePercent, changeText, high, low ->
+                handleWebSocketTicker(sym, price, changePercent, changeText, high, low)
+            },
+            onError = { _ ->
+                // On error, fall back to polling with exponential backoff
+                stopHomeWebSocket()
+                consecutiveFailures++
+                startPolling()
+            }
+        )
+
+        webSocketClient = client
+        client.start()
+
+        // Also fetch initial 24h kline sparklines in background if needed
+        viewModelScope.launch {
+            fetchSparklinesOnly(currentSettings)
+        }
+    }
+
+    private fun stopHomeWebSocket() {
+        webSocketClient?.close()
+        webSocketClient = null
+    }
+
+    private fun handleWebSocketTicker(
+        tradingPair: String,
+        price: String,
+        changePercent: Double,
+        changeText: String,
+        high: String,
+        low: String
+    ) {
+        val currentSettings = settings.value
+        val now = System.currentTimeMillis()
+        val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
+
+        // Match original symbols that map to this trading pair
+        currentSettings.cryptoSymbols.forEach { origSym ->
+            val resolved = priceRepository.resolvePair(origSym, currentSettings.cryptoQuoteCurrency)
+            val cleanOrig = origSym.trim().uppercase(Locale.US)
+            if (resolved.equals(tradingPair, ignoreCase = true)) {
+                val existingSpark = updatedCache[cleanOrig]?.sparkline ?: ""
+                updatedCache[cleanOrig] = CachedCoinPrice(
+                    price = price,
+                    changeText = changeText,
+                    changePercent = changePercent,
+                    highPrice = high,
+                    lowPrice = low,
+                    timestamp = now,
+                    sparkline = existingSpark
+                )
+            }
+        }
+
+        viewModelScope.launch {
+            settingsStore.updateCachedPrices(updatedCache)
+        }
+
+        consecutiveFailures = 0
+
+        // If top-right drawer ticker corresponds to this symbol, update it
+        val symbols = currentSettings.cryptoSymbols
+        val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
+        val currentSymbol = (symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC").trim().uppercase(Locale.US)
+        val resolvedCurrent = priceRepository.resolvePair(currentSymbol, currentSettings.cryptoQuoteCurrency)
+
+        if (resolvedCurrent.equals(tradingPair, ignoreCase = true)) {
+            _priceState.value = PriceUiState(
+                coinSymbol = currentSymbol,
+                priceText = price,
+                changeText = changeText,
+                changePercent = changePercent,
+                isStale = false,
+                ageMarker = "",
+                isLoading = false,
+                sparkline = updatedCache[currentSymbol]?.sparkline ?: ""
+            )
+        }
+    }
+
+    private suspend fun fetchSparklinesOnly(currentSettings: LauncherSettings) {
+        val now = System.currentTimeMillis()
+        if (lastKlineFetchTime > 0L && now - lastKlineFetchTime < 300_000L) return // 5 min cache
+        lastKlineFetchTime = now
+
+        val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
+        var hasChanges = false
+
+        for (sym in currentSettings.cryptoSymbols) {
+            val clean = sym.trim().uppercase(Locale.US)
+            val pair = priceRepository.resolvePair(clean, currentSettings.cryptoQuoteCurrency)
+            val klines = priceRepository.fetchKlines(pair)
+            if (klines.isNotEmpty()) {
+                val spark = PriceRepository.generateSparkline(klines)
+                val curr = updatedCache[clean]
+                if (curr != null) {
+                    updatedCache[clean] = curr.copy(sparkline = spark)
+                    hasChanges = true
+                }
+            }
+        }
+
+        if (hasChanges) {
+            settingsStore.updateCachedPrices(updatedCache)
+        }
     }
 
     private suspend fun fetchFreshPrices() {
@@ -147,12 +300,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         _priceState.value = _priceState.value.copy(isLoading = true)
 
+        val now = System.currentTimeMillis()
+        val shouldFetchKlines = (lastKlineFetchTime == 0L || now - lastKlineFetchTime > 300_000L)
+        if (shouldFetchKlines) {
+            lastKlineFetchTime = now
+        }
+
+        val cachedSparks = currentSettings.cachedCryptoPrices.mapValues { it.value.sparkline }
+
         val result = priceRepository.fetchPrices(
             symbols = currentSettings.cryptoSymbols,
-            quoteCurrency = currentSettings.cryptoQuoteCurrency
+            quoteCurrency = currentSettings.cryptoQuoteCurrency,
+            cachedSparklines = cachedSparks,
+            fetchSparklines = shouldFetchKlines
         )
 
         result.onSuccess { newPrices ->
+            consecutiveFailures = 0
+
             val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
             newPrices.forEach { (sym, ticker) ->
                 updatedCache[sym] = CachedCoinPrice(
@@ -161,16 +326,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     changePercent = ticker.changePercent,
                     highPrice = ticker.highPrice,
                     lowPrice = ticker.lowPrice,
-                    timestamp = ticker.timestamp
+                    timestamp = ticker.timestamp,
+                    sparkline = ticker.sparkline
                 )
             }
             settingsStore.updateCachedPrices(updatedCache)
 
             val symbols = currentSettings.cryptoSymbols
             val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
-            val currentSymbol = symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC"
+            val currentSymbol = (symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC").trim().uppercase(Locale.US)
             val ticker = newPrices[currentSymbol] ?: updatedCache[currentSymbol]?.let {
-                CoinTicker(it.price, it.changePercent, it.changeText, it.highPrice, it.lowPrice, it.timestamp)
+                CoinTicker(it.price, it.changePercent, it.changeText, it.highPrice, it.lowPrice, it.timestamp, it.sparkline)
             }
 
             _priceState.value = PriceUiState(
@@ -180,12 +346,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 changePercent = ticker?.changePercent ?: 0.0,
                 isStale = false,
                 ageMarker = "",
-                isLoading = false
+                isLoading = false,
+                sparkline = ticker?.sparkline ?: ""
             )
-        }.onFailure {
+        }.onFailure { err ->
+            consecutiveFailures++
+            if (err is RateLimitException) {
+                consecutiveFailures = maxOf(consecutiveFailures, 2)
+            }
+
             val symbols = currentSettings.cryptoSymbols
             val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
-            val currentSymbol = symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC"
+            val currentSymbol = (symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC").trim().uppercase(Locale.US)
             val cached = currentSettings.cachedCryptoPrices[currentSymbol]
             val ageMarker = PriceRepository.formatAgeMarker(cached?.timestamp ?: 0L)
 
@@ -196,7 +368,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 changePercent = cached?.changePercent ?: 0.0,
                 isStale = true,
                 ageMarker = ageMarker,
-                isLoading = false
+                isLoading = false,
+                sparkline = cached?.sparkline ?: ""
             )
         }
     }
@@ -206,7 +379,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (symbols.isEmpty()) return
 
         val index = currentSettings.currentCryptoIndex.coerceIn(0, symbols.size - 1)
-        val symbol = symbols[index]
+        val symbol = symbols[index].trim().uppercase(Locale.US)
         val cached = currentSettings.cachedCryptoPrices[symbol]
 
         if (cached != null) {
@@ -220,7 +393,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 changePercent = cached.changePercent,
                 isStale = isStale,
                 ageMarker = ageMarker,
-                isLoading = false
+                isLoading = false,
+                sparkline = cached.sparkline
             )
         }
     }
@@ -233,7 +407,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val nextIndex = (currentSettings.currentCryptoIndex + 1) % symbols.size
         viewModelScope.launch {
             settingsStore.setCurrentCryptoIndex(nextIndex)
-            val symbol = symbols[nextIndex]
+            val symbol = symbols[nextIndex].trim().uppercase(Locale.US)
             val cached = currentSettings.cachedCryptoPrices[symbol]
             val now = System.currentTimeMillis()
             val isStale = (cached == null) || (now - cached.timestamp > 60_000L)
@@ -244,7 +418,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 changeText = cached?.changeText ?: "",
                 changePercent = cached?.changePercent ?: 0.0,
                 isStale = isStale,
-                ageMarker = ageMarker
+                ageMarker = ageMarker,
+                sparkline = cached?.sparkline ?: ""
             )
             // Fetch fresh
             fetchFreshPrices()
@@ -336,9 +511,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             settingsStore.setCryptoPriceEnabled(enabled)
             if (enabled) {
-                startPriceRefresh()
+                startPriceRefresh(false)
             } else {
-                stopPriceRefresh()
+                stopAllPriceUpdates()
                 _priceState.value = PriceUiState()
             }
         }
@@ -355,6 +530,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             settingsStore.setCryptoQuoteCurrency(quote)
             fetchFreshPrices()
+        }
+    }
+
+    fun setUseWebSocketOnHome(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsStore.setUseWebSocketOnHome(enabled)
         }
     }
 
@@ -385,6 +566,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null
-        stopPriceRefresh()
+        stopAllPriceUpdates()
     }
 }

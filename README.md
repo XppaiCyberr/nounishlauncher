@@ -11,8 +11,9 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **AMOLED Monochrome**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme.
 - **Home Screen**:
   - Live clock and date (configurable, tap clock to open system clock).
-  - **Live Binance Crypto Market Overview**: Fills the spacious center area with real-time tickers, current prices, and 24-hour daily percentage change.
-  - **Expandable 24h High/Low**: Tapping any coin row reveals its 24-hour range (`H: 78,068 · L: 77,262`).
+  - **Live Binance Crypto Market Overview**: Fills the spacious center area with real-time tickers, current prices, 24-hour daily percentage change, and text sparklines.
+  - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that remain strictly text-only.
+  - **Expandable 24h High/Low**: Tapping any coin row reveals its 24-hour range (`H: 78,068 · L: 77,262`) along with its full 24h trendline.
   - **Stale-Data Indicator**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`) so you always know when data was last updated.
   - Pinned apps (4–8 items) in large (`28 sp`) light-weight text, left-aligned for ergonomic one-handed thumb reach.
   - Quick action dialog on long-press to rename, unpin, or open system app settings.
@@ -44,9 +45,10 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Color-coded daily percentage change: **Green** (`#00E676`) for positive, **Red** (`#FF5252`) for negative.
   - **Custom Coin List & Arbitrary Pairs**: Track any Binance symbols or full pairs (e.g. `BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`, `ETHBIDR`).
   - **Quote Currency Toggle**: Select quick presets (`USDT`, `USDC`, `EUR`, `BIDR` for IDR, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`) or input any custom quote currency.
-  - **Stale-Data Indicator**: Cached offline prices are dimmed with an age indicator (`·5m`, `·1h`).
-  - Zero background battery drain: only polls while the Home screen or Drawer is active; stops immediately when locked or in another app.
-  - DataStore caching for instant offline viewing.
+  - **Rate-Limit Handling with Exponential Backoff**: Automatically backs off exponentially on HTTP 429 rate limits or network errors (up to 240s).
+  - **Mobile Data & Battery Saver Awareness**: Automatically stretches poll intervals from 15s to 60s on cellular data or battery saver mode (90s if both) to preserve battery life and data.
+  - **Optional Live WebSocket on Home**: Stream live real-time Binance ticks directly on the Home screen via a native RFC 6455 WebSocket client. Immediately closed when the screen turns off or when leaving Home.
+  - DataStore caching for instant offline viewing with stale-data age markers.
 
 ---
 
@@ -59,7 +61,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Architecture**: Single Activity (`MainActivity`) + `MainViewModel` (MVI / MVVM pattern)
 - **Storage**: Jetpack DataStore Preferences
 - **Document Management**: Android Storage Access Framework (SAF) for offline JSON backup/restore
-- **Networking**: Native `HttpURLConnection` with fallback Binance API endpoints (no heavy third-party networking libraries)
+- **Networking**: Native `HttpURLConnection` and custom zero-dependency RFC 6455 `BinanceWebSocketClient` (zero bulky external libraries)
 - **Footprint**: **~1.05 MB** optimized release APK with R8 minification and resource shrinking
 
 ---
@@ -72,7 +74,7 @@ nounishlauncher/
 │   ├── build.gradle.kts                         # Android build config, Compose BOM, R8 shrinking
 │   ├── proguard-rules.pro                       # R8 optimization rules
 │   └── src/main/
-│       ├── AndroidManifest.xml                  # HOME launcher declaration, package queries
+│       ├── AndroidManifest.xml                  # HOME launcher declaration, network permissions
 │       ├── java/com/nounish/launcher/
 │       │   ├── MainActivity.kt                  # SingleTask launcher activity, SAF backup/restore, screen transitions
 │       │   ├── MainViewModel.kt                 # StateFlow coordination (apps, search, settings, crypto, labels)
@@ -81,11 +83,13 @@ nounishlauncher/
 │       │   ├── data/
 │       │   │   ├── AppRepository.kt             # PackageManager loader (labels only, no icons)
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper, JSON backup/restore serialization
-│       │   │   └── PriceRepository.kt           # Binance 24hr ticker client, custom pairs, age marker formatting
+│       │   │   ├── PriceRepository.kt           # Binance 24hr ticker, klines sparkline, rate-limit backoff
+│       │   │   ├── BinanceWebSocketClient.kt    # Native RFC 6455 WebSocket client for live Home stream
+│       │   │   └── NetworkHelper.kt             # Metered network and battery saver detection
 │       │   ├── ui/
-│       │   │   ├── HomeScreen.kt                # Clock, date, Binance market overview, pinned apps, rename dialog
-│       │   │   ├── DrawerScreen.kt              # Search bar, left/right alphabet scrubber, Niagara wave list, rename
-│       │   │   ├── SettingsScreen.kt            # Settings, coins & quote dialogs, JSON export/import buttons
+│       │   │   ├── HomeScreen.kt                # Clock, date, market overview, text sparklines, pinned apps
+│       │   │   ├── DrawerScreen.kt              # Search bar, left/right alphabet scrubber, Niagara wave list
+│       │   │   ├── SettingsScreen.kt            # Settings, coins & quote dialogs, WebSocket toggle, backup/restore
 │       │   │   ├── GestureModifier.kt           # Gesture detection for swipes, taps, and long-presses
 │       │   │   └── theme/
 │       │   │       ├── Color.kt                 # AMOLED pitch black, light theme, crypto green/red
@@ -133,5 +137,6 @@ Output: `app/build/outputs/apk/release/app-release.apk` (**~1.05 MB**)
 ## Privacy & Permissions
 
 - **INTERNET**: Used solely for the public Binance market ticker. Completely inert when crypto features are toggled off in Settings.
+- **ACCESS_NETWORK_STATE**: Used strictly on-device to check for mobile data vs Wi-Fi to stretch polling intervals.
 - **QUERY_ALL_PACKAGES / CATEGORY_LAUNCHER**: Used strictly on-device to query installed apps for the drawer.
 - **Zero tracking, zero analytics, zero external logging, zero telemetry.**

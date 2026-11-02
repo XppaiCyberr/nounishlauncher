@@ -26,7 +26,8 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Shows real-time tickers for your configured watchlist (e.g. `BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`).
   - Displays coin symbol, current price, and 24-hour daily percentage change.
   - Color-coded percentage changes: **Green** (`#00E676`) for gains, **Red** (`#FF5252`) for losses.
-  - **Expandable Details**: Tapping any coin row reveals its 24-hour high and low (`24h H: 78,068  ·  L: 77,262`).
+  - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that fit seamlessly into the monochrome aesthetic.
+  - **Expandable Details**: Tapping any coin row reveals its 24-hour high, low, and full trendline (`24h H: 78,068 · L: 77,262 · Trend: ▂▂ ▂▆▆█▆▄▃▂▂`).
   - **Stale-Data Indicator**: Dimmed text styling and age marker (`·now`, `·5m`, `·1h`) appear when offline or when viewing cached data.
   - Toggleable in Settings under **Crypto Price -> Show crypto on home screen**.
 - **Pinned App Shortcuts**:
@@ -80,14 +81,15 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Long-Press**: Open Settings.
 - **System Back Button**: Prevents accidentally closing the launcher; returns to Home from Drawer or Settings.
 
-### 6. Crypto Price Ticker (Binance Public API)
+### 6. Crypto Price Ticker & Live Streaming
 - **Zero API Key Required**: Queries Binance's public 24-hour ticker endpoint (`https://data-api.binance.vision/api/v3/ticker/24hr` with automatic failover to `api.binance.com` and `api.binance.me`).
 - **Custom Coin Watchlist**: Add any coin symbol (e.g. `BTC`, `ETH`, `SOL`, `PEPE`) or full trading pair (e.g. `BTCUSDT`, `ETHBIDR`).
 - **Quote Currency Selector**: Supports presets for `USDT`, `USDC`, `EUR`, `BIDR` (IDR), `TRY`, `BRL`, `GBP`, `AUD`, `BTC`, or any custom quote currency.
-- **Stale-Data Indicator**: When offline or if API calls fail, cached prices are clearly marked with their age (`·now`, `·5m`, `·1h`) and dimmed so old data is never mistaken for live prices.
-- **Drawer Header Label**: Discreet price label in the top-right corner of the drawer. Tap to cycle through coins.
-- **Home Screen Widget**: Multi-coin watchlist with expandable 24h high/low data.
-- **Power & Battery Protection**: Polling only runs while the Home screen or Drawer is actively visible (refreshes every 15s). The moment another app opens or the screen turns off, all polling stops immediately.
+- **Text Sparklines**: 24-hour candlestick trend data rendered using 8-level text block characters (` ▂▃▄▅▆▇█`).
+- **Rate-Limit Handling with Exponential Backoff**: Automatically detects HTTP 429 rate limits or connection failures and doubles delay up to 240 seconds.
+- **Mobile Data & Battery Saver Awareness**: Extends polling intervals from 15s to 60s when on cellular data or power save mode (90s if both) to preserve battery and cellular data.
+- **Optional Live WebSocket on Home**: Built-in zero-dependency RFC 6455 WebSocket client connecting to `data-stream.binance.vision:443`. Streams real-time price updates tick-by-tick directly to the Home screen. Closed immediately on pause, screen lock, or when navigating away.
+- **Stale-Data Indicator**: When offline or if API calls fail, cached prices are clearly marked with their age (`·now`, `·5m`, `·1h`) and dimmed.
 
 ---
 
@@ -102,7 +104,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 | **State Management** | Kotlin Coroutines & `StateFlow` | Reactive UI binding without boilerplate |
 | **Persistence** | Jetpack DataStore Preferences | Asynchronous, non-blocking disk persistence |
 | **Backup / Restore** | Android SAF (`CreateDocument` / `OpenDocument`) | Permissionless, offline JSON export and import |
-| **Network Engine** | Java `HttpURLConnection` | Zero bulky external networking libraries; parses JSON with `org.json` |
+| **Network Engine** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero bulky external networking libraries; parses JSON with `org.json` |
 | **Code Shrinking** | R8 Full Mode | Minified bytecode and resource shrinking |
 | **Release Signing** | Custom Keystore (v2 + v3) | Avoids generic debug key flags and passes Google Play Protect |
 
@@ -116,7 +118,7 @@ nounishlauncher/
 │   ├── build.gradle.kts                         # Android build config, Compose BOM, R8 shrinking
 │   ├── proguard-rules.pro                       # Keep rules for R8 optimization
 │   └── src/main/
-│       ├── AndroidManifest.xml                  # HOME launcher declaration, package queries
+│       ├── AndroidManifest.xml                  # HOME launcher declaration, network permissions
 │       ├── java/com/nounish/launcher/
 │       │   ├── MainActivity.kt                  # SingleTask launcher activity, SAF backup/restore, screen transitions
 │       │   ├── MainViewModel.kt                 # StateFlow coordination (apps, search, settings, crypto, labels)
@@ -125,9 +127,11 @@ nounishlauncher/
 │       │   ├── data/
 │       │   │   ├── AppRepository.kt             # PackageManager loader (labels only, no icons)
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper for all preferences & cached prices
-│       │   │   └── PriceRepository.kt           # Binance public 24hr ticker client with failover hosts & age formatting
+│       │   │   ├── PriceRepository.kt           # Binance public 24hr ticker client, klines sparklines, rate limit backoff
+│       │   │   ├── BinanceWebSocketClient.kt    # Native RFC 6455 WebSocket client for live Home stream
+│       │   │   └── NetworkHelper.kt             # Metered network and battery saver detection
 │       │   ├── ui/
-│       │   │   ├── HomeScreen.kt                # Clock, date, Binance market overview, pinned shortcuts, rename dialog
+│       │   │   ├── HomeScreen.kt                # Clock, date, market overview, text sparklines, pinned apps
 │       │   │   ├── DrawerScreen.kt              # Search bar, left/right alphabet scrubber, Niagara wave list, rename
 │       │   │   ├── SettingsScreen.kt            # Categorized launcher settings, backup/restore, coins & quotes
 │       │   │   ├── GestureModifier.kt           # Pointer detection for swipes, taps, and long-presses
@@ -153,61 +157,6 @@ nounishlauncher/
 
 ---
 
-## Data & State Flow
-
-```mermaid
-flowchart TD
-    subgraph System ["Android System"]
-        PM[PackageManager]
-        BCR[PackageChangeReceiver]
-        SAF[Storage Access Framework]
-        Binance[Binance Public API]
-    end
-
-    subgraph DataLayer ["Data Layer"]
-        AppRepo[AppRepository]
-        SetStore[SettingsStore - DataStore]
-        PriceRepo[PriceRepository]
-    end
-
-    subgraph ViewModel ["MainViewModel"]
-        AllApps[allApps: StateFlow]
-        SettingsState[settings: StateFlow]
-        FilteredApps[filteredApps: StateFlow]
-        HomeCrypto[homeCryptoList: StateFlow]
-        PriceState[priceState: StateFlow]
-    end
-
-    subgraph UI ["Jetpack Compose UI"]
-        MainAct[MainActivity]
-        Home[HomeScreen]
-        Drawer[DrawerScreen]
-        Settings[SettingsScreen]
-    end
-
-    PM --> AppRepo
-    BCR -->|reloadApps| AppRepo
-    AppRepo --> AllApps
-    SetStore --> SettingsState
-    Binance --> PriceRepo
-    PriceRepo --> PriceState
-    SAF <-->|Export / Import JSON| SetStore
-
-    AllApps --> FilteredApps
-    SettingsState --> FilteredApps
-    SettingsState --> HomeCrypto
-
-    MainAct --> Home
-    MainAct --> Drawer
-    MainAct --> Settings
-
-    HomeCrypto --> Home
-    PriceState --> Drawer
-    FilteredApps --> Drawer
-```
-
----
-
 ## Configuration & Settings Guide
 
 Accessible by long-pressing any empty area on the Home screen:
@@ -229,6 +178,7 @@ Accessible by long-pressing any empty area on the Home screen:
 5. **Crypto Price (Binance)**:
    - `Enable crypto price label`: Master toggle for all crypto features.
    - `Show crypto on home screen`: Displays the multi-coin market widget on the Home screen.
+   - `Live WebSocket for Home screen`: Toggle live streaming of prices directly to the Home screen.
    - `Coins`: Comma-separated list of symbols (e.g. `BTC, ETH, SOL, PEPE, BTCUSDT, ETHBIDR`).
    - `Quote currency`: Pair currency presets (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`) or custom quote.
 6. **Backup & Restore**:
@@ -272,5 +222,6 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 - **Valid Release Signature**: Signed with a dedicated 2048-bit RSA key using APK Signature Schemes v2 and v3.
 - **Zero Telemetry**: Backup and restore operations are 100% offline via Android Storage Access Framework.
 - **Minimal Permissions**:
-  - `INTERNET`: Exclusively for public Binance price tickers. Completely dormant when crypto features are turned off.
+  - `INTERNET`: Exclusively for public Binance price tickers and WebSockets. Completely dormant when crypto features are turned off.
+  - `ACCESS_NETWORK_STATE`: Used locally to stretch poll intervals on mobile cellular data or battery saver mode.
   - `QUERY_ALL_PACKAGES` / `CATEGORY_LAUNCHER`: Used strictly on-device to enumerate installed apps.

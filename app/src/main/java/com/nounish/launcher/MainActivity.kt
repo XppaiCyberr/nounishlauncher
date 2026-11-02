@@ -96,13 +96,20 @@ class MainActivity : ComponentActivity() {
             var currentScreen by remember { currentScreenState }
 
             // Manage price refresh lifecycle: runs while drawer or home crypto is active
-            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto) {
-                val shouldPoll = settings.cryptoPriceEnabled &&
-                    (currentScreen == Screen.Drawer || (currentScreen == Screen.Home && settings.showHomeCrypto))
-                if (shouldPoll) {
-                    viewModel.startPriceRefresh()
-                } else {
-                    viewModel.stopPriceRefresh()
+            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.useWebSocketOnHome) {
+                when {
+                    !settings.cryptoPriceEnabled -> {
+                        viewModel.stopAllPriceUpdates()
+                    }
+                    currentScreen == Screen.Home && settings.showHomeCrypto -> {
+                        viewModel.startPriceRefresh(isHomeActive = true)
+                    }
+                    currentScreen == Screen.Drawer -> {
+                        viewModel.startPriceRefresh(isHomeActive = false)
+                    }
+                    else -> {
+                        viewModel.stopAllPriceUpdates()
+                    }
                 }
             }
 
@@ -231,6 +238,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleDoubleTapLock = { viewModel.setDoubleTapLock(it) },
                                     onToggleCryptoEnabled = { viewModel.setCryptoPriceEnabled(it) },
                                     onToggleShowHomeCrypto = { viewModel.setShowHomeCrypto(it) },
+                                    onToggleWebSocketOnHome = { viewModel.setUseWebSocketOnHome(it) },
                                     onUpdateCryptoSymbols = { viewModel.setCryptoSymbols(it) },
                                     onUpdateCryptoQuote = { viewModel.setCryptoQuoteCurrency(it) },
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },
@@ -266,5 +274,16 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Refresh installed apps whenever launcher returns to foreground
         viewModel.appRepository.reloadApps()
+        val settings = viewModel.settings.value
+        if (settings.cryptoPriceEnabled) {
+            val isHome = currentScreenState.value == Screen.Home
+            viewModel.startPriceRefresh(isHomeActive = isHome)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Immediately terminate WebSocket and polling when launcher is paused/asleep
+        viewModel.stopAllPriceUpdates()
     }
 }
