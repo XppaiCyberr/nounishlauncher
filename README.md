@@ -6,6 +6,9 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 
 ## Features
 
+- **Multi-Activity & Work Profile Support**: Uses Android's native `LauncherApps` API to display and launch both personal and work profile apps (`(Work)`) with independent user handles. Apps with multiple launcher activities are identified by unique composite keys (`packageName/activityName`).
+- **Clean Uninstall Pruning**: Automatically drops removed or uninstalled apps from pinned shortcuts and DataStore, eliminating dead entries.
+- **Accent- & Case-Insensitive Alphabetical Sorting**: Strips diacritics and normalizes accents so `Écran` and `Über` sort under `E` and `U` without distortion. Numbers and symbols (`1Password`, `7-Zip`, `@voice`) are cleanly grouped under `#` at the end.
 - **Cold Start under 300 ms**: Pinned apps and market prices are drawn on frame 1 directly from local DataStore cache, while the full app list queries asynchronously in the background.
 - **In-Memory App Caching**: The installed app list is loaded once into memory with disk persistence (`apps_cache.json`) and updated strictly when `PackageChangeReceiver` notifies of package changes. Opening the drawer never re-queries `PackageManager`.
 - **Process-Death Resilient**: Full state restoration across OS process kills (active screen, search query, scroll position, and user configurations).

@@ -57,33 +57,41 @@ class MainViewModel(
         initialValue = LauncherSettings()
     )
 
+    // Sorted case- and accent-insensitively with '#' at the end
     val allApps: StateFlow<List<AppItem>> = combine(appRepository.apps, settings) { apps, pref ->
         apps.map { app ->
-            val custom = pref.customAppLabels[app.packageName]
+            val custom = pref.customAppLabels[app.key] ?: pref.customAppLabels[app.packageName]
             if (custom != null) app.copy(customLabel = custom) else app
-        }.sortedBy { it.displayLabel.lowercase() }
+        }.sortedWith(AppItem.COMPARATOR)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // Process-death safe search query state
     val searchQuery: StateFlow<String> = savedStateHandle.getStateFlow("search_query", "")
 
-    // Cold start optimization:
-    // Emits immediately on frame 1 using DataStore pinnedAppLabels cache,
-    // then seamlessly updates with full AppItem once PackageManager loads.
+    // Cold start optimization + Clean removal of uninstalled apps
     val pinnedApps: StateFlow<List<AppItem>> = combine(allApps, settings) { apps, pref ->
-        val appMap = apps.associateBy { it.packageName }
-        pref.pinnedApps.map { pkg ->
-            val fullApp = appMap[pkg]
+        pref.pinnedApps.mapNotNull { pinnedId ->
+            val fullApp = findMatchingApp(apps, pinnedId)
             if (fullApp != null) {
                 fullApp
-            } else {
-                val label = pref.pinnedAppLabels[pkg] ?: pkg
-                val custom = pref.customAppLabels[pkg]
+            } else if (apps.isEmpty()) {
+                // Immediate frame 1 fallback from DataStore cache
+                val label = pref.pinnedAppLabels[pinnedId]
+                    ?: pref.pinnedAppLabels[pinnedId.substringBefore("/").substringBefore("#")]
+                    ?: pinnedId
+                val custom = pref.customAppLabels[pinnedId]
+                    ?: pref.customAppLabels[pinnedId.substringBefore("/").substringBefore("#")]
+                val isWork = pinnedId.contains("#work")
                 AppItem(
                     label = label,
-                    packageName = pkg,
-                    customLabel = custom
+                    packageName = pinnedId.substringBefore("/").substringBefore("#"),
+                    activityName = pinnedId.substringAfter("/").substringBefore("#").takeIf { it.isNotBlank() },
+                    customLabel = custom,
+                    isWorkProfile = isWork
                 )
+            } else {
+                // App was uninstalled: drop dead entry cleanly!
+                null
             }
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -91,13 +99,13 @@ class MainViewModel(
     val filteredApps: StateFlow<List<AppItem>> = combine(allApps, settings, searchQuery) { apps, pref, query ->
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
-            apps.filter { !pref.hiddenApps.contains(it.packageName) }
+            apps.filter { !isAppHidden(it, pref.hiddenApps) }
         } else {
             apps.filter { app ->
                 val matches = app.displayLabel.contains(trimmed, ignoreCase = true) ||
                               app.label.contains(trimmed, ignoreCase = true) ||
                               app.packageName.contains(trimmed, ignoreCase = true)
-                if (pref.hiddenApps.contains(app.packageName)) {
+                if (isAppHidden(app, pref.hiddenApps)) {
                     app.displayLabel.equals(trimmed, ignoreCase = true) ||
                     app.label.equals(trimmed, ignoreCase = true) ||
                     app.packageName.equals(trimmed, ignoreCase = true)
@@ -139,23 +147,34 @@ class MainViewModel(
     private var lastKlineFetchTime = 0L
 
     init {
-        // Refresh apps ONLY on package changes (installed / uninstalled / updated)
+        // Refresh apps on package change broadcasts
         PackageChangeReceiver.onPackageChangedListener = {
             appRepository.reloadApps()
         }
 
-        // Cache pinned app labels to DataStore whenever apps load
+        // Cache pinned app labels and prune dead entries when apps load
         viewModelScope.launch(Dispatchers.IO) {
             allApps.collect { appsList ->
                 if (appsList.isNotEmpty()) {
                     val pref = settings.value
+
+                    // Prune uninstalled apps from pinned list
+                    val currentPinned = pref.pinnedApps
+                    val validPinned = currentPinned.filter { pinnedId ->
+                        findMatchingApp(appsList, pinnedId) != null
+                    }
+                    if (validPinned.size != currentPinned.size) {
+                        settingsStore.reorderPinnedApps(validPinned)
+                    }
+
+                    // Cache labels for pinned apps
                     val currentLabels = pref.pinnedAppLabels
                     val newLabels = currentLabels.toMutableMap()
                     var changed = false
                     appsList.forEach { app ->
-                        if (pref.pinnedApps.contains(app.packageName)) {
-                            if (newLabels[app.packageName] != app.label) {
-                                newLabels[app.packageName] = app.label
+                        if (validPinned.contains(app.key) || validPinned.contains(app.packageName)) {
+                            if (newLabels[app.key] != app.label) {
+                                newLabels[app.key] = app.label
                                 changed = true
                             }
                         }
@@ -166,6 +185,21 @@ class MainViewModel(
                 }
             }
         }
+    }
+
+    private fun findMatchingApp(apps: List<AppItem>, pinnedId: String): AppItem? {
+        val exact = apps.find { it.key == pinnedId }
+        if (exact != null) return exact
+
+        val byPkg = apps.find { it.packageName == pinnedId }
+        if (byPkg != null) return byPkg
+
+        val cleanPkg = pinnedId.substringBefore("/").substringBefore("#")
+        return apps.find { it.packageName == cleanPkg }
+    }
+
+    private fun isAppHidden(app: AppItem, hiddenSet: Set<String>): Boolean {
+        return hiddenSet.contains(app.key) || hiddenSet.contains(app.packageName)
     }
 
     fun onSearchQueryChanged(newQuery: String) {
@@ -462,17 +496,24 @@ class MainViewModel(
         }
     }
 
-    fun pinApp(packageName: String) {
+    fun pinApp(item: AppItem) {
         viewModelScope.launch(Dispatchers.IO) {
-            val app = allApps.value.find { it.packageName == packageName }
-            val label = app?.label ?: packageName
-            settingsStore.pinApp(packageName, label)
+            settingsStore.pinApp(item.key, item.label)
         }
     }
 
-    fun unpinApp(packageName: String) {
+    fun unpinApp(item: AppItem) {
         viewModelScope.launch(Dispatchers.IO) {
-            settingsStore.unpinApp(packageName)
+            settingsStore.unpinApp(item.key)
+            settingsStore.unpinApp(item.packageName)
+        }
+    }
+
+    fun unpinAppById(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.unpinApp(id)
+            val cleanPkg = id.substringBefore("/").substringBefore("#")
+            settingsStore.unpinApp(cleanPkg)
         }
     }
 
@@ -482,16 +523,30 @@ class MainViewModel(
         }
     }
 
-    fun toggleHideApp(packageName: String) {
+    fun toggleHideApp(item: AppItem) {
         viewModelScope.launch(Dispatchers.IO) {
-            val isHidden = settings.value.hiddenApps.contains(packageName)
-            settingsStore.setAppHidden(packageName, !isHidden)
+            val isHidden = isAppHidden(item, settings.value.hiddenApps)
+            settingsStore.setAppHidden(item.key, !isHidden)
+            if (item.activityName == null || !item.isWorkProfile) {
+                settingsStore.setAppHidden(item.packageName, !isHidden)
+            }
         }
     }
 
-    fun setAppCustomLabel(packageName: String, customLabel: String?) {
+    fun unhideAppById(id: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            settingsStore.setAppCustomLabel(packageName, customLabel)
+            settingsStore.setAppHidden(id, false)
+            val cleanPkg = id.substringBefore("/").substringBefore("#")
+            settingsStore.setAppHidden(cleanPkg, false)
+        }
+    }
+
+    fun setAppCustomLabel(item: AppItem, customLabel: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setAppCustomLabel(item.key, customLabel)
+            if (item.activityName == null || !item.isWorkProfile) {
+                settingsStore.setAppCustomLabel(item.packageName, customLabel)
+            }
         }
     }
 
@@ -503,15 +558,15 @@ class MainViewModel(
         return settingsStore.importSettingsJson(json)
     }
 
-    fun setSwipeLeft(packageName: String?) {
+    fun setSwipeLeft(keyOrPackage: String?) {
         viewModelScope.launch(Dispatchers.IO) {
-            settingsStore.setSwipeLeftPackage(packageName)
+            settingsStore.setSwipeLeftPackage(keyOrPackage)
         }
     }
 
-    fun setSwipeRight(packageName: String?) {
+    fun setSwipeRight(keyOrPackage: String?) {
         viewModelScope.launch(Dispatchers.IO) {
-            settingsStore.setSwipeRightPackage(packageName)
+            settingsStore.setSwipeRightPackage(keyOrPackage)
         }
     }
 

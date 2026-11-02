@@ -154,13 +154,13 @@ class MainActivity : ComponentActivity() {
                                         viewModel.appRepository.launchApp(app)
                                     },
                                     onAppInfoClick = { app ->
-                                        viewModel.appRepository.openAppInfo(app.packageName)
+                                        viewModel.appRepository.openAppInfo(app)
                                     },
                                     onUnpinApp = { app ->
-                                        viewModel.unpinApp(app.packageName)
+                                        viewModel.unpinApp(app)
                                     },
                                     onRenameApp = { app, newLabel ->
-                                        viewModel.setAppCustomLabel(app.packageName, newLabel)
+                                        viewModel.setAppCustomLabel(app, newLabel)
                                     },
                                     onOpenDrawer = {
                                         viewModel.onSearchQueryChanged("")
@@ -207,23 +207,24 @@ class MainActivity : ComponentActivity() {
                                         currentScreen = Screen.Home
                                     },
                                     onTogglePinApp = { app ->
-                                        if (settings.pinnedApps.contains(app.packageName)) {
-                                            viewModel.unpinApp(app.packageName)
+                                        val isPinned = settings.pinnedApps.any { it == app.key || it == app.packageName }
+                                        if (isPinned) {
+                                            viewModel.unpinApp(app)
                                         } else {
-                                            viewModel.pinApp(app.packageName)
+                                            viewModel.pinApp(app)
                                         }
                                     },
                                     onToggleHideApp = { app ->
-                                        viewModel.toggleHideApp(app.packageName)
+                                        viewModel.toggleHideApp(app)
                                     },
                                     onRenameApp = { app, newLabel ->
-                                        viewModel.setAppCustomLabel(app.packageName, newLabel)
+                                        viewModel.setAppCustomLabel(app, newLabel)
                                     },
                                     onAppInfoClick = { app ->
-                                        viewModel.appRepository.openAppInfo(app.packageName)
+                                        viewModel.appRepository.openAppInfo(app)
                                     },
                                     onUninstallClick = { app ->
-                                        viewModel.appRepository.uninstallApp(app.packageName)
+                                        viewModel.appRepository.uninstallApp(app)
                                     },
                                     onCycleCrypto = {
                                         viewModel.cycleNextCryptoCoin()
@@ -254,8 +255,8 @@ class MainActivity : ComponentActivity() {
                                     onToggleMonospace = { viewModel.setUseMonospace(it) },
                                     onToggleIndexOnRight = { viewModel.setAlphabetIndexOnRight(it) },
                                     onToggleIndexAnimation = { viewModel.setIndexAnimationEnabled(it) },
-                                    onUnpinApp = { viewModel.unpinApp(it) },
-                                    onUnhideApp = { viewModel.toggleHideApp(it) },
+                                    onUnpinApp = { viewModel.unpinAppById(it) },
+                                    onUnhideApp = { viewModel.unhideAppById(it) },
                                     onExportSettings = {
                                         exportSettingsLauncher.launch("nounish_launcher_backup.json")
                                     },
@@ -286,8 +287,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Do NOT re-query PackageManager here. App list is kept in memory and refreshed
-        // strictly via PackageChangeReceiver when apps are installed/uninstalled.
+        // App list is kept in memory and refreshed strictly via PackageChangeReceiver / LauncherApps.Callback.
         val settings = viewModel.settings.value
         if (settings.cryptoPriceEnabled) {
             val isHome = currentScreenState.value == Screen.Home

@@ -36,10 +36,18 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - 4 to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach.
   - Large (`28 sp`), light-weight typography with generous vertical spacing.
   - Respects custom labels assigned by the user.
+  - **Prunes Dead Entries**: If a pinned app is uninstalled, it is automatically dropped from pinned shortcuts and DataStore, leaving zero dead entries.
   - Long-press any shortcut to rename, unpin, or open system App Info.
 - **Blank Area Long-Press**: Opens launcher Settings.
 
 ### 2. App Drawer & Search
+- **Multi-Activity & Work Profile Support**:
+  - Uses Android's official `LauncherApps` API across all user profiles (personal, work profile, secondary users).
+  - Work profile apps are identified with a clean `(Work)` label suffix and launched directly into the managed profile via `launcherApps.startMainActivity`.
+  - Apps with multiple launcher activities are keyed uniquely as `packageName/activityName`, eliminating duplicate collisions.
+- **Accent- & Case-Insensitive Alphabetical Sorting**:
+  - Uses Unicode NFD normalization to strip combining marks, sorting diacritics naturally (`Écran` under `E`, `Über` under `U`).
+  - Apps starting with numbers or symbols (`1Password`, `7-Zip`, `@voice`) are cleanly sorted under `#` at the bottom of the list.
 - **Instant Search**:
   - Swipe up from anywhere on the Home screen to open the app list.
   - Minimalist search input at the top filters apps in real time as you type.

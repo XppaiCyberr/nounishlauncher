@@ -99,14 +99,7 @@ fun DrawerScreen(
 
     val alphabet = remember { ('A'..'Z').toList() + listOf('#') }
     val activeLetters = remember(apps) {
-        apps.mapNotNull {
-            val first = it.displayLabel.firstOrNull()?.uppercaseChar()
-            when {
-                first == null -> null
-                first in 'A'..'Z' -> first
-                else -> '#'
-            }
-        }.toSet()
+        apps.map { AppItem.getAlphabetBucket(it.displayLabel) }.toSet()
     }
 
     // Niagara-style wave animation state
@@ -275,8 +268,8 @@ fun DrawerScreen(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        itemsIndexed(apps, key = { _, item -> item.packageName + (item.activityName ?: "") }) { index, app ->
-                            val isHidden = hiddenPackages.contains(app.packageName)
+                        itemsIndexed(apps, key = { _, item -> item.key }) { index, app ->
+                            val isHidden = hiddenPackages.any { it == app.key || it == app.packageName }
                             val isTarget = selectedTargetIndex == index
 
                             // Calculate wave curve factor based on distance from selectedTargetIndex
@@ -365,8 +358,8 @@ fun DrawerScreen(
 
     // Long press action dialog for Drawer app item
     selectedAppForMenu?.let { app ->
-        val isPinned = pinnedPackages.contains(app.packageName)
-        val isHidden = hiddenPackages.contains(app.packageName)
+        val isPinned = pinnedPackages.any { it == app.key || it == app.packageName }
+        val isHidden = hiddenPackages.any { it == app.key || it == app.packageName }
 
         AlertDialog(
             onDismissRequest = { selectedAppForMenu = null },
@@ -602,24 +595,27 @@ private fun findTargetIndex(apps: List<AppItem>, target: Char): Int? {
     if (apps.isEmpty()) return null
     if (target == '#') {
         val idx = apps.indexOfFirst {
-            val first = it.displayLabel.firstOrNull()?.uppercaseChar() ?: ' '
-            first !in 'A'..'Z'
+            AppItem.getAlphabetBucket(it.displayLabel) == '#'
         }
-        return if (idx >= 0) idx else 0
+        return if (idx >= 0) idx else apps.lastIndex
     }
 
-    // Exact match first
+    // Exact match for target letter bucket
     val exactIdx = apps.indexOfFirst {
-        it.displayLabel.firstOrNull()?.uppercaseChar() == target
+        AppItem.getAlphabetBucket(it.displayLabel) == target
     }
     if (exactIdx >= 0) return exactIdx
 
-    // Find first app starting with a letter after target
+    // Find first app starting with a letter bucket after target
     val nextIdx = apps.indexOfFirst {
-        val first = it.displayLabel.firstOrNull()?.uppercaseChar() ?: ' '
-        first in 'A'..'Z' && first > target
+        val b = AppItem.getAlphabetBucket(it.displayLabel)
+        b in 'A'..'Z' && b > target
     }
     if (nextIdx >= 0) return nextIdx
+
+    // If no letter after target, jump to '#' bucket or last app
+    val hashIdx = apps.indexOfFirst { AppItem.getAlphabetBucket(it.displayLabel) == '#' }
+    if (hashIdx >= 0) return hashIdx
 
     return apps.lastIndex
 }
