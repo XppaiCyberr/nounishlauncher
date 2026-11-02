@@ -63,6 +63,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Configurable Position**: Move the index to either the **Left** or **Right** edge via Settings.
   - Active letters with installed apps are highlighted; empty letters are subtly dimmed.
   - **Tactile Haptic Feedback**: Light haptic tick as your thumb crosses each letter.
+  - **Matching App Highlighting & Non-Matching Dimming**: When interacting with or scrubbing the index, all apps starting with the selected letter are highlighted in bold white (`textPrimary`) with full icon opacity, while non-matching apps dim down to soft muted grey (`0.28` alpha) so the list is never an undifferentiated sea of white.
   - **Smart Visibility**: Scrubber automatically hides when typing a search query to give maximum screen width to results.
 - **Niagara-Style Fluid Wave Animation**:
   - When scrubbing the alphabet index, visible apps smoothly arc and wave towards your thumb.

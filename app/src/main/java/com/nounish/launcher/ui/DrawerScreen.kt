@@ -111,6 +111,7 @@ fun DrawerScreen(
     // Niagara-style wave animation state
     var isInteractingWithIndex by remember { mutableStateOf(false) }
     var selectedTargetIndex by remember { mutableIntStateOf(-1) }
+    var selectedLetter by remember { mutableStateOf<Char?>(null) }
 
     val interactionProgress by animateFloatAsState(
         targetValue = if (isInteractingWithIndex) 1f else 0f,
@@ -120,6 +121,13 @@ fun DrawerScreen(
         ),
         label = "niagaraWaveProgress"
     )
+
+    LaunchedEffect(isInteractingWithIndex, interactionProgress) {
+        if (!isInteractingWithIndex && interactionProgress == 0f) {
+            selectedLetter = null
+            selectedTargetIndex = -1
+        }
+    }
 
     // Auto-launch if exactly one match remains (optional setting)
     LaunchedEffect(searchQuery, apps, autoLaunchSingleMatch) {
@@ -242,6 +250,32 @@ fun DrawerScreen(
                         .weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val onLetterScrub: (Char, Float) -> Unit = { char, fraction ->
+                        selectedLetter = char
+                        val targetIndex = findTargetIndex(apps, char)
+                        if (targetIndex != null) {
+                            selectedTargetIndex = targetIndex
+                            val itemsAbove = (fraction * 10).toInt().coerceIn(0, 8)
+                            val scrollIndex = (targetIndex - itemsAbove).coerceAtLeast(0)
+                            coroutineScope.launch {
+                                listState.scrollToItem(scrollIndex)
+                            }
+                        }
+                    }
+
+                    val matchingIndices = remember(apps, selectedLetter) {
+                        if (selectedLetter == null) {
+                            emptyList()
+                        } else {
+                            apps.mapIndexedNotNull { idx, app ->
+                                if (AppItem.getAlphabetBucket(app.displayLabel) == selectedLetter) idx else null
+                            }
+                        }
+                    }
+                    val hasDirectMatches = matchingIndices.isNotEmpty()
+                    val firstMatchIndex = if (hasDirectMatches) matchingIndices.first() else selectedTargetIndex
+                    val lastMatchIndex = if (hasDirectMatches) matchingIndices.last() else selectedTargetIndex
+
                     // LEFT Alphabet Index (when placed on left and not searching)
                     if (!alphabetIndexOnRight && searchQuery.isEmpty()) {
                         AlphabetIndex(
@@ -253,17 +287,7 @@ fun DrawerScreen(
                             onInteractionEnd = {
                                 isInteractingWithIndex = false
                             },
-                            onLetterSelected = { char, fraction ->
-                                val targetIndex = findTargetIndex(apps, char)
-                                if (targetIndex != null) {
-                                    selectedTargetIndex = targetIndex
-                                    val itemsAbove = (fraction * 10).toInt().coerceIn(0, 8)
-                                    val scrollIndex = (targetIndex - itemsAbove).coerceAtLeast(0)
-                                    coroutineScope.launch {
-                                        listState.scrollToItem(scrollIndex)
-                                    }
-                                }
-                            }
+                            onLetterSelected = onLetterScrub
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                     }
@@ -276,16 +300,28 @@ fun DrawerScreen(
                     ) {
                         itemsIndexed(apps, key = { _, item -> item.key }) { index, app ->
                             val isHidden = hiddenPackages.any { it == app.key || it == app.packageName }
-                            val isTarget = selectedTargetIndex == index
 
-                            // Calculate wave curve factor based on distance from selectedTargetIndex
-                            val diff = if (selectedTargetIndex >= 0) abs(index - selectedTargetIndex) else 99
+                            val isMatching = if (selectedLetter != null) {
+                                if (hasDirectMatches) {
+                                    AppItem.getAlphabetBucket(app.displayLabel) == selectedLetter
+                                } else {
+                                    index == selectedTargetIndex
+                                }
+                            } else false
+
+                            // Calculate wave curve factor based on distance from matching group or target
+                            val diff = when {
+                                firstMatchIndex < 0 -> 99
+                                isMatching -> 0
+                                index < firstMatchIndex -> firstMatchIndex - index
+                                index > lastMatchIndex -> index - lastMatchIndex
+                                else -> 0
+                            }
                             val waveFactor = when (diff) {
                                 0 -> 1.0f
-                                1 -> 0.72f
-                                2 -> 0.44f
-                                3 -> 0.20f
-                                4 -> 0.06f
+                                1 -> 0.65f
+                                2 -> 0.35f
+                                3 -> 0.12f
                                 else -> 0.0f
                             }
 
@@ -302,6 +338,36 @@ fun DrawerScreen(
                             val fontScale = getFontScale(fontSize)
                             val iconSize = (20 * fontScale).coerceIn(14f, 26f).dp
 
+                            val isInteracting = interactionProgress > 0.02f
+
+                            val itemTextColor = when {
+                                isHidden -> colors.textSecondary.copy(alpha = if (isMatching) 0.85f else 0.5f)
+                                isInteracting -> {
+                                    if (isMatching) {
+                                        colors.textPrimary
+                                    } else {
+                                        colors.textSecondary
+                                    }
+                                }
+                                else -> colors.textPrimary
+                            }
+
+                            val itemFontWeight = if (isInteracting && isMatching) FontWeight.Bold else FontWeight.Normal
+
+                            val itemAlpha = when {
+                                isHidden -> if (isInteracting) {
+                                    if (isMatching) 0.85f else 0.20f
+                                } else 0.6f
+                                isInteracting -> {
+                                    if (isMatching) {
+                                        1.0f
+                                    } else {
+                                        (1f - 0.72f * interactionProgress).coerceIn(0.28f, 1f)
+                                    }
+                                }
+                                else -> 1.0f
+                            }
+
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
@@ -310,6 +376,7 @@ fun DrawerScreen(
                                         translationX = currentShift
                                         scaleX = currentScale
                                         scaleY = currentScale
+                                        alpha = itemAlpha
                                         transformOrigin = TransformOrigin(
                                             pivotFractionX = if (alphabetIndexOnRight) 1f else 0f,
                                             pivotFractionY = 0.5f
@@ -332,14 +399,8 @@ fun DrawerScreen(
                                 Text(
                                     text = if (isHidden) "${app.displayLabel} (hidden)" else app.displayLabel,
                                     style = typography.drawerItem,
-                                    fontWeight = if (enableIndexAnimation && isTarget && interactionProgress > 0.4f) FontWeight.Bold else FontWeight.Normal,
-                                    color = when {
-                                        enableIndexAnimation && isTarget && interactionProgress > 0.2f -> colors.textPrimary
-                                        enableIndexAnimation && interactionProgress > 0.2f && waveFactor > 0.1f -> colors.textPrimary.copy(alpha = 0.85f)
-                                        isHidden -> colors.textSecondary.copy(alpha = 0.6f)
-                                        enableIndexAnimation && interactionProgress > 0.2f -> colors.textSecondary.copy(alpha = 0.35f)
-                                        else -> colors.textPrimary
-                                    },
+                                    fontWeight = itemFontWeight,
+                                    color = itemTextColor,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -358,17 +419,7 @@ fun DrawerScreen(
                             onInteractionEnd = {
                                 isInteractingWithIndex = false
                             },
-                            onLetterSelected = { char, fraction ->
-                                val targetIndex = findTargetIndex(apps, char)
-                                if (targetIndex != null) {
-                                    selectedTargetIndex = targetIndex
-                                    val itemsAbove = (fraction * 10).toInt().coerceIn(0, 8)
-                                    val scrollIndex = (targetIndex - itemsAbove).coerceAtLeast(0)
-                                    coroutineScope.launch {
-                                        listState.scrollToItem(scrollIndex)
-                                    }
-                                }
-                            }
+                            onLetterSelected = onLetterScrub
                         )
                     }
                 }

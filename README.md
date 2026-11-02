@@ -36,6 +36,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Real-time search filter with optional **Auto-launch** on single match.
   - Search matches both original system names and custom labels.
   - **Alphabetical Fast-Scroll Index**: Vertical `A–Z` + `#` index scrubber with tactile haptic feedback.
+  - **Matching App Highlighting**: When scrubbing the alphabet index, matching apps are highlighted in crisp bold typography and full opacity, while non-matching apps and icons gracefully dim to muted grey so the drawer does not appear all white.
   - **Customizable Position**: Option to place the index on either the **Left** or **Right** edge.
   - **Niagara-Style Fluid Wave Animation**: When scrubbing the alphabet index, apps smoothly curve and wave towards your thumb with organic spring physics at 120 FPS.
   - **Animation Toggle**: Option to disable the wave animation for a completely static, zero-motion text list.
