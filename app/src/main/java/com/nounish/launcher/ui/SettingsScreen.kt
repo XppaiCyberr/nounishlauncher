@@ -71,6 +71,7 @@ fun SettingsScreen(
     onUpdateMarketCarouselTransition: (String) -> Unit = {},
     onToggleSeparateMarketViews: (Boolean) -> Unit = {},
     onUpdateSeparatedMarketLayout: (String) -> Unit = {},
+    onUpdateMarketCurrencyFormat: (String) -> Unit = {},
     onToggleShowDrawerUsdRate: (Boolean) -> Unit = {},
     onToggleWebSocketOnHome: (Boolean) -> Unit,
     onUpdateCryptoSymbols: (List<String>) -> Unit,
@@ -103,6 +104,7 @@ fun SettingsScreen(
     var showFontSizeDialog by remember { mutableStateOf(false) }
     var showCornerTextDialog by remember { mutableStateOf(false) }
     var cornerTextInput by remember(settings.cornerText) { mutableStateOf(settings.cornerText) }
+    var showCurrencyFormatDialog by remember { mutableStateOf(false) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
         allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
@@ -540,6 +542,19 @@ fun SettingsScreen(
                         }
                     }
                 }
+
+                item {
+                    val currencyFormatLabel = when (settings.marketCurrencyFormat) {
+                        "prefix" -> "Prefix (USDT 68,450 · IDR 9,850)"
+                        "none" -> "None (Raw numbers only)"
+                        else -> "Suffix (68,450 USDT · 9,850 IDR)"
+                    }
+                    SettingsActionRow(
+                        title = "Currency format",
+                        subtitle = currencyFormatLabel,
+                        onClick = { showCurrencyFormatDialog = true }
+                    )
+                }
             }
 
             // Backup & Restore Section
@@ -675,7 +690,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.12",
+                        text = "Nounish Launcher 1.0.13",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -1290,6 +1305,54 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showCornerTextDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    if (showCurrencyFormatDialog) {
+        val options = listOf(
+            "suffix" to "Suffix (68,450 USDT · 9,850 IDR)",
+            "prefix" to "Prefix (USDT 68,450 · IDR 9,850)",
+            "none" to "None (Raw numbers only)"
+        )
+        AlertDialog(
+            onDismissRequest = { showCurrencyFormatDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Currency format",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    options.forEach { (key, label) ->
+                        val isSelected = settings.marketCurrencyFormat == key
+                        Text(
+                            text = label,
+                            style = typography.settingsItem,
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateMarketCurrencyFormat(key)
+                                    showCurrencyFormatDialog = false
+                                }
+                                .padding(vertical = 10.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showCurrencyFormatDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }

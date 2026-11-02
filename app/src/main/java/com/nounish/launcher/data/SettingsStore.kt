@@ -88,7 +88,8 @@ data class LauncherSettings(
     val alphabetIndexOnRight: Boolean = false,
     val enableIndexAnimation: Boolean = true,
     val showCornerText: Boolean = true,
-    val cornerText: String = "xppaicyber"
+    val cornerText: String = "xppaicyber",
+    val marketCurrencyFormat: String = "suffix" // "suffix", "prefix", "none"
 )
 
 class SettingsStore(private val context: Context) {
@@ -141,6 +142,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_CACHED_IDX_TIMESTAMP = longPreferencesKey("cached_idx_timestamp")
         private val KEY_SHOW_CORNER_TEXT = booleanPreferencesKey("show_corner_text")
         private val KEY_CORNER_TEXT = stringPreferencesKey("corner_text")
+        private val KEY_MARKET_CURRENCY_FORMAT = stringPreferencesKey("market_currency_format")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -206,6 +208,7 @@ class SettingsStore(private val context: Context) {
 
         val showCornerText = prefs[KEY_SHOW_CORNER_TEXT] ?: true
         val cornerText = prefs[KEY_CORNER_TEXT] ?: "xppaicyber"
+        val marketCurrencyFormat = prefs[KEY_MARKET_CURRENCY_FORMAT] ?: "suffix"
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -254,7 +257,8 @@ class SettingsStore(private val context: Context) {
             alphabetIndexOnRight = indexOnRight,
             enableIndexAnimation = indexAnimation,
             showCornerText = showCornerText,
-            cornerText = cornerText
+            cornerText = cornerText,
+            marketCurrencyFormat = marketCurrencyFormat
         )
     }
 
@@ -511,6 +515,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_CORNER_TEXT] = text }
     }
 
+    suspend fun setMarketCurrencyFormat(format: String) {
+        context.dataStore.edit { it[KEY_MARKET_CURRENCY_FORMAT] = format }
+    }
+
     suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {
         context.dataStore.edit { prefs ->
             val encoded = prices.entries.joinToString(";") {
@@ -574,6 +582,7 @@ class SettingsStore(private val context: Context) {
         root.put("enableIndexAnimation", settings.enableIndexAnimation)
         root.put("showCornerText", settings.showCornerText)
         root.put("cornerText", settings.cornerText)
+        root.put("marketCurrencyFormat", settings.marketCurrencyFormat)
 
         return root.toString(2)
     }
@@ -658,6 +667,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("enableIndexAnimation")) prefs[KEY_ENABLE_INDEX_ANIMATION] = root.getBoolean("enableIndexAnimation")
                 if (root.has("showCornerText")) prefs[KEY_SHOW_CORNER_TEXT] = root.getBoolean("showCornerText")
                 if (root.has("cornerText")) prefs[KEY_CORNER_TEXT] = root.getString("cornerText")
+                if (root.has("marketCurrencyFormat")) prefs[KEY_MARKET_CURRENCY_FORMAT] = root.getString("marketCurrencyFormat")
             }
             true
         } catch (_: Exception) {

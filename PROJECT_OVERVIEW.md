@@ -231,6 +231,7 @@ Accessible by long-pressing any empty area on the Home screen:
    - `Live WebSocket for Home screen`: Toggle live streaming of prices directly to the Home screen.
    - `Coins`: Comma-separated list of symbols (e.g. `BTC, ETH, SOL, PEPE, BTCUSDT, ETHBIDR`).
    - `Quote currency`: Pair currency presets (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`) or custom quote.
+   - `Currency format`: Select display format for market prices (`Suffix 68,450 USDT / 9,850 IDR`, `Prefix`, or `None`).
 6. **Backup & Restore**:
    - `Export settings (JSON)`: Save all settings, pinned apps, hidden apps, and custom labels to a JSON file.
    - `Import settings (JSON)`: Restore setup from a previous JSON backup file.

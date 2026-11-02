@@ -171,6 +171,8 @@ class MainActivity : ComponentActivity() {
                                     fontSize = settings.fontSize,
                                     showCornerText = settings.showCornerText,
                                     cornerText = settings.cornerText,
+                                    marketCurrencyFormat = settings.marketCurrencyFormat,
+                                    cryptoCurrency = settings.cryptoQuoteCurrency,
                                     onAppClick = { app ->
                                         viewModel.appRepository.launchApp(app)
                                     },
@@ -288,6 +290,7 @@ class MainActivity : ComponentActivity() {
                                     onUpdateMarketCarouselTransition = { viewModel.setMarketCarouselTransition(it) },
                                     onToggleSeparateMarketViews = { viewModel.setSeparateMarketViews(it) },
                                     onUpdateSeparatedMarketLayout = { viewModel.setSeparatedMarketLayout(it) },
+                                    onUpdateMarketCurrencyFormat = { viewModel.setMarketCurrencyFormat(it) },
                                     onToggleShowDrawerUsdRate = { viewModel.setShowDrawerUsdRate(it) },
                                     onToggleWebSocketOnHome = { viewModel.setUseWebSocketOnHome(it) },
                                     onUpdateCryptoSymbols = { viewModel.setCryptoSymbols(it) },

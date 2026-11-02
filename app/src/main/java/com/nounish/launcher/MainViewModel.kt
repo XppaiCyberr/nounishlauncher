@@ -1076,6 +1076,12 @@ class MainViewModel(
         }
     }
 
+    fun setMarketCurrencyFormat(format: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setMarketCurrencyFormat(format)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null

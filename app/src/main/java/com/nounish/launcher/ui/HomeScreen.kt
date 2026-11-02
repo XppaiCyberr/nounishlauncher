@@ -89,6 +89,8 @@ fun HomeScreen(
     fontSize: String = "medium",
     showCornerText: Boolean = true,
     cornerText: String = "xppaicyber",
+    marketCurrencyFormat: String = "suffix",
+    cryptoCurrency: String = "USDT",
     onAppClick: (AppItem) -> Unit,
     onAppInfoClick: (AppItem) -> Unit,
     onUnpinApp: (AppItem) -> Unit,
@@ -231,11 +233,16 @@ fun HomeScreen(
             }
         }
 
-        val idxHeaderLabel = remember(activeIdxCategory, isIdxAutoRotate) {
+        val cryptoHeaderLabel = remember(cryptoCurrency, marketCurrencyFormat) {
+            if (marketCurrencyFormat != "none") "CRYPTO ($cryptoCurrency)" else "CRYPTO"
+        }
+
+        val idxHeaderLabel = remember(activeIdxCategory, isIdxAutoRotate, marketCurrencyFormat) {
+            val base = if (marketCurrencyFormat != "none") "IDX SAHAM (IDR)" else "IDX SAHAM"
             if (activeIdxCategory != null) {
-                "IDX SAHAM | ${activeIdxCategory.label}"
+                "$base | ${activeIdxCategory.label}"
             } else {
-                "IDX SAHAM"
+                base
             }
         }
 
@@ -271,14 +278,19 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    text = "CRYPTO",
+                                    text = cryptoHeaderLabel,
                                     style = typography.clock,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textSecondary.copy(alpha = 0.45f),
                                     letterSpacing = 1.sp,
                                     modifier = Modifier.padding(bottom = 2.dp)
                                 )
-                                CryptoMarketList(cryptoCoins = cryptoCoins, compact = true)
+                                CryptoMarketList(
+                                    cryptoCoins = cryptoCoins,
+                                    compact = true,
+                                    currency = cryptoCurrency,
+                                    currencyFormat = marketCurrencyFormat
+                                )
                             }
 
                             Column(
@@ -309,7 +321,9 @@ fun HomeScreen(
                                 IdxWaveMarketList(
                                     category = activeIdxCategory,
                                     categoryIndex = currentIdxCategoryIndex,
-                                    compact = true
+                                    compact = true,
+                                    currency = "IDR",
+                                    currencyFormat = marketCurrencyFormat
                                 )
                             }
                         }
@@ -321,14 +335,19 @@ fun HomeScreen(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
-                                    text = "CRYPTO",
+                                    text = cryptoHeaderLabel,
                                     style = typography.clock,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textSecondary.copy(alpha = 0.45f),
                                     letterSpacing = 1.sp,
                                     modifier = Modifier.padding(bottom = 2.dp)
                                 )
-                                CryptoMarketList(cryptoCoins = cryptoCoins, compact = false)
+                                CryptoMarketList(
+                                    cryptoCoins = cryptoCoins,
+                                    compact = false,
+                                    currency = cryptoCurrency,
+                                    currencyFormat = marketCurrencyFormat
+                                )
                             }
 
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -356,7 +375,9 @@ fun HomeScreen(
                                 IdxWaveMarketList(
                                     category = activeIdxCategory,
                                     categoryIndex = currentIdxCategoryIndex,
-                                    compact = false
+                                    compact = false,
+                                    currency = "IDR",
+                                    currencyFormat = marketCurrencyFormat
                                 )
                             }
                         }
@@ -372,7 +393,7 @@ fun HomeScreen(
                                 modifier = Modifier.padding(bottom = 8.dp)
                             ) {
                                 Text(
-                                    text = "CRYPTO",
+                                    text = cryptoHeaderLabel,
                                     style = typography.clock,
                                     fontWeight = if (currentViewIndex == 0) FontWeight.Bold else FontWeight.Normal,
                                     color = if (currentViewIndex == 0) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
@@ -421,12 +442,19 @@ fun HomeScreen(
                             label = "marketCarouselTransition"
                         ) { targetView ->
                             if (targetView == 0) {
-                                CryptoMarketList(cryptoCoins = cryptoCoins, compact = false)
+                                CryptoMarketList(
+                                    cryptoCoins = cryptoCoins,
+                                    compact = false,
+                                    currency = cryptoCurrency,
+                                    currencyFormat = marketCurrencyFormat
+                                )
                             } else {
                                 IdxWaveMarketList(
                                     category = activeIdxCategory,
                                     categoryIndex = currentIdxCategoryIndex,
-                                    compact = false
+                                    compact = false,
+                                    currency = "IDR",
+                                    currencyFormat = marketCurrencyFormat
                                 )
                             }
                         }
@@ -625,7 +653,9 @@ fun HomeScreen(
 @Composable
 private fun CryptoMarketList(
     cryptoCoins: List<CoinTickerUi>,
-    compact: Boolean = false
+    compact: Boolean = false,
+    currency: String = "USDT",
+    currencyFormat: String = "suffix"
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
@@ -656,7 +686,7 @@ private fun CryptoMarketList(
                     )
 
                     Text(
-                        text = coin.price,
+                        text = formatPriceWithCurrency(coin.price, currency, currencyFormat),
                         style = if (compact) typography.priceLabel else typography.drawerItem,
                         color = colors.textSecondary
                     )
@@ -690,7 +720,7 @@ private fun CryptoMarketList(
 
                 if (showDetails && coin.highPrice.isNotEmpty() && coin.lowPrice.isNotEmpty()) {
                     Text(
-                        text = "24h H: ${coin.highPrice}  ·  L: ${coin.lowPrice}",
+                        text = formatRangeWithCurrency(coin.highPrice, coin.lowPrice, currency, currencyFormat),
                         style = typography.clock,
                         color = colors.textSecondary.copy(alpha = 0.6f),
                         modifier = Modifier.padding(top = 2.dp)
@@ -706,7 +736,9 @@ private fun CryptoMarketList(
 private fun IdxWaveMarketList(
     category: IdxCategoryUi?,
     categoryIndex: Int,
-    compact: Boolean = false
+    compact: Boolean = false,
+    currency: String = "IDR",
+    currencyFormat: String = "suffix"
 ) {
     if (category == null || category.items.isEmpty()) return
 
@@ -751,7 +783,12 @@ private fun IdxWaveMarketList(
                         )
                     )
                 ) {
-                    IdxStockItemRow(stock = stock, compact = compact)
+                    IdxStockItemRow(
+                        stock = stock,
+                        compact = compact,
+                        currency = currency,
+                        currencyFormat = currencyFormat
+                    )
                 }
             }
         }
@@ -761,7 +798,9 @@ private fun IdxWaveMarketList(
 @Composable
 private fun IdxStockItemRow(
     stock: IdxItemUi,
-    compact: Boolean = false
+    compact: Boolean = false,
+    currency: String = "IDR",
+    currencyFormat: String = "suffix"
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
@@ -787,7 +826,7 @@ private fun IdxStockItemRow(
             )
 
             Text(
-                text = stock.priceText,
+                text = formatPriceWithCurrency(stock.priceText, currency, currencyFormat),
                 style = if (compact) typography.priceLabel else typography.drawerItem,
                 color = colors.textSecondary
             )
@@ -813,7 +852,7 @@ private fun IdxStockItemRow(
         if (showDetails) {
             val details = mutableListOf<String>()
             if (stock.highPrice.isNotEmpty() && stock.lowPrice.isNotEmpty()) {
-                details.add("24h H: ${stock.highPrice}  ·  L: ${stock.lowPrice}")
+                details.add(formatRangeWithCurrency(stock.highPrice, stock.lowPrice, currency, currencyFormat))
             }
             if (stock.volumeText.isNotEmpty()) {
                 details.add("Vol: ${stock.volumeText}")
@@ -831,4 +870,20 @@ private fun IdxStockItemRow(
             }
         }
     }
+}
+
+private fun formatPriceWithCurrency(price: String, currency: String, format: String): String {
+    if (price.isBlank() || price == "--" || format == "none" || currency.isBlank()) {
+        return price
+    }
+    return when (format) {
+        "prefix" -> "$currency $price"
+        else -> "$price $currency"
+    }
+}
+
+private fun formatRangeWithCurrency(high: String, low: String, currency: String, format: String): String {
+    val h = formatPriceWithCurrency(high, currency, format)
+    val l = formatPriceWithCurrency(low, currency, format)
+    return "24h H: $h  ·  L: $l"
 }
