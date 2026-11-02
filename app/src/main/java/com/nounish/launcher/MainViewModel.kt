@@ -119,6 +119,9 @@ class MainViewModel(
     private val _priceState = MutableStateFlow(PriceUiState())
     val priceState: StateFlow<PriceUiState> = _priceState.asStateFlow()
 
+    private val _usdRateState = MutableStateFlow(PriceUiState())
+    val usdRateState: StateFlow<PriceUiState> = _usdRateState.asStateFlow()
+
     val homeCryptoList: StateFlow<List<CoinTickerUi>> = settings.map { pref ->
         val now = System.currentTimeMillis()
         pref.cryptoSymbols.map { sym ->
@@ -244,10 +247,12 @@ class MainViewModel(
         if (!currentSettings.cryptoPriceEnabled) {
             stopAllPriceUpdates()
             _priceState.value = PriceUiState()
+            _usdRateState.value = PriceUiState()
             return
         }
 
         updatePriceDisplayFromCache(currentSettings)
+        updateUsdRateDisplayFromCache(currentSettings)
 
         if (isHomeActive && currentSettings.useWebSocketOnHome && currentSettings.showHomeCrypto) {
             stopPolling()
@@ -400,7 +405,11 @@ class MainViewModel(
 
     private suspend fun fetchFreshPrices() {
         val currentSettings = settings.value
-        if (!currentSettings.cryptoPriceEnabled || currentSettings.cryptoSymbols.isEmpty()) return
+        if (!currentSettings.cryptoPriceEnabled) return
+
+        fetchUsdRate()
+
+        if (currentSettings.cryptoSymbols.isEmpty()) return
 
         _priceState.value = _priceState.value.copy(isLoading = true)
 
@@ -500,6 +509,68 @@ class MainViewModel(
                 isLoading = false,
                 sparkline = cached.sparkline
             )
+        }
+    }
+
+    private fun updateUsdRateDisplayFromCache(currentSettings: LauncherSettings) {
+        val cachedRate = currentSettings.cachedUsdRate
+        if (cachedRate.isNotEmpty()) {
+            val now = System.currentTimeMillis()
+            val isStale = (now - currentSettings.cachedUsdTimestamp) > 60_000L
+            val ageMarker = if (isStale) PriceRepository.formatAgeMarker(currentSettings.cachedUsdTimestamp) else ""
+            _usdRateState.value = PriceUiState(
+                coinSymbol = "USD",
+                priceText = cachedRate,
+                changeText = currentSettings.cachedUsdChange,
+                changePercent = currentSettings.cachedUsdChangePercent,
+                isStale = isStale,
+                ageMarker = ageMarker,
+                isLoading = false
+            )
+        }
+    }
+
+    private suspend fun fetchUsdRate() {
+        val currentSettings = settings.value
+        if (!currentSettings.cryptoPriceEnabled) return
+
+        val result = priceRepository.fetchUsdIdrRate()
+        result.onSuccess { usdRate ->
+            _usdRateState.value = PriceUiState(
+                coinSymbol = "USD",
+                priceText = usdRate.formattedRate,
+                changeText = usdRate.formattedChange,
+                changePercent = usdRate.changePercent,
+                isStale = false,
+                ageMarker = "",
+                isLoading = false
+            )
+            settingsStore.updateCachedUsdRate(
+                rate = usdRate.formattedRate,
+                change = usdRate.formattedChange,
+                changePercent = usdRate.changePercent,
+                timestamp = usdRate.timestamp
+            )
+        }.onFailure {
+            val cachedRate = currentSettings.cachedUsdRate
+            if (cachedRate.isNotEmpty()) {
+                val ageMarker = PriceRepository.formatAgeMarker(currentSettings.cachedUsdTimestamp)
+                _usdRateState.value = PriceUiState(
+                    coinSymbol = "USD",
+                    priceText = cachedRate,
+                    changeText = currentSettings.cachedUsdChange,
+                    changePercent = currentSettings.cachedUsdChangePercent,
+                    isStale = true,
+                    ageMarker = ageMarker,
+                    isLoading = false
+                )
+            }
+        }
+    }
+
+    fun refreshUsdRate() {
+        viewModelScope.launch(Dispatchers.IO) {
+            fetchUsdRate()
         }
     }
 
@@ -728,6 +799,12 @@ class MainViewModel(
     fun setIndexAnimationEnabled(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setIndexAnimationEnabled(enabled)
+        }
+    }
+
+    fun setShowDrawerUsdRate(show: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowDrawerUsdRate(show)
         }
     }
 

@@ -6,6 +6,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -22,6 +23,14 @@ data class CoinTicker(
     val lowPrice: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val sparkline: String = ""
+)
+
+data class UsdRate(
+    val rate: Double,
+    val formattedRate: String,
+    val changePercent: Double,
+    val formattedChange: String,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 data class PriceUiState(
@@ -172,6 +181,88 @@ class PriceRepository {
         }
 
         Result.failure(lastException ?: RuntimeException("Network error"))
+    }
+
+    suspend fun fetchUsdIdrRate(): Result<UsdRate> = withContext(Dispatchers.IO) {
+        // 1. Try Binance hosts with USDTIDR, then USDTBIDR
+        val symbolsToTry = listOf("USDTIDR", "USDTBIDR")
+        for (sym in symbolsToTry) {
+            for (host in hosts) {
+                val urlString = "https://$host/api/v3/ticker/24hr?symbol=$sym"
+                var connection: HttpURLConnection? = null
+                try {
+                    val url = URL(urlString)
+                    connection = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        connectTimeout = 4000
+                        readTimeout = 4000
+                        setRequestProperty("Accept", "application/json")
+                        setRequestProperty("User-Agent", "NounishLauncher/1.0")
+                    }
+                    if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                        val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                        val json = JSONObject(reader.use { it.readText() })
+                        val priceRaw = json.optString("lastPrice", json.optString("price", "0")).toDoubleOrNull() ?: 0.0
+                        val changePercentRaw = json.optString("priceChangePercent", "0").toDoubleOrNull() ?: 0.0
+
+                        if (priceRaw > 0.0) {
+                            val formattedPrice = formatPrice(priceRaw)
+                            val formattedChange = formatPercent(changePercentRaw)
+                            return@withContext Result.success(
+                                UsdRate(
+                                    rate = priceRaw,
+                                    formattedRate = formattedPrice,
+                                    changePercent = changePercentRaw,
+                                    formattedChange = formattedChange,
+                                    timestamp = System.currentTimeMillis()
+                                )
+                            )
+                        }
+                    }
+                } catch (_: Exception) {
+                    // Try next host / symbol
+                } finally {
+                    connection?.disconnect()
+                }
+            }
+        }
+
+        // 2. Fallback to open.er-api.com
+        var erConnection: HttpURLConnection? = null
+        try {
+            val url = URL("https://open.er-api.com/v6/latest/USD")
+            erConnection = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 4000
+                readTimeout = 4000
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("User-Agent", "NounishLauncher/1.0")
+            }
+            if (erConnection.responseCode == HttpURLConnection.HTTP_OK) {
+                val reader = BufferedReader(InputStreamReader(erConnection.inputStream))
+                val json = JSONObject(reader.use { it.readText() })
+                val rates = json.optJSONObject("rates")
+                val idrRate = rates?.optDouble("IDR", 0.0) ?: 0.0
+                if (idrRate > 0.0) {
+                    val formattedPrice = formatPrice(idrRate)
+                    return@withContext Result.success(
+                        UsdRate(
+                            rate = idrRate,
+                            formattedRate = formattedPrice,
+                            changePercent = 0.0,
+                            formattedChange = "",
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
+                }
+            }
+        } catch (_: Exception) {
+            // Fallback failed
+        } finally {
+            erConnection?.disconnect()
+        }
+
+        Result.failure(RuntimeException("Failed to fetch USD/IDR rate"))
     }
 
     suspend fun fetchKlines(pair: String): List<Double> = withContext(Dispatchers.IO) {

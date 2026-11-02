@@ -60,6 +60,7 @@ fun SettingsScreen(
     onToggleDoubleTapLock: (Boolean) -> Unit,
     onToggleCryptoEnabled: (Boolean) -> Unit,
     onToggleShowHomeCrypto: (Boolean) -> Unit,
+    onToggleShowDrawerUsdRate: (Boolean) -> Unit = {},
     onToggleWebSocketOnHome: (Boolean) -> Unit,
     onUpdateCryptoSymbols: (List<String>) -> Unit,
     onUpdateCryptoQuote: (String) -> Unit,
@@ -356,6 +357,15 @@ fun SettingsScreen(
 
                 item {
                     SettingsSwitchRow(
+                        title = "Show USD/IDR rate in app drawer",
+                        subtitle = "Display live USD to IDR rate at the top right of the drawer",
+                        checked = settings.showDrawerUsdRate,
+                        onCheckedChange = onToggleShowDrawerUsdRate
+                    )
+                }
+
+                item {
+                    SettingsSwitchRow(
                         title = "Live WebSocket for Home screen",
                         subtitle = if (settings.useWebSocketOnHome) "Stream live tick-by-tick prices on Home (closed on pause)" else "Disabled (Standard polling with backoff)",
                         checked = settings.useWebSocketOnHome,
@@ -513,7 +523,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.7",
+                        text = "Nounish Launcher 1.0.8",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )

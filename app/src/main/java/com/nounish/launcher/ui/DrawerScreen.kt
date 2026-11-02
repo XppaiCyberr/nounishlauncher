@@ -73,7 +73,7 @@ fun DrawerScreen(
     searchQuery: String,
     pinnedPackages: List<String>,
     hiddenPackages: Set<String>,
-    priceState: PriceUiState,
+    usdRateState: PriceUiState,
     cryptoPriceEnabled: Boolean,
     autoLaunchSingleMatch: Boolean,
     alphabetIndexOnRight: Boolean,
@@ -88,7 +88,7 @@ fun DrawerScreen(
     onRenameApp: (AppItem, String?) -> Unit,
     onAppInfoClick: (AppItem) -> Unit,
     onUninstallClick: (AppItem) -> Unit,
-    onCycleCrypto: () -> Unit,
+    onRefreshUsdRate: () -> Unit,
     onCloseDrawer: () -> Unit
 ) {
     val colors = LauncherTheme.colors
@@ -190,35 +190,39 @@ fun DrawerScreen(
                     )
                 }
 
-                // Crypto Price Label with 24h percentage change & stale-data indicator
-                if (cryptoPriceEnabled && priceState.isNotEmpty) {
+                // USD Rate in IDR with 24h percentage change & stale-data indicator
+                if (cryptoPriceEnabled && usdRateState.isNotEmpty) {
+                    val haptic = LocalHapticFeedback.current
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clickable(onClick = onCycleCrypto)
+                            .clickable(onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onRefreshUsdRate()
+                            })
                             .padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
                             .graphicsLayer {
-                                alpha = if (priceState.isStale) 0.55f else 1.0f
+                                alpha = if (usdRateState.isStale) 0.55f else 1.0f
                             }
                     ) {
                         Text(
-                            text = "${priceState.coinSymbol} ${priceState.priceText}",
+                            text = "${usdRateState.coinSymbol} ${usdRateState.priceText}",
                             style = typography.priceLabel,
                             color = colors.textSecondary
                         )
-                        if (priceState.changeText.isNotEmpty()) {
+                        if (usdRateState.changeText.isNotEmpty()) {
                             Spacer(modifier = Modifier.width(6.dp))
-                            val changeColor = if (priceState.changePercent >= 0.0) CryptoGreen else CryptoRed
+                            val changeColor = if (usdRateState.changePercent >= 0.0) CryptoGreen else CryptoRed
                             Text(
-                                text = priceState.changeText,
+                                text = usdRateState.changeText,
                                 style = typography.priceLabel,
                                 color = changeColor
                             )
                         }
-                        if (priceState.isStale && priceState.ageMarker.isNotEmpty()) {
+                        if (usdRateState.isStale && usdRateState.ageMarker.isNotEmpty()) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = priceState.ageMarker,
+                                text = usdRateState.ageMarker,
                                 style = typography.priceLabel,
                                 color = colors.textSecondary.copy(alpha = 0.6f)
                             )

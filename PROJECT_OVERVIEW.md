@@ -58,6 +58,12 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Minimalist search input at the top filters apps in real time as you type.
   - Searches through both original app labels and user custom labels.
   - **Auto-Launch (Optional)**: Automatically launches the app when search results narrow down to exactly 1 match.
+- **Live USD/IDR Exchange Rate (Top Right)**:
+  - Displays the live USD to Indonesian Rupiah exchange rate at the top right of the drawer (e.g. `USD 18,142` with 24h percentage change).
+  - Fetched via Binance public market feeds (`USDTIDR` / `USDTBIDR`) with automated fallback to `open.er-api.com` and offline DataStore caching.
+  - Interactive: tap with haptic tick to refresh immediately.
+  - Stale-data indicator (`·5m`, `·1h`) dims the display when offline or using cached data.
+  - Toggleable via Settings under Market Prices -> Show USD/IDR rate in app drawer.
 - **Alphabetical Fast-Scroll Index**:
   - Vertical `A–Z` + `#` scrubber for quick navigation.
   - **Configurable Position**: Move the index to either the **Left** or **Right** edge via Settings.

@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
             val pinnedApps by viewModel.pinnedApps.collectAsState()
             val filteredApps by viewModel.filteredApps.collectAsState()
             val searchQuery by viewModel.searchQuery.collectAsState()
-            val priceState by viewModel.priceState.collectAsState()
+            val usdRateState by viewModel.usdRateState.collectAsState()
             val homeCryptoList by viewModel.homeCryptoList.collectAsState()
 
             var currentScreen by remember { currentScreenState }
@@ -200,8 +200,8 @@ class MainActivity : ComponentActivity() {
                                     searchQuery = searchQuery,
                                     pinnedPackages = settings.pinnedApps,
                                     hiddenPackages = settings.hiddenApps,
-                                    priceState = priceState,
-                                    cryptoPriceEnabled = settings.cryptoPriceEnabled,
+                                    usdRateState = usdRateState,
+                                    cryptoPriceEnabled = settings.cryptoPriceEnabled && settings.showDrawerUsdRate,
                                     autoLaunchSingleMatch = settings.autoLaunchSingleMatch,
                                     alphabetIndexOnRight = settings.alphabetIndexOnRight,
                                     enableIndexAnimation = settings.enableIndexAnimation,
@@ -238,8 +238,8 @@ class MainActivity : ComponentActivity() {
                                     onUninstallClick = { app ->
                                         viewModel.appRepository.uninstallApp(app)
                                     },
-                                    onCycleCrypto = {
-                                        viewModel.cycleNextCryptoCoin()
+                                    onRefreshUsdRate = {
+                                        viewModel.refreshUsdRate()
                                     },
                                     onCloseDrawer = {
                                         viewModel.onSearchQueryChanged("")
@@ -263,6 +263,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleDoubleTapLock = { viewModel.setDoubleTapLock(it) },
                                     onToggleCryptoEnabled = { viewModel.setCryptoPriceEnabled(it) },
                                     onToggleShowHomeCrypto = { viewModel.setShowHomeCrypto(it) },
+                                    onToggleShowDrawerUsdRate = { viewModel.setShowDrawerUsdRate(it) },
                                     onToggleWebSocketOnHome = { viewModel.setUseWebSocketOnHome(it) },
                                     onUpdateCryptoSymbols = { viewModel.setCryptoSymbols(it) },
                                     onUpdateCryptoQuote = { viewModel.setCryptoQuoteCurrency(it) },

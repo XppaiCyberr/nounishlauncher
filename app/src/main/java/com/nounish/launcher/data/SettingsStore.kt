@@ -4,8 +4,10 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -51,6 +53,11 @@ data class LauncherSettings(
     val showAppIcons: Boolean = true,
     val monochromeIcons: Boolean = true,
     val hasInitializedPinned: Boolean = false,
+    val showDrawerUsdRate: Boolean = true,
+    val cachedUsdRate: String = "",
+    val cachedUsdChange: String = "",
+    val cachedUsdChangePercent: Double = 0.0,
+    val cachedUsdTimestamp: Long = 0L,
     val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
     val currentCryptoIndex: Int = 0,
     val alphabetIndexOnRight: Boolean = false,
@@ -84,6 +91,11 @@ class SettingsStore(private val context: Context) {
         private val KEY_SHOW_APP_ICONS = booleanPreferencesKey("show_app_icons")
         private val KEY_MONOCHROME_ICONS = booleanPreferencesKey("monochrome_icons")
         private val KEY_INITIALIZED_PINNED = booleanPreferencesKey("has_initialized_pinned")
+        private val KEY_SHOW_DRAWER_USD_RATE = booleanPreferencesKey("show_drawer_usd_rate")
+        private val KEY_CACHED_USD_RATE = stringPreferencesKey("cached_usd_rate")
+        private val KEY_CACHED_USD_CHANGE = stringPreferencesKey("cached_usd_change")
+        private val KEY_CACHED_USD_CHANGE_PERCENT = doublePreferencesKey("cached_usd_change_percent")
+        private val KEY_CACHED_USD_TIMESTAMP = longPreferencesKey("cached_usd_timestamp")
         private val KEY_CACHED_PRICES = stringPreferencesKey("cached_crypto_prices")
         private val KEY_CRYPTO_INDEX = intPreferencesKey("current_crypto_index")
         private val KEY_INDEX_ON_RIGHT = booleanPreferencesKey("alphabet_index_on_right")
@@ -125,6 +137,11 @@ class SettingsStore(private val context: Context) {
         val showIcons = prefs[KEY_SHOW_APP_ICONS] ?: true
         val monoIcons = prefs[KEY_MONOCHROME_ICONS] ?: true
         val initializedPinned = prefs[KEY_INITIALIZED_PINNED] ?: false
+        val showDrawerUsd = prefs[KEY_SHOW_DRAWER_USD_RATE] ?: true
+        val cachedUsdRate = prefs[KEY_CACHED_USD_RATE] ?: ""
+        val cachedUsdChange = prefs[KEY_CACHED_USD_CHANGE] ?: ""
+        val cachedUsdChangePercent = prefs[KEY_CACHED_USD_CHANGE_PERCENT] ?: 0.0
+        val cachedUsdTimestamp = prefs[KEY_CACHED_USD_TIMESTAMP] ?: 0L
 
         val cachedMap = parsePricesMap(prefs[KEY_CACHED_PRICES] ?: "")
         val cryptoIndex = prefs[KEY_CRYPTO_INDEX] ?: 0
@@ -156,6 +173,11 @@ class SettingsStore(private val context: Context) {
             showAppIcons = showIcons,
             monochromeIcons = monoIcons,
             hasInitializedPinned = initializedPinned,
+            showDrawerUsdRate = showDrawerUsd,
+            cachedUsdRate = cachedUsdRate,
+            cachedUsdChange = cachedUsdChange,
+            cachedUsdChangePercent = cachedUsdChangePercent,
+            cachedUsdTimestamp = cachedUsdTimestamp,
             cachedCryptoPrices = cachedMap,
             currentCryptoIndex = cryptoIndex,
             alphabetIndexOnRight = indexOnRight,
@@ -307,6 +329,19 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_INITIALIZED_PINNED] = initialized }
     }
 
+    suspend fun setShowDrawerUsdRate(show: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_DRAWER_USD_RATE] = show }
+    }
+
+    suspend fun updateCachedUsdRate(rate: String, change: String, changePercent: Double, timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_CACHED_USD_RATE] = rate
+            prefs[KEY_CACHED_USD_CHANGE] = change
+            prefs[KEY_CACHED_USD_CHANGE_PERCENT] = changePercent
+            prefs[KEY_CACHED_USD_TIMESTAMP] = timestamp
+        }
+    }
+
     suspend fun setAlphabetIndexOnRight(onRight: Boolean) {
         context.dataStore.edit { it[KEY_INDEX_ON_RIGHT] = onRight }
     }
@@ -351,6 +386,11 @@ class SettingsStore(private val context: Context) {
         root.put("doubleTapLock", settings.doubleTapLock)
 
         root.put("cryptoPriceEnabled", settings.cryptoPriceEnabled)
+        root.put("showDrawerUsdRate", settings.showDrawerUsdRate)
+        root.put("cachedUsdRate", settings.cachedUsdRate)
+        root.put("cachedUsdChange", settings.cachedUsdChange)
+        root.put("cachedUsdChangePercent", settings.cachedUsdChangePercent)
+        root.put("cachedUsdTimestamp", settings.cachedUsdTimestamp)
         root.put("cryptoSymbols", JSONArray(settings.cryptoSymbols))
         root.put("cryptoQuoteCurrency", settings.cryptoQuoteCurrency)
         root.put("useWebSocketOnHome", settings.useWebSocketOnHome)
@@ -409,6 +449,11 @@ class SettingsStore(private val context: Context) {
                 if (root.has("doubleTapLock")) prefs[KEY_DOUBLE_TAP_LOCK] = root.getBoolean("doubleTapLock")
 
                 if (root.has("cryptoPriceEnabled")) prefs[KEY_CRYPTO_ENABLED] = root.getBoolean("cryptoPriceEnabled")
+                if (root.has("showDrawerUsdRate")) prefs[KEY_SHOW_DRAWER_USD_RATE] = root.getBoolean("showDrawerUsdRate")
+                if (root.has("cachedUsdRate")) prefs[KEY_CACHED_USD_RATE] = root.getString("cachedUsdRate")
+                if (root.has("cachedUsdChange")) prefs[KEY_CACHED_USD_CHANGE] = root.getString("cachedUsdChange")
+                if (root.has("cachedUsdChangePercent")) prefs[KEY_CACHED_USD_CHANGE_PERCENT] = root.getDouble("cachedUsdChangePercent")
+                if (root.has("cachedUsdTimestamp")) prefs[KEY_CACHED_USD_TIMESTAMP] = root.getLong("cachedUsdTimestamp")
                 if (root.has("cryptoSymbols")) {
                     val arr = root.getJSONArray("cryptoSymbols")
                     val list = mutableListOf<String>()

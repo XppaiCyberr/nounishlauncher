@@ -35,6 +35,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Zero icon loading: uses direct `PackageManager` labels for sub-millisecond load times and minimal RAM usage.
   - Real-time search filter with optional **Auto-launch** on single match.
   - Search matches both original system names and custom labels.
+  - **Live USD/IDR Rate (Top Right)**: Real-time USD to Indonesian Rupiah exchange rate at the top right of the drawer with one-tap tactile refresh and stale-data indicators. Toggleable in Settings.
   - **Alphabetical Fast-Scroll Index**: Vertical `A–Z` + `#` index scrubber with tactile haptic feedback.
   - **Matching App Highlighting**: When scrubbing the alphabet index, matching apps are highlighted in crisp bold typography and full opacity, while non-matching apps and icons gracefully dim to muted grey so the drawer does not appear all white.
   - **Customizable Position**: Option to place the index on either the **Left** or **Right** edge.
