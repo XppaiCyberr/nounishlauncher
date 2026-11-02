@@ -66,6 +66,8 @@ fun SettingsScreen(
     onToggleLightTheme: (Boolean) -> Unit,
     onToggleMonospace: (Boolean) -> Unit,
     onUpdateFontSize: (String) -> Unit,
+    onToggleShowAppIcons: (Boolean) -> Unit,
+    onToggleMonochromeIcons: (Boolean) -> Unit,
     onToggleIndexOnRight: (Boolean) -> Unit,
     onToggleIndexAnimation: (Boolean) -> Unit,
     onReorderPinnedApps: (List<String>) -> Unit,
@@ -308,6 +310,26 @@ fun SettingsScreen(
                 )
             }
 
+            item {
+                SettingsSwitchRow(
+                    title = "Show app icons",
+                    subtitle = if (settings.showAppIcons) "App icons displayed beside names" else "Text-only (pure minimalist)",
+                    checked = settings.showAppIcons,
+                    onCheckedChange = onToggleShowAppIcons
+                )
+            }
+
+            if (settings.showAppIcons) {
+                item {
+                    SettingsSwitchRow(
+                        title = "Monochrome icons",
+                        subtitle = if (settings.monochromeIcons) "Minimalist grayscale icons" else "Original app colors",
+                        checked = settings.monochromeIcons,
+                        onCheckedChange = onToggleMonochromeIcons
+                    )
+                }
+            }
+
             // Crypto Price Section
             item {
                 SettingsSectionHeader(title = "Crypto Price (Optional)")
@@ -491,7 +513,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.5",
+                        text = "Nounish Launcher 1.0.6",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )

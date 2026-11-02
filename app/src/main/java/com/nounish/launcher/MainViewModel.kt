@@ -149,6 +149,7 @@ class MainViewModel(
     init {
         // Refresh apps on package change broadcasts
         PackageChangeReceiver.onPackageChangedListener = {
+            com.nounish.launcher.data.IconCache.clear()
             appRepository.reloadApps()
         }
 
@@ -158,14 +159,15 @@ class MainViewModel(
                 if (appsList.isNotEmpty()) {
                     val pref = settings.value
 
-                    // If brand new install with 0 pinned apps, auto-seed default 4 essential apps
-                    if (pref.pinnedApps.isEmpty()) {
+                    // If brand new install with 0 pinned apps, auto-seed default 4 essential apps once
+                    if (!pref.hasInitializedPinned && pref.pinnedApps.isEmpty()) {
                         val defaults = findDefaultPinnedApps(appsList)
                         if (defaults.isNotEmpty()) {
                             settingsStore.reorderPinnedApps(defaults.map { it.key })
                             val labelsMap = defaults.associate { it.key to it.label }
                             settingsStore.updatePinnedAppLabels(labelsMap)
                         }
+                        settingsStore.setHasInitializedPinned(true)
                     }
 
                     // Prune uninstalled apps from pinned list
@@ -539,27 +541,19 @@ class MainViewModel(
         return true
     }
 
-    fun unpinApp(item: AppItem): Boolean {
-        if (settings.value.pinnedApps.size <= 4) {
-            return false
-        }
+    fun unpinApp(item: AppItem) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.unpinApp(item.key)
             settingsStore.unpinApp(item.packageName)
         }
-        return true
     }
 
-    fun unpinAppById(id: String): Boolean {
-        if (settings.value.pinnedApps.size <= 4) {
-            return false
-        }
+    fun unpinAppById(id: String) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.unpinApp(id)
             val cleanPkg = id.substringBefore("/").substringBefore("#")
             settingsStore.unpinApp(cleanPkg)
         }
-        return true
     }
 
     fun reorderPinnedApps(list: List<String>) {
@@ -710,6 +704,18 @@ class MainViewModel(
     fun setFontSize(size: String) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setFontSize(size)
+        }
+    }
+
+    fun setShowAppIcons(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowAppIcons(enabled)
+        }
+    }
+
+    fun setMonochromeIcons(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setMonochromeIcons(enabled)
         }
     }
 

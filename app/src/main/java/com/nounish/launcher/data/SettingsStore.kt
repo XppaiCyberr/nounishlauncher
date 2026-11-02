@@ -47,7 +47,10 @@ data class LauncherSettings(
     val useWebSocketOnHome: Boolean = false,
     val isLightTheme: Boolean = false,
     val useMonospace: Boolean = false,
-    val fontSize: String = "medium", // "small" (85%), "medium" (100%), "large" (115%), "extra_large" (130%)
+    val fontSize: String = "medium", // "micro", "extra_small", "small", "compact", "medium", "large", "extra_large"
+    val showAppIcons: Boolean = true,
+    val monochromeIcons: Boolean = true,
+    val hasInitializedPinned: Boolean = false,
     val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
     val currentCryptoIndex: Int = 0,
     val alphabetIndexOnRight: Boolean = false,
@@ -78,6 +81,9 @@ class SettingsStore(private val context: Context) {
         private val KEY_LIGHT_THEME = booleanPreferencesKey("is_light_theme")
         private val KEY_USE_MONOSPACE = booleanPreferencesKey("use_monospace")
         private val KEY_FONT_SIZE = stringPreferencesKey("font_size")
+        private val KEY_SHOW_APP_ICONS = booleanPreferencesKey("show_app_icons")
+        private val KEY_MONOCHROME_ICONS = booleanPreferencesKey("monochrome_icons")
+        private val KEY_INITIALIZED_PINNED = booleanPreferencesKey("has_initialized_pinned")
         private val KEY_CACHED_PRICES = stringPreferencesKey("cached_crypto_prices")
         private val KEY_CRYPTO_INDEX = intPreferencesKey("current_crypto_index")
         private val KEY_INDEX_ON_RIGHT = booleanPreferencesKey("alphabet_index_on_right")
@@ -116,6 +122,9 @@ class SettingsStore(private val context: Context) {
         val isLight = prefs[KEY_LIGHT_THEME] ?: false
         val useMono = prefs[KEY_USE_MONOSPACE] ?: false
         val fontSize = prefs[KEY_FONT_SIZE] ?: "medium"
+        val showIcons = prefs[KEY_SHOW_APP_ICONS] ?: true
+        val monoIcons = prefs[KEY_MONOCHROME_ICONS] ?: true
+        val initializedPinned = prefs[KEY_INITIALIZED_PINNED] ?: false
 
         val cachedMap = parsePricesMap(prefs[KEY_CACHED_PRICES] ?: "")
         val cryptoIndex = prefs[KEY_CRYPTO_INDEX] ?: 0
@@ -144,6 +153,9 @@ class SettingsStore(private val context: Context) {
             isLightTheme = isLight,
             useMonospace = useMono,
             fontSize = fontSize,
+            showAppIcons = showIcons,
+            monochromeIcons = monoIcons,
+            hasInitializedPinned = initializedPinned,
             cachedCryptoPrices = cachedMap,
             currentCryptoIndex = cryptoIndex,
             alphabetIndexOnRight = indexOnRight,
@@ -283,6 +295,18 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_FONT_SIZE] = size }
     }
 
+    suspend fun setShowAppIcons(show: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_APP_ICONS] = show }
+    }
+
+    suspend fun setMonochromeIcons(mono: Boolean) {
+        context.dataStore.edit { it[KEY_MONOCHROME_ICONS] = mono }
+    }
+
+    suspend fun setHasInitializedPinned(initialized: Boolean) {
+        context.dataStore.edit { it[KEY_INITIALIZED_PINNED] = initialized }
+    }
+
     suspend fun setAlphabetIndexOnRight(onRight: Boolean) {
         context.dataStore.edit { it[KEY_INDEX_ON_RIGHT] = onRight }
     }
@@ -334,6 +358,8 @@ class SettingsStore(private val context: Context) {
         root.put("isLightTheme", settings.isLightTheme)
         root.put("useMonospace", settings.useMonospace)
         root.put("fontSize", settings.fontSize)
+        root.put("showAppIcons", settings.showAppIcons)
+        root.put("monochromeIcons", settings.monochromeIcons)
         root.put("alphabetIndexOnRight", settings.alphabetIndexOnRight)
         root.put("enableIndexAnimation", settings.enableIndexAnimation)
 
@@ -395,6 +421,8 @@ class SettingsStore(private val context: Context) {
                 if (root.has("isLightTheme")) prefs[KEY_LIGHT_THEME] = root.getBoolean("isLightTheme")
                 if (root.has("useMonospace")) prefs[KEY_USE_MONOSPACE] = root.getBoolean("useMonospace")
                 if (root.has("fontSize")) prefs[KEY_FONT_SIZE] = root.getString("fontSize")
+                if (root.has("showAppIcons")) prefs[KEY_SHOW_APP_ICONS] = root.getBoolean("showAppIcons")
+                if (root.has("monochromeIcons")) prefs[KEY_MONOCHROME_ICONS] = root.getBoolean("monochromeIcons")
                 if (root.has("alphabetIndexOnRight")) prefs[KEY_INDEX_ON_RIGHT] = root.getBoolean("alphabetIndexOnRight")
                 if (root.has("enableIndexAnimation")) prefs[KEY_ENABLE_INDEX_ANIMATION] = root.getBoolean("enableIndexAnimation")
             }

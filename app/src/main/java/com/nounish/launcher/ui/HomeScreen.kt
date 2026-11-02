@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
@@ -34,10 +35,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nounish.launcher.CoinTickerUi
+import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
+import com.nounish.launcher.ui.theme.getFontScale
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,6 +56,9 @@ fun HomeScreen(
     dateFormatPattern: String = "EEEE, d MMMM",
     showCrypto: Boolean,
     cryptoCoins: List<CoinTickerUi>,
+    showAppIcons: Boolean = true,
+    monochromeIcons: Boolean = true,
+    fontSize: String = "medium",
     onAppClick: (AppItem) -> Unit,
     onAppInfoClick: (AppItem) -> Unit,
     onUnpinApp: (AppItem) -> Unit,
@@ -234,12 +240,15 @@ fun HomeScreen(
         }
 
         // Pinned shortcuts positioned in bottom-middle area for optimal one-hand reach
+        val fontScale = getFontScale(fontSize)
+        val iconSize = (24 * fontScale).coerceIn(16f, 32f).dp
+
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
                 .padding(bottom = 64.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (pinnedApps.isEmpty()) {
                 Text(
@@ -249,17 +258,29 @@ fun HomeScreen(
                 )
             } else {
                 pinnedApps.take(8).forEach { app ->
-                    Text(
-                        text = app.displayLabel,
-                        style = typography.homeShortcut,
-                        color = colors.textPrimary,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .combinedClickable(
                                 onClick = { onAppClick(app) },
                                 onLongClick = { selectedAppForDialog = app }
                             )
-                    )
+                    ) {
+                        if (showAppIcons) {
+                            AppIcon(
+                                item = app,
+                                modifier = Modifier.size(iconSize),
+                                isMonochrome = monochromeIcons
+                            )
+                            Spacer(modifier = Modifier.width(14.dp))
+                        }
+                        Text(
+                            text = app.displayLabel,
+                            style = typography.homeShortcut,
+                            color = colors.textPrimary
+                        )
+                    }
                 }
             }
         }

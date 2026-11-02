@@ -6,7 +6,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ## Design Philosophy
 
-1. **Text-Only Interface**: Apps are represented solely by name. No icons are ever loaded or drawn into memory.
+1. **Minimalist App Icons & Pure Text Mode**: Toggleable option to display subtle, minimalist app icons beside each app with an optional monochrome/grayscale filter that preserves the calm AMOLED aesthetic, or toggle off completely for a pure text-only experience.
 2. **AMOLED Monochrome & Custom Typography**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. An optional light theme, monospace mode, and fine-grained font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%) are also available, alongside compact, clean settings menu margins.
 3. **Calm & Distraction-Free**: No notification dots, news feeds, unread counters, or recommendation algorithms.
 4. **Privacy-Focused & Offline by Default**: Zero analytics, telemetry, or tracking. The only network feature is the optional crypto ticker using Binance's public API (disabled by default, with zero background services).
@@ -36,9 +36,9 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Stale-Data Indicator**: Dimmed text styling and age marker (`·now`, `·5m`, `·1h`) appear when offline or when viewing cached data.
   - Toggleable in Settings under **Crypto Price -> Show crypto on home screen**.
 - **Pinned App Shortcuts & Limits**:
-  - 4 to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach.
+  - Up to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach, with zero minimum limit (unpin down to 0 apps freely).
   - **Pinned App Reordering**: In Settings -> Pinned Apps, dedicated up (`↑`) and down (`↓`) controls allow direct reordering of shortcuts without unpinning and re-pinning.
-  - **Strict 4–8 Range Enforcement**: Cleanly enforces the 4–8 range. Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first." Attempting to unpin below 4 prompts: "Minimum 4 pinned apps required. Pin another app first." Fresh installs automatically seed 4 essential default apps.
+  - **Maximum 8 Limit**: Cleanly enforces a maximum of 8 pinned apps. Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first."
   - Large (`28 sp`), light-weight typography with generous vertical spacing.
   - Respects custom labels assigned by the user.
   - **Prunes Dead Entries**: If a pinned app is uninstalled, it is automatically dropped from pinned shortcuts and DataStore, leaving zero dead entries.

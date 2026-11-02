@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,11 +57,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.PriceUiState
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
+import com.nounish.launcher.ui.theme.getFontScale
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -75,6 +78,9 @@ fun DrawerScreen(
     autoLaunchSingleMatch: Boolean,
     alphabetIndexOnRight: Boolean,
     enableIndexAnimation: Boolean,
+    showAppIcons: Boolean = true,
+    monochromeIcons: Boolean = true,
+    fontSize: String = "medium",
     onSearchQueryChange: (String) -> Unit,
     onAppClick: (AppItem) -> Unit,
     onTogglePinApp: (AppItem) -> Unit,
@@ -293,17 +299,11 @@ fun DrawerScreen(
                             val currentShift = if (enableIndexAnimation) (baseShiftPx + maxShiftPx * waveFactor) * interactionProgress else 0f
                             val currentScale = if (enableIndexAnimation) 1f + (0.16f * waveFactor * interactionProgress) else 1f
 
-                            Text(
-                                text = if (isHidden) "${app.displayLabel} (hidden)" else app.displayLabel,
-                                style = typography.drawerItem,
-                                fontWeight = if (enableIndexAnimation && isTarget && interactionProgress > 0.4f) FontWeight.Bold else FontWeight.Normal,
-                                color = when {
-                                    enableIndexAnimation && isTarget && interactionProgress > 0.2f -> colors.textPrimary
-                                    enableIndexAnimation && interactionProgress > 0.2f && waveFactor > 0.1f -> colors.textPrimary.copy(alpha = 0.85f)
-                                    isHidden -> colors.textSecondary.copy(alpha = 0.6f)
-                                    enableIndexAnimation && interactionProgress > 0.2f -> colors.textSecondary.copy(alpha = 0.35f)
-                                    else -> colors.textPrimary
-                                },
+                            val fontScale = getFontScale(fontSize)
+                            val iconSize = (20 * fontScale).coerceIn(14f, 26f).dp
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .graphicsLayer {
@@ -320,7 +320,29 @@ fun DrawerScreen(
                                         onLongClick = { selectedAppForMenu = app }
                                     )
                                     .padding(vertical = 4.dp)
-                            )
+                            ) {
+                                if (showAppIcons) {
+                                    AppIcon(
+                                        item = app,
+                                        modifier = Modifier.size(iconSize),
+                                        isMonochrome = monochromeIcons
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                }
+                                Text(
+                                    text = if (isHidden) "${app.displayLabel} (hidden)" else app.displayLabel,
+                                    style = typography.drawerItem,
+                                    fontWeight = if (enableIndexAnimation && isTarget && interactionProgress > 0.4f) FontWeight.Bold else FontWeight.Normal,
+                                    color = when {
+                                        enableIndexAnimation && isTarget && interactionProgress > 0.2f -> colors.textPrimary
+                                        enableIndexAnimation && interactionProgress > 0.2f && waveFactor > 0.1f -> colors.textPrimary.copy(alpha = 0.85f)
+                                        isHidden -> colors.textSecondary.copy(alpha = 0.6f)
+                                        enableIndexAnimation && interactionProgress > 0.2f -> colors.textSecondary.copy(alpha = 0.35f)
+                                        else -> colors.textPrimary
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                     }
 

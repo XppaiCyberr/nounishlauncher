@@ -154,6 +154,9 @@ class MainActivity : ComponentActivity() {
                                     dateFormatPattern = settings.dateFormatPattern,
                                     showCrypto = settings.cryptoPriceEnabled && settings.showHomeCrypto,
                                     cryptoCoins = homeCryptoList,
+                                    showAppIcons = settings.showAppIcons,
+                                    monochromeIcons = settings.monochromeIcons,
+                                    fontSize = settings.fontSize,
                                     onAppClick = { app ->
                                         viewModel.appRepository.launchApp(app)
                                     },
@@ -161,9 +164,7 @@ class MainActivity : ComponentActivity() {
                                         viewModel.appRepository.openAppInfo(app)
                                     },
                                     onUnpinApp = { app ->
-                                        if (!viewModel.unpinApp(app)) {
-                                            Toast.makeText(this@MainActivity, "Minimum 4 pinned apps required. Pin another app first.", Toast.LENGTH_SHORT).show()
-                                        }
+                                        viewModel.unpinApp(app)
                                     },
                                     onRenameApp = { app, newLabel ->
                                         viewModel.setAppCustomLabel(app, newLabel)
@@ -204,6 +205,9 @@ class MainActivity : ComponentActivity() {
                                     autoLaunchSingleMatch = settings.autoLaunchSingleMatch,
                                     alphabetIndexOnRight = settings.alphabetIndexOnRight,
                                     enableIndexAnimation = settings.enableIndexAnimation,
+                                    showAppIcons = settings.showAppIcons,
+                                    monochromeIcons = settings.monochromeIcons,
+                                    fontSize = settings.fontSize,
                                     onSearchQueryChange = { query ->
                                         viewModel.onSearchQueryChanged(query)
                                     },
@@ -215,9 +219,7 @@ class MainActivity : ComponentActivity() {
                                     onTogglePinApp = { app ->
                                         val isPinned = settings.pinnedApps.any { it == app.key || it == app.packageName }
                                         if (isPinned) {
-                                            if (!viewModel.unpinApp(app)) {
-                                                Toast.makeText(this@MainActivity, "Minimum 4 pinned apps required. Pin another app first.", Toast.LENGTH_SHORT).show()
-                                            }
+                                            viewModel.unpinApp(app)
                                         } else {
                                             if (!viewModel.pinApp(app)) {
                                                 Toast.makeText(this@MainActivity, "Maximum 8 pinned apps reached. Unpin an app first.", Toast.LENGTH_SHORT).show()
@@ -267,13 +269,13 @@ class MainActivity : ComponentActivity() {
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },
                                     onToggleMonospace = { viewModel.setUseMonospace(it) },
                                     onUpdateFontSize = { viewModel.setFontSize(it) },
+                                    onToggleShowAppIcons = { viewModel.setShowAppIcons(it) },
+                                    onToggleMonochromeIcons = { viewModel.setMonochromeIcons(it) },
                                     onToggleIndexOnRight = { viewModel.setAlphabetIndexOnRight(it) },
                                     onToggleIndexAnimation = { viewModel.setIndexAnimationEnabled(it) },
                                     onReorderPinnedApps = { viewModel.reorderPinnedApps(it) },
                                     onUnpinApp = { id ->
-                                        if (!viewModel.unpinAppById(id)) {
-                                            Toast.makeText(this@MainActivity, "Minimum 4 pinned apps required. Pin another app first.", Toast.LENGTH_SHORT).show()
-                                        }
+                                        viewModel.unpinAppById(id)
                                     },
                                     onUnhideApp = { viewModel.unhideAppById(it) },
                                     onExportSettings = {

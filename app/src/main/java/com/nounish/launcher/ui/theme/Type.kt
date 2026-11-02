@@ -16,6 +16,16 @@ data class LauncherTypography(
     val settingsDescription: TextStyle
 )
 
+fun getFontScale(fontSizeOption: String): Float = when (fontSizeOption) {
+    "micro", "tiny" -> 0.65f
+    "extra_small" -> 0.75f
+    "small" -> 0.85f
+    "compact" -> 0.92f
+    "large" -> 1.15f
+    "extra_large" -> 1.30f
+    else -> 1.0f
+}
+
 fun getLauncherTypography(fontFamily: FontFamily, fontScale: Float = 1.0f): LauncherTypography {
     val scale = fontScale.coerceIn(0.55f, 1.6f)
     return LauncherTypography(
