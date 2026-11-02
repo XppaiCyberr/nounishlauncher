@@ -54,6 +54,8 @@ fun SettingsScreen(
     onToggleClockSeconds: (Boolean) -> Unit,
     onToggleShowDate: (Boolean) -> Unit,
     onUpdateDateFormatPattern: (String) -> Unit,
+    onToggleShowCornerText: (Boolean) -> Unit = {},
+    onUpdateCornerText: (String) -> Unit = {},
     onToggleAutoLaunch: (Boolean) -> Unit,
     onSelectSwipeLeftApp: (String?) -> Unit,
     onSelectSwipeRightApp: (String?) -> Unit,
@@ -99,6 +101,8 @@ fun SettingsScreen(
     var showClockFormatDialog by remember { mutableStateOf(false) }
     var showDateFormatDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
+    var showCornerTextDialog by remember { mutableStateOf(false) }
+    var cornerTextInput by remember(settings.cornerText) { mutableStateOf(settings.cornerText) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
         allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
@@ -210,6 +214,28 @@ fun SettingsScreen(
                         title = "Date format",
                         subtitle = datePreview,
                         onClick = { showDateFormatDialog = true }
+                    )
+                }
+            }
+
+            item {
+                SettingsSwitchRow(
+                    title = "Corner text",
+                    subtitle = if (settings.showCornerText) "Show custom text on bottom right corner" else "Hidden",
+                    checked = settings.showCornerText,
+                    onCheckedChange = onToggleShowCornerText
+                )
+            }
+
+            if (settings.showCornerText) {
+                item {
+                    SettingsActionRow(
+                        title = "Custom corner text",
+                        subtitle = if (settings.cornerText.isNotBlank()) settings.cornerText else "None (tap to set)",
+                        onClick = {
+                            cornerTextInput = settings.cornerText
+                            showCornerTextDialog = true
+                        }
                     )
                 }
             }
@@ -649,7 +675,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.11",
+                        text = "Nounish Launcher 1.0.12",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -1207,6 +1233,63 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showFontSizeDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    if (showCornerTextDialog) {
+        AlertDialog(
+            onDismissRequest = { showCornerTextDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Custom corner text",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Displayed at the bottom right corner of the home screen (e.g. username or motivational text).",
+                        style = typography.settingsDescription,
+                        color = colors.textSecondary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    BasicTextField(
+                        value = cornerTextInput,
+                        onValueChange = { cornerTextInput = it },
+                        textStyle = typography.settingsItem.copy(color = colors.textPrimary),
+                        cursorBrush = SolidColor(colors.textPrimary),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.background)
+                            .padding(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Row {
+                    TextButton(onClick = {
+                        cornerTextInput = "xppaicyber"
+                        onUpdateCornerText("xppaicyber")
+                        showCornerTextDialog = false
+                    }) {
+                        Text("Reset", color = colors.textSecondary)
+                    }
+                    TextButton(onClick = {
+                        onUpdateCornerText(cornerTextInput.trim())
+                        showCornerTextDialog = false
+                    }) {
+                        Text("Save", color = colors.textPrimary)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCornerTextDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }

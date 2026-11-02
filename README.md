@@ -22,6 +22,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Clock Options**: Choose between System Default (respects Android's 24-hour setting), 24-hour (`HH:mm`), 12-hour with AM/PM (`h:mm a`), or 12-hour without AM/PM (`h:mm`).
   - **Optional Seconds**: Live second display (`:ss`) for atomic precision.
   - **Date Format Customization**: Pick from common presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or input any custom `SimpleDateFormat` pattern.
+  - **Custom Corner Text (Bottom Right)**: Display custom text (such as your username, handle, or motivational quote) in the bottom-right corner of the Home screen, styled in muted secondary tone. Configurable in Settings (default: `xppaicyber`) or toggled off completely.
   - Live clock and date (configurable, tap clock to open system clock).
   - **Live Binance Crypto Market Overview**: Fills the spacious center area with real-time tickers, current prices, 24-hour daily percentage change, and text sparklines.
   - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that remain strictly text-only on the main ticker row.
@@ -125,8 +126,7 @@ nounishlauncher/
 ├── build.gradle.kts                             # Root Gradle build script
 ├── settings.gradle.kts                          # Module inclusion & repository management
 ├── gradle.properties                            # JVM memory allocation & AndroidX settings
-├── PROJECT_OVERVIEW.md                          # In-depth architectural & technical documentation
-└── plan.md                                      # Original roadmap and design spec
+└── PROJECT_OVERVIEW.md                          # In-depth architectural & technical documentation
 ```
 
 ---

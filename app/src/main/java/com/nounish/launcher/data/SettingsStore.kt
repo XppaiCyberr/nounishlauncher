@@ -86,7 +86,9 @@ data class LauncherSettings(
     val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
     val currentCryptoIndex: Int = 0,
     val alphabetIndexOnRight: Boolean = false,
-    val enableIndexAnimation: Boolean = true
+    val enableIndexAnimation: Boolean = true,
+    val showCornerText: Boolean = true,
+    val cornerText: String = "xppaicyber"
 )
 
 class SettingsStore(private val context: Context) {
@@ -137,6 +139,8 @@ class SettingsStore(private val context: Context) {
         private val KEY_CACHED_IDX_QUOTES = stringPreferencesKey("cached_idx_quotes")
         private val KEY_CACHED_IDX_CATEGORIES = stringPreferencesKey("cached_idx_categories_json")
         private val KEY_CACHED_IDX_TIMESTAMP = longPreferencesKey("cached_idx_timestamp")
+        private val KEY_SHOW_CORNER_TEXT = booleanPreferencesKey("show_corner_text")
+        private val KEY_CORNER_TEXT = stringPreferencesKey("corner_text")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -200,6 +204,9 @@ class SettingsStore(private val context: Context) {
         val cachedIdxCategories = parseIdxCategoriesJson(prefs[KEY_CACHED_IDX_CATEGORIES] ?: "")
         val cachedIdxTimestamp = prefs[KEY_CACHED_IDX_TIMESTAMP] ?: 0L
 
+        val showCornerText = prefs[KEY_SHOW_CORNER_TEXT] ?: true
+        val cornerText = prefs[KEY_CORNER_TEXT] ?: "xppaicyber"
+
         LauncherSettings(
             pinnedApps = pinnedList,
             pinnedAppLabels = pinnedLabels,
@@ -245,7 +252,9 @@ class SettingsStore(private val context: Context) {
             cachedCryptoPrices = cachedMap,
             currentCryptoIndex = cryptoIndex,
             alphabetIndexOnRight = indexOnRight,
-            enableIndexAnimation = indexAnimation
+            enableIndexAnimation = indexAnimation,
+            showCornerText = showCornerText,
+            cornerText = cornerText
         )
     }
 
@@ -494,6 +503,14 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_ENABLE_INDEX_ANIMATION] = enabled }
     }
 
+    suspend fun setShowCornerText(show: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_CORNER_TEXT] = show }
+    }
+
+    suspend fun setCornerText(text: String) {
+        context.dataStore.edit { it[KEY_CORNER_TEXT] = text }
+    }
+
     suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {
         context.dataStore.edit { prefs ->
             val encoded = prices.entries.joinToString(";") {
@@ -555,6 +572,8 @@ class SettingsStore(private val context: Context) {
         root.put("monochromeIcons", settings.monochromeIcons)
         root.put("alphabetIndexOnRight", settings.alphabetIndexOnRight)
         root.put("enableIndexAnimation", settings.enableIndexAnimation)
+        root.put("showCornerText", settings.showCornerText)
+        root.put("cornerText", settings.cornerText)
 
         return root.toString(2)
     }
@@ -637,6 +656,8 @@ class SettingsStore(private val context: Context) {
                 if (root.has("monochromeIcons")) prefs[KEY_MONOCHROME_ICONS] = root.getBoolean("monochromeIcons")
                 if (root.has("alphabetIndexOnRight")) prefs[KEY_INDEX_ON_RIGHT] = root.getBoolean("alphabetIndexOnRight")
                 if (root.has("enableIndexAnimation")) prefs[KEY_ENABLE_INDEX_ANIMATION] = root.getBoolean("enableIndexAnimation")
+                if (root.has("showCornerText")) prefs[KEY_SHOW_CORNER_TEXT] = root.getBoolean("showCornerText")
+                if (root.has("cornerText")) prefs[KEY_CORNER_TEXT] = root.getString("cornerText")
             }
             true
         } catch (_: Exception) {

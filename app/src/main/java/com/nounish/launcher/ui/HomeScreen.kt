@@ -87,6 +87,8 @@ fun HomeScreen(
     showAppIcons: Boolean = true,
     monochromeIcons: Boolean = true,
     fontSize: String = "medium",
+    showCornerText: Boolean = true,
+    cornerText: String = "xppaicyber",
     onAppClick: (AppItem) -> Unit,
     onAppInfoClick: (AppItem) -> Unit,
     onUnpinApp: (AppItem) -> Unit,
@@ -440,7 +442,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 64.dp),
+                .padding(bottom = if (showCornerText && cornerText.isNotBlank()) 12.dp else 48.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (pinnedApps.isEmpty()) {
@@ -475,6 +477,24 @@ fun HomeScreen(
                         )
                     }
                 }
+            }
+        }
+
+        // Custom corner text (bottom right)
+        if (showCornerText && cornerText.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp)
+            ) {
+                Text(
+                    text = cornerText,
+                    style = typography.clock,
+                    color = colors.textSecondary.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .clickable { onOpenSettings() }
+                )
             }
         }
     }

@@ -169,6 +169,8 @@ class MainActivity : ComponentActivity() {
                                     showAppIcons = settings.showAppIcons,
                                     monochromeIcons = settings.monochromeIcons,
                                     fontSize = settings.fontSize,
+                                    showCornerText = settings.showCornerText,
+                                    cornerText = settings.cornerText,
                                     onAppClick = { app ->
                                         viewModel.appRepository.launchApp(app)
                                     },
@@ -269,6 +271,8 @@ class MainActivity : ComponentActivity() {
                                     onToggleClockSeconds = { viewModel.setShowClockSeconds(it) },
                                     onToggleShowDate = { viewModel.setShowDate(it) },
                                     onUpdateDateFormatPattern = { viewModel.setDateFormatPattern(it) },
+                                    onToggleShowCornerText = { viewModel.setShowCornerText(it) },
+                                    onUpdateCornerText = { viewModel.setCornerText(it) },
                                     onToggleAutoLaunch = { viewModel.setAutoLaunchSingleMatch(it) },
                                     onSelectSwipeLeftApp = { viewModel.setSwipeLeft(it) },
                                     onSelectSwipeRightApp = { viewModel.setSwipeRight(it) },

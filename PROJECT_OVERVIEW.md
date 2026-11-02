@@ -200,7 +200,6 @@ nounishlauncher/
 ├── settings.gradle.kts                          # Module inclusions & repository config
 ├── gradle.properties                            # JVM memory allocation & AndroidX flags
 ├── release.jks                                  # Dedicated release signing keystore
-├── plan.md                                      # Original roadmap and design spec
 └── README.md                                    # Repository overview
 ```
 
@@ -213,6 +212,8 @@ Accessible by long-pressing any empty area on the Home screen:
 1. **Home Screen**:
    - `Show clock`: Toggle time in top-left corner.
    - `Show date`: Toggle date below the clock.
+   - `Corner text`: Toggle custom text display in the bottom-right corner.
+   - `Custom corner text`: Edit the corner text string (default: `xppaicyber`) or reset to default.
 2. **App Drawer**:
    - `Auto-launch on single match`: Instantly opens an app when search results narrow to 1.
    - `Alphabet index on right`: Places the alphabetical scrubber on the right edge (default: left).

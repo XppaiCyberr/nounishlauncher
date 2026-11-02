@@ -1064,6 +1064,18 @@ class MainViewModel(
         }
     }
 
+    fun setShowCornerText(show: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowCornerText(show)
+        }
+    }
+
+    fun setCornerText(text: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setCornerText(text)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null
