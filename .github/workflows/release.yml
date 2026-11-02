@@ -1,0 +1,63 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Prepare APK Asset
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-latest}"
+          APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          DEST_PATH="app/build/outputs/apk/release/NounishLauncher-${TAG_NAME}.apk"
+          cp "$APK_PATH" "$DEST_PATH"
+          echo "APK prepared at: $DEST_PATH"
+          ls -lh "$DEST_PATH"
+
+      - name: Upload APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            app/build/outputs/apk/release/NounishLauncher-*.apk
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NounishLauncher-Release-APK
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 14

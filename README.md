@@ -132,6 +132,13 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 Output: `app/build/outputs/apk/release/app-release.apk` (**~1.05 MB**)
 
+### Automated CI / GitHub Releases
+A GitHub Actions workflow (`.github/workflows/release.yml`) automatically builds the signed, minified release APK and attaches it to GitHub Releases whenever a git tag is pushed:
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ---
 
 ## Privacy & Permissions
