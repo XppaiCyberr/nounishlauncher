@@ -17,6 +17,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -55,6 +58,8 @@ import com.nounish.launcher.IdxCategoryUi
 import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.model.AppItem
+import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
+import com.nounish.launcher.model.PassiveNote
 import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
@@ -91,6 +96,11 @@ fun HomeScreen(
     cornerText: String = "xppaicyber",
     marketCurrencyFormat: String = "suffix",
     cryptoCurrency: String = "USDT",
+    showNote: Boolean = true,
+    isNoteDismissed: Boolean = false,
+    noteIndex: Int = 0,
+    onDismissNote: () -> Unit = {},
+    onNextNote: () -> Unit = {},
     onAppClick: (AppItem) -> Unit,
     onAppInfoClick: (AppItem) -> Unit,
     onUnpinApp: (AppItem) -> Unit,
@@ -157,35 +167,62 @@ fun HomeScreen(
             )
             .padding(horizontal = 24.dp)
     ) {
-        // Clock / Date in top left
-        if (showClock || showDate) {
-            Column(
+        val currentNote = remember(noteIndex) {
+            DEFAULT_PASSIVE_NOTES.getOrNull(noteIndex.coerceIn(0, DEFAULT_PASSIVE_NOTES.size - 1))
+                ?: DEFAULT_PASSIVE_NOTES.first()
+        }
+
+        // Top section: Clock & Date on left, Closeable Passive Learning Note on right
+        val isNoteVisible = showNote && !isNoteDismissed
+        if (showClock || showDate || isNoteVisible) {
+            Row(
                 modifier = Modifier
-                    .padding(top = 16.dp)
-                    .combinedClickable(
-                        onClick = {
-                            try {
-                                val clockIntent = Intent(AlarmClock.ACTION_SHOW_ALARMS).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                context.startActivity(clockIntent)
-                            } catch (_: Exception) {}
-                        },
-                        onLongClick = onOpenSettings
-                    )
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                if (showClock) {
-                    Text(
-                        text = formattedTime,
-                        style = typography.clock,
-                        color = colors.textSecondary
-                    )
+                if (showClock || showDate) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .padding(end = 12.dp)
+                            .combinedClickable(
+                                onClick = {
+                                    try {
+                                        val clockIntent = Intent(AlarmClock.ACTION_SHOW_ALARMS).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(clockIntent)
+                                    } catch (_: Exception) {}
+                                },
+                                onLongClick = onOpenSettings
+                            )
+                    ) {
+                        if (showClock) {
+                            Text(
+                                text = formattedTime,
+                                style = typography.clock,
+                                color = colors.textSecondary
+                            )
+                        }
+                        if (showDate) {
+                            Text(
+                                text = formattedDate,
+                                style = typography.clock,
+                                color = colors.textSecondary.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
-                if (showDate) {
-                    Text(
-                        text = formattedDate,
-                        style = typography.clock,
-                        color = colors.textSecondary.copy(alpha = 0.7f)
+
+                if (isNoteVisible) {
+                    PassiveNoteCard(
+                        note = currentNote,
+                        onDismiss = onDismissNote,
+                        onClick = onNextNote
                     )
                 }
             }
@@ -886,4 +923,74 @@ private fun formatRangeWithCurrency(high: String, low: String, currency: String,
     val h = formatPriceWithCurrency(high, currency, format)
     val l = formatPriceWithCurrency(low, currency, format)
     return "24h H: $h  ·  L: $l"
+}
+
+@Composable
+private fun PassiveNoteCard(
+    note: PassiveNote,
+    onDismiss: () -> Unit,
+    onClick: () -> Unit
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+
+    Column(
+        modifier = Modifier
+            .widthIn(max = 205.dp)
+            .background(
+                color = colors.surface.copy(alpha = 0.55f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .border(
+                width = 0.5.dp,
+                color = colors.textSecondary.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = note.title,
+                style = typography.clock.copy(fontSize = 11.5.sp),
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+                letterSpacing = 0.5.sp
+            )
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable { onDismiss() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✕",
+                    fontSize = 11.sp,
+                    color = colors.textSecondary.copy(alpha = 0.6f)
+                )
+            }
+        }
+
+        Text(
+            text = note.body,
+            style = typography.clock.copy(fontSize = 10.sp, lineHeight = 14.sp),
+            color = colors.textSecondary.copy(alpha = 0.85f),
+            modifier = Modifier.padding(top = 3.dp)
+        )
+
+        if (note.attribution.isNotEmpty()) {
+            Text(
+                text = note.attribution,
+                style = typography.clock.copy(fontSize = 9.sp),
+                color = colors.textSecondary.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(top = 2.dp)
+            )
+        }
+    }
 }

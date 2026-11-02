@@ -1082,6 +1082,27 @@ class MainViewModel(
         }
     }
 
+    fun setShowHomeScreenNote(show: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowHomeScreenNote(show)
+        }
+    }
+
+    fun dismissHomeScreenNote() {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setHomeScreenNoteDismissed(true)
+        }
+    }
+
+    fun nextHomeScreenNote(totalNotes: Int) {
+        if (totalNotes <= 0) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentIndex = settings.value.homeScreenNoteIndex
+            val nextIndex = (currentIndex + 1) % totalNotes
+            settingsStore.setHomeScreenNoteIndex(nextIndex)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null

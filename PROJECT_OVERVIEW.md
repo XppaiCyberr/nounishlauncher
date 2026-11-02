@@ -171,7 +171,8 @@ nounishlauncher/
 │       │   ├── MainActivity.kt                  # SingleTask launcher activity, SAF backup/restore, screen transitions
 │       │   ├── MainViewModel.kt                 # StateFlow coordination (apps, search, settings, crypto, labels)
 │       │   ├── model/
-│       │   │   └── AppItem.kt                   # Data model for app label, customLabel, displayLabel, packageName
+│       │   │   ├── AppItem.kt                   # Data model for app label, customLabel, displayLabel, packageName
+│       │   │   └── PassiveNote.kt               # Passive learning notes model and Nounish/crypto definitions
 │       │   ├── data/
 │       │   │   ├── AppRepository.kt             # PackageManager loader (labels only, no icons)
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper for all preferences & cached prices
@@ -214,6 +215,7 @@ Accessible by long-pressing any empty area on the Home screen:
    - `Show date`: Toggle date below the clock.
    - `Corner text`: Toggle custom text display in the bottom-right corner.
    - `Custom corner text`: Edit the corner text string (default: `xppaicyber`) or reset to default.
+   - `Passive learning note`: Toggle passive learning card in top-right corner (features Nounish `⌐◨-◨` ethos, crypto slang, closeable with `x`, and tap to cycle).
 2. **App Drawer**:
    - `Auto-launch on single match`: Instantly opens an app when search results narrow to 1.
    - `Alphabet index on right`: Places the alphabetical scrubber on the right edge (default: left).

@@ -56,6 +56,7 @@ fun SettingsScreen(
     onUpdateDateFormatPattern: (String) -> Unit,
     onToggleShowCornerText: (Boolean) -> Unit = {},
     onUpdateCornerText: (String) -> Unit = {},
+    onToggleShowHomeScreenNote: (Boolean) -> Unit = {},
     onToggleAutoLaunch: (Boolean) -> Unit,
     onSelectSwipeLeftApp: (String?) -> Unit,
     onSelectSwipeRightApp: (String?) -> Unit,
@@ -240,6 +241,22 @@ fun SettingsScreen(
                         }
                     )
                 }
+            }
+
+            item {
+                val noteSubtitle = when {
+                    !settings.showHomeScreenNote -> "Disabled"
+                    settings.homeScreenNoteDismissed -> "Dismissed from home (tap to restore)"
+                    else -> "Showing passive learning notes on top-right"
+                }
+                SettingsSwitchRow(
+                    title = "Passive learning note",
+                    subtitle = noteSubtitle,
+                    checked = settings.showHomeScreenNote && !settings.homeScreenNoteDismissed,
+                    onCheckedChange = { checked ->
+                        onToggleShowHomeScreenNote(checked)
+                    }
+                )
             }
 
             // App Drawer Section
@@ -690,7 +707,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.13",
+                        text = "Nounish Launcher 1.0.14",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )

@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
 import com.nounish.launcher.service.LockScreenService
 import com.nounish.launcher.ui.DrawerScreen
 import com.nounish.launcher.ui.HomeScreen
@@ -173,6 +174,11 @@ class MainActivity : ComponentActivity() {
                                     cornerText = settings.cornerText,
                                     marketCurrencyFormat = settings.marketCurrencyFormat,
                                     cryptoCurrency = settings.cryptoQuoteCurrency,
+                                    showNote = settings.showHomeScreenNote,
+                                    isNoteDismissed = settings.homeScreenNoteDismissed,
+                                    noteIndex = settings.homeScreenNoteIndex,
+                                    onDismissNote = { viewModel.dismissHomeScreenNote() },
+                                    onNextNote = { viewModel.nextHomeScreenNote(DEFAULT_PASSIVE_NOTES.size) },
                                     onAppClick = { app ->
                                         viewModel.appRepository.launchApp(app)
                                     },
@@ -275,6 +281,7 @@ class MainActivity : ComponentActivity() {
                                     onUpdateDateFormatPattern = { viewModel.setDateFormatPattern(it) },
                                     onToggleShowCornerText = { viewModel.setShowCornerText(it) },
                                     onUpdateCornerText = { viewModel.setCornerText(it) },
+                                    onToggleShowHomeScreenNote = { viewModel.setShowHomeScreenNote(it) },
                                     onToggleAutoLaunch = { viewModel.setAutoLaunchSingleMatch(it) },
                                     onSelectSwipeLeftApp = { viewModel.setSwipeLeft(it) },
                                     onSelectSwipeRightApp = { viewModel.setSwipeRight(it) },

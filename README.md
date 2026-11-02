@@ -23,6 +23,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Optional Seconds**: Live second display (`:ss`) for atomic precision.
   - **Date Format Customization**: Pick from common presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or input any custom `SimpleDateFormat` pattern.
   - **Custom Corner Text (Bottom Right)**: Display custom text (such as your username, handle, or motivational quote) in the bottom-right corner of the Home screen, styled in muted secondary tone. Configurable in Settings (default: `xppaicyber`) or toggled off completely.
+  - **Closeable Passive Learning Notes (Top Right)**: A calm, minimalist floating note card anchored at the top-right corner of the Home screen for passive learning. Features the definition of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto slang and web3 culture. Dismissable via a subtle `x` close button and easily restored anytime from Settings.
   - **Currency Format (Crypto USDT & Saham IDR)**: Real-time market prices clearly specify currency format across tickers, section headers, and 24h ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`). Configurable in Settings (Suffix, Prefix, or None).
   - Live clock and date (configurable, tap clock to open system clock).
   - **Live Binance Crypto Market Overview**: Fills the spacious center area with real-time tickers, current prices, 24-hour daily percentage change, and text sparklines.
@@ -99,7 +100,8 @@ nounishlauncher/
 │       │   ├── MainActivity.kt                  # SingleTask launcher activity, SAF backup/restore, screen transitions
 │       │   ├── MainViewModel.kt                 # StateFlow coordination (apps, search, settings, crypto, labels)
 │       │   ├── model/
-│       │   │   └── AppItem.kt                   # App label, customLabel, displayLabel, packageName
+│       │   │   ├── AppItem.kt                   # App label, customLabel, displayLabel, packageName
+│       │   │   └── PassiveNote.kt               # Passive learning notes model and Nounish/crypto definitions
 │       │   ├── data/
 │       │   │   ├── AppRepository.kt             # PackageManager loader (labels only, no icons)
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper, JSON backup/restore serialization

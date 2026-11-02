@@ -89,7 +89,10 @@ data class LauncherSettings(
     val enableIndexAnimation: Boolean = true,
     val showCornerText: Boolean = true,
     val cornerText: String = "xppaicyber",
-    val marketCurrencyFormat: String = "suffix" // "suffix", "prefix", "none"
+    val marketCurrencyFormat: String = "suffix", // "suffix", "prefix", "none"
+    val showHomeScreenNote: Boolean = true,
+    val homeScreenNoteDismissed: Boolean = false,
+    val homeScreenNoteIndex: Int = 0
 )
 
 class SettingsStore(private val context: Context) {
@@ -143,6 +146,9 @@ class SettingsStore(private val context: Context) {
         private val KEY_SHOW_CORNER_TEXT = booleanPreferencesKey("show_corner_text")
         private val KEY_CORNER_TEXT = stringPreferencesKey("corner_text")
         private val KEY_MARKET_CURRENCY_FORMAT = stringPreferencesKey("market_currency_format")
+        private val KEY_SHOW_HOME_NOTE = booleanPreferencesKey("show_home_note")
+        private val KEY_HOME_NOTE_DISMISSED = booleanPreferencesKey("home_note_dismissed")
+        private val KEY_HOME_NOTE_INDEX = intPreferencesKey("home_note_index")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -209,6 +215,9 @@ class SettingsStore(private val context: Context) {
         val showCornerText = prefs[KEY_SHOW_CORNER_TEXT] ?: true
         val cornerText = prefs[KEY_CORNER_TEXT] ?: "xppaicyber"
         val marketCurrencyFormat = prefs[KEY_MARKET_CURRENCY_FORMAT] ?: "suffix"
+        val showHomeNote = prefs[KEY_SHOW_HOME_NOTE] ?: true
+        val homeNoteDismissed = prefs[KEY_HOME_NOTE_DISMISSED] ?: false
+        val homeNoteIndex = prefs[KEY_HOME_NOTE_INDEX] ?: 0
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -258,7 +267,10 @@ class SettingsStore(private val context: Context) {
             enableIndexAnimation = indexAnimation,
             showCornerText = showCornerText,
             cornerText = cornerText,
-            marketCurrencyFormat = marketCurrencyFormat
+            marketCurrencyFormat = marketCurrencyFormat,
+            showHomeScreenNote = showHomeNote,
+            homeScreenNoteDismissed = homeNoteDismissed,
+            homeScreenNoteIndex = homeNoteIndex
         )
     }
 
@@ -519,6 +531,23 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_MARKET_CURRENCY_FORMAT] = format }
     }
 
+    suspend fun setShowHomeScreenNote(show: Boolean) {
+        context.dataStore.edit {
+            it[KEY_SHOW_HOME_NOTE] = show
+            if (show) {
+                it[KEY_HOME_NOTE_DISMISSED] = false
+            }
+        }
+    }
+
+    suspend fun setHomeScreenNoteDismissed(dismissed: Boolean) {
+        context.dataStore.edit { it[KEY_HOME_NOTE_DISMISSED] = dismissed }
+    }
+
+    suspend fun setHomeScreenNoteIndex(index: Int) {
+        context.dataStore.edit { it[KEY_HOME_NOTE_INDEX] = index }
+    }
+
     suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {
         context.dataStore.edit { prefs ->
             val encoded = prices.entries.joinToString(";") {
@@ -583,6 +612,9 @@ class SettingsStore(private val context: Context) {
         root.put("showCornerText", settings.showCornerText)
         root.put("cornerText", settings.cornerText)
         root.put("marketCurrencyFormat", settings.marketCurrencyFormat)
+        root.put("showHomeScreenNote", settings.showHomeScreenNote)
+        root.put("homeScreenNoteDismissed", settings.homeScreenNoteDismissed)
+        root.put("homeScreenNoteIndex", settings.homeScreenNoteIndex)
 
         return root.toString(2)
     }
@@ -668,6 +700,9 @@ class SettingsStore(private val context: Context) {
                 if (root.has("showCornerText")) prefs[KEY_SHOW_CORNER_TEXT] = root.getBoolean("showCornerText")
                 if (root.has("cornerText")) prefs[KEY_CORNER_TEXT] = root.getString("cornerText")
                 if (root.has("marketCurrencyFormat")) prefs[KEY_MARKET_CURRENCY_FORMAT] = root.getString("marketCurrencyFormat")
+                if (root.has("showHomeScreenNote")) prefs[KEY_SHOW_HOME_NOTE] = root.getBoolean("showHomeScreenNote")
+                if (root.has("homeScreenNoteDismissed")) prefs[KEY_HOME_NOTE_DISMISSED] = root.getBoolean("homeScreenNoteDismissed")
+                if (root.has("homeScreenNoteIndex")) prefs[KEY_HOME_NOTE_INDEX] = root.getInt("homeScreenNoteIndex")
             }
             true
         } catch (_: Exception) {
