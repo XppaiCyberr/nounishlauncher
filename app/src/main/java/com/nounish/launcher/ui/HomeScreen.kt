@@ -3,6 +3,11 @@ package com.nounish.launcher.ui
 import android.content.Intent
 import android.provider.AlarmClock
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -46,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nounish.launcher.CoinTickerUi
+import com.nounish.launcher.IdxCategoryUi
 import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.model.AppItem
@@ -70,6 +76,9 @@ fun HomeScreen(
     cryptoCoins: List<CoinTickerUi>,
     showIdx: Boolean = true,
     idxStocks: List<IdxItemUi> = emptyList(),
+    idxCategories: List<IdxCategoryUi> = emptyList(),
+    idxDisplayMode: String = "auto_rotate",
+    idxAutoRotateIntervalSeconds: Int = 6,
     carouselAutoRotate: Boolean = true,
     carouselIntervalSeconds: Int = 7,
     carouselTransition: String = "slide",
@@ -180,11 +189,55 @@ fun HomeScreen(
 
         // Market Section (middle area): Takes all available vertical space between Clock and Pinned Apps
         val hasCrypto = showCrypto && cryptoCoins.isNotEmpty()
-        val hasIdx = showIdx && idxStocks.isNotEmpty()
+        val hasIdx = showIdx && (idxCategories.isNotEmpty() || idxStocks.isNotEmpty())
 
         var currentViewIndex by remember { mutableIntStateOf(0) }
+        val isIdxAutoRotate = idxDisplayMode == "auto_rotate"
+        var currentIdxCategoryIndex by remember { mutableIntStateOf(0) }
 
-        // Auto-advance slideshow timer (for carousel mode)
+        // Category auto-rotation timer (wave rotation for IDX categories)
+        LaunchedEffect(isIdxAutoRotate, idxCategories.size, idxAutoRotateIntervalSeconds, hasIdx) {
+            if (isIdxAutoRotate && hasIdx && idxCategories.size > 1) {
+                val intervalMs = (idxAutoRotateIntervalSeconds.coerceIn(3, 20) * 1000L)
+                while (true) {
+                    delay(intervalMs)
+                    currentIdxCategoryIndex = (currentIdxCategoryIndex + 1) % idxCategories.size
+                }
+            }
+        }
+
+        val activeIdxCategory = remember(idxCategories, currentIdxCategoryIndex, idxDisplayMode, idxStocks) {
+            when {
+                idxCategories.isEmpty() -> {
+                    if (idxStocks.isNotEmpty()) IdxCategoryUi("watchlist", "Watchlist", idxStocks) else null
+                }
+                idxDisplayMode == "auto_rotate" -> {
+                    idxCategories.getOrNull(currentIdxCategoryIndex.coerceIn(0, idxCategories.size - 1)) ?: idxCategories.firstOrNull()
+                }
+                idxDisplayMode == "indices" -> {
+                    idxCategories.find { it.categoryId == "indices" } ?: idxCategories.firstOrNull()
+                }
+                idxDisplayMode == "gainers" -> {
+                    idxCategories.find { it.categoryId == "gainers" } ?: idxCategories.firstOrNull()
+                }
+                idxDisplayMode == "losers" -> {
+                    idxCategories.find { it.categoryId == "losers" } ?: idxCategories.firstOrNull()
+                }
+                else -> {
+                    idxCategories.find { it.categoryId == "watchlist" } ?: idxCategories.firstOrNull()
+                }
+            }
+        }
+
+        val idxHeaderLabel = remember(activeIdxCategory, isIdxAutoRotate) {
+            if (activeIdxCategory != null) {
+                "IDX SAHAM | ${activeIdxCategory.label}"
+            } else {
+                "IDX SAHAM"
+            }
+        }
+
+        // Auto-advance slideshow timer (for carousel mode between Crypto and IDX)
         LaunchedEffect(carouselAutoRotate, carouselIntervalSeconds, hasCrypto, hasIdx, separateMarketViews) {
             if (!separateMarketViews && carouselAutoRotate && hasCrypto && hasIdx) {
                 val intervalMs = (carouselIntervalSeconds.coerceIn(3, 30) * 1000L)
@@ -230,15 +283,32 @@ fun HomeScreen(
                                 modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    text = "IDX SAHAM",
-                                    style = typography.clock,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textSecondary.copy(alpha = 0.45f),
-                                    letterSpacing = 1.sp,
-                                    modifier = Modifier.padding(bottom = 2.dp)
+                                AnimatedContent(
+                                    targetState = idxHeaderLabel,
+                                    transitionSpec = {
+                                        (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
+                                            .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
+                                    },
+                                    label = "idxSideHeaderLabel"
+                                ) { labelText ->
+                                    Text(
+                                        text = labelText,
+                                        style = typography.clock,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textSecondary.copy(alpha = 0.45f),
+                                        letterSpacing = 1.sp,
+                                        modifier = Modifier
+                                            .clickable(enabled = isIdxAutoRotate && idxCategories.size > 1) {
+                                                currentIdxCategoryIndex = (currentIdxCategoryIndex + 1) % idxCategories.size
+                                            }
+                                            .padding(bottom = 2.dp)
+                                    )
+                                }
+                                IdxWaveMarketList(
+                                    category = activeIdxCategory,
+                                    categoryIndex = currentIdxCategoryIndex,
+                                    compact = true
                                 )
-                                IdxMarketList(idxStocks = idxStocks, compact = true)
                             }
                         }
                     } else {
@@ -260,15 +330,32 @@ fun HomeScreen(
                             }
 
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(
-                                    text = "IDX SAHAM",
-                                    style = typography.clock,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textSecondary.copy(alpha = 0.45f),
-                                    letterSpacing = 1.sp,
-                                    modifier = Modifier.padding(bottom = 2.dp)
+                                AnimatedContent(
+                                    targetState = idxHeaderLabel,
+                                    transitionSpec = {
+                                        (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
+                                            .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
+                                    },
+                                    label = "idxStackedHeaderLabel"
+                                ) { labelText ->
+                                    Text(
+                                        text = labelText,
+                                        style = typography.clock,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textSecondary.copy(alpha = 0.45f),
+                                        letterSpacing = 1.sp,
+                                        modifier = Modifier
+                                            .clickable(enabled = isIdxAutoRotate && idxCategories.size > 1) {
+                                                currentIdxCategoryIndex = (currentIdxCategoryIndex + 1) % idxCategories.size
+                                            }
+                                            .padding(bottom = 2.dp)
+                                    )
+                                }
+                                IdxWaveMarketList(
+                                    category = activeIdxCategory,
+                                    categoryIndex = currentIdxCategoryIndex,
+                                    compact = false
                                 )
-                                IdxMarketList(idxStocks = idxStocks, compact = false)
                             }
                         }
                     }
@@ -297,7 +384,7 @@ fun HomeScreen(
                                     color = colors.textSecondary.copy(alpha = 0.35f)
                                 )
                                 Text(
-                                    text = "IDX SAHAM",
+                                    text = idxHeaderLabel,
                                     style = typography.clock,
                                     fontWeight = if (currentViewIndex == 1) FontWeight.Bold else FontWeight.Normal,
                                     color = if (currentViewIndex == 1) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
@@ -334,7 +421,11 @@ fun HomeScreen(
                             if (targetView == 0) {
                                 CryptoMarketList(cryptoCoins = cryptoCoins, compact = false)
                             } else {
-                                IdxMarketList(idxStocks = idxStocks, compact = false)
+                                IdxWaveMarketList(
+                                    category = activeIdxCategory,
+                                    categoryIndex = currentIdxCategoryIndex,
+                                    compact = false
+                                )
                             }
                         }
                     }
@@ -590,83 +681,133 @@ private fun CryptoMarketList(
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-private fun IdxMarketList(
-    idxStocks: List<IdxItemUi>,
+private fun IdxWaveMarketList(
+    category: IdxCategoryUi?,
+    categoryIndex: Int,
+    compact: Boolean = false
+) {
+    if (category == null || category.items.isEmpty()) return
+
+    AnimatedContent(
+        targetState = categoryIndex,
+        transitionSpec = {
+            fadeIn(animationSpec = tween(150)) togetherWith fadeOut(animationSpec = tween(150))
+        },
+        label = "idxWaveAnimatedContent"
+    ) { _ ->
+        Column(
+            verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp)
+        ) {
+            category.items.forEachIndexed { index, stock ->
+                val slideDelay = index * 50 // Staggered delay for wave effect: 0ms, 50ms, 100ms, 150ms...
+
+                Box(
+                    modifier = Modifier.animateEnterExit(
+                        enter = slideInHorizontally(
+                            animationSpec = tween(
+                                durationMillis = 320,
+                                delayMillis = slideDelay,
+                                easing = FastOutSlowInEasing
+                            )
+                        ) { fullWidth -> fullWidth } + fadeIn(
+                            animationSpec = tween(
+                                durationMillis = 260,
+                                delayMillis = slideDelay
+                            )
+                        ),
+                        exit = slideOutHorizontally(
+                            animationSpec = tween(
+                                durationMillis = 280,
+                                delayMillis = slideDelay,
+                                easing = FastOutLinearInEasing
+                            )
+                        ) { fullWidth -> -fullWidth } + fadeOut(
+                            animationSpec = tween(
+                                durationMillis = 220,
+                                delayMillis = slideDelay
+                            )
+                        )
+                    )
+                ) {
+                    IdxStockItemRow(stock = stock, compact = compact)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IdxStockItemRow(
+    stock: IdxItemUi,
     compact: Boolean = false
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
+    var showDetails by remember { mutableStateOf(false) }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp)
+        modifier = Modifier
+            .clickable { showDetails = !showDetails }
+            .graphicsLayer {
+                alpha = if (stock.isStale) 0.55f else 1.0f
+            }
+            .padding(vertical = 2.dp)
     ) {
-        idxStocks.forEach { stock ->
-            var showDetails by remember { mutableStateOf(false) }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp)
+        ) {
+            Text(
+                text = stock.symbol,
+                style = if (compact) typography.priceLabel else typography.drawerItem,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.textPrimary
+            )
 
-            Column(
-                modifier = Modifier
-                    .clickable { showDetails = !showDetails }
-                    .graphicsLayer {
-                        alpha = if (stock.isStale) 0.55f else 1.0f
-                    }
-                    .padding(vertical = 2.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp)
-                ) {
-                    Text(
-                        text = stock.symbol,
-                        style = if (compact) typography.priceLabel else typography.drawerItem,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.textPrimary
-                    )
+            Text(
+                text = stock.priceText,
+                style = if (compact) typography.priceLabel else typography.drawerItem,
+                color = colors.textSecondary
+            )
 
-                    Text(
-                        text = stock.priceText,
-                        style = if (compact) typography.priceLabel else typography.drawerItem,
-                        color = colors.textSecondary
-                    )
+            if (stock.changeText.isNotEmpty()) {
+                val changeColor = if (stock.changePercent >= 0.0) CryptoGreen else CryptoRed
+                Text(
+                    text = stock.changeText,
+                    style = typography.priceLabel,
+                    color = changeColor
+                )
+            }
 
-                    if (stock.changeText.isNotEmpty()) {
-                        val changeColor = if (stock.changePercent >= 0.0) CryptoGreen else CryptoRed
-                        Text(
-                            text = stock.changeText,
-                            style = typography.priceLabel,
-                            color = changeColor
-                        )
-                    }
+            if (stock.isStale && stock.ageMarker.isNotEmpty()) {
+                Text(
+                    text = stock.ageMarker,
+                    style = typography.priceLabel,
+                    color = colors.textSecondary.copy(alpha = 0.6f)
+                )
+            }
+        }
 
-                    if (stock.isStale && stock.ageMarker.isNotEmpty()) {
-                        Text(
-                            text = stock.ageMarker,
-                            style = typography.priceLabel,
-                            color = colors.textSecondary.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-
-                if (showDetails) {
-                    val details = mutableListOf<String>()
-                    if (stock.highPrice.isNotEmpty() && stock.lowPrice.isNotEmpty()) {
-                        details.add("24h H: ${stock.highPrice}  ·  L: ${stock.lowPrice}")
-                    }
-                    if (stock.volumeText.isNotEmpty()) {
-                        details.add("Vol: ${stock.volumeText}")
-                    }
-                    if (stock.name.isNotEmpty() && !stock.name.equals(stock.symbol, ignoreCase = true)) {
-                        details.add(stock.name)
-                    }
-                    if (details.isNotEmpty()) {
-                        Text(
-                            text = details.joinToString("  ·  "),
-                            style = typography.clock,
-                            color = colors.textSecondary.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
+        if (showDetails) {
+            val details = mutableListOf<String>()
+            if (stock.highPrice.isNotEmpty() && stock.lowPrice.isNotEmpty()) {
+                details.add("24h H: ${stock.highPrice}  ·  L: ${stock.lowPrice}")
+            }
+            if (stock.volumeText.isNotEmpty()) {
+                details.add("Vol: ${stock.volumeText}")
+            }
+            if (stock.name.isNotEmpty() && !stock.name.equals(stock.symbol, ignoreCase = true)) {
+                details.add(stock.name)
+            }
+            if (details.isNotEmpty()) {
+                Text(
+                    text = details.joinToString("  ·  "),
+                    style = typography.clock,
+                    color = colors.textSecondary.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
     }

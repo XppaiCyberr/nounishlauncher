@@ -63,6 +63,7 @@ fun SettingsScreen(
     onToggleShowHomeIdx: (Boolean) -> Unit = {},
     onUpdateIdxDisplayMode: (String) -> Unit = {},
     onUpdateIdxSymbols: (List<String>) -> Unit = {},
+    onUpdateIdxAutoRotateInterval: (Int) -> Unit = {},
     onToggleMarketCarouselAutoRotate: (Boolean) -> Unit = {},
     onUpdateMarketCarouselInterval: (Int) -> Unit = {},
     onUpdateMarketCarouselTransition: (String) -> Unit = {},
@@ -411,6 +412,7 @@ fun SettingsScreen(
                 if (settings.showHomeIdx) {
                     item {
                         val modeLabel = when (settings.idxDisplayMode) {
+                            "auto_rotate" -> "Auto Rotate (Indices, Gainers, Losers, Watchlist)"
                             "indices" -> "Market Indices (IHSG, LQ45)"
                             "gainers" -> "Top Gainers"
                             "losers" -> "Top Losers"
@@ -423,7 +425,26 @@ fun SettingsScreen(
                         )
                     }
 
-                    if (settings.idxDisplayMode == "watchlist") {
+                    if (settings.idxDisplayMode == "auto_rotate") {
+                        item {
+                            SettingsActionRow(
+                                title = "IDX rotation interval",
+                                subtitle = "${settings.idxAutoRotateIntervalSeconds} seconds",
+                                onClick = {
+                                    val next = when (settings.idxAutoRotateIntervalSeconds) {
+                                        5 -> 6
+                                        6 -> 8
+                                        8 -> 10
+                                        10 -> 15
+                                        else -> 5
+                                    }
+                                    onUpdateIdxAutoRotateInterval(next)
+                                }
+                            )
+                        }
+                    }
+
+                    if (settings.idxDisplayMode == "watchlist" || settings.idxDisplayMode == "auto_rotate") {
                         item {
                             SettingsActionRow(
                                 title = "IDX Watchlist",
@@ -628,7 +649,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.10",
+                        text = "Nounish Launcher 1.0.11",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -845,6 +866,7 @@ fun SettingsScreen(
     // IDX Display Mode Dialog
     if (showIdxModeDialog) {
         val modes = listOf(
+            "auto_rotate" to "Auto Rotate (Indices, Gainers, Losers, Watchlist)",
             "watchlist" to "Custom Watchlist (Selected stocks & indices)",
             "indices" to "Market Indices (IHSG, LQ45)",
             "gainers" to "Top Gainers (Largest % increase)",

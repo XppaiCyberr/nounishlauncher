@@ -102,6 +102,7 @@ class MainActivity : ComponentActivity() {
             val usdRateState by viewModel.usdRateState.collectAsState()
             val homeCryptoList by viewModel.homeCryptoList.collectAsState()
             val homeIdxList by viewModel.homeIdxList.collectAsState()
+            val homeIdxCategories by viewModel.homeIdxCategories.collectAsState()
 
             var currentScreen by remember { currentScreenState }
 
@@ -157,6 +158,9 @@ class MainActivity : ComponentActivity() {
                                     cryptoCoins = homeCryptoList,
                                     showIdx = settings.cryptoPriceEnabled && settings.showHomeIdx,
                                     idxStocks = homeIdxList,
+                                    idxCategories = homeIdxCategories,
+                                    idxDisplayMode = settings.idxDisplayMode,
+                                    idxAutoRotateIntervalSeconds = settings.idxAutoRotateIntervalSeconds,
                                     carouselAutoRotate = settings.marketCarouselAutoRotate,
                                     carouselIntervalSeconds = settings.marketCarouselIntervalSeconds,
                                     carouselTransition = settings.marketCarouselTransition,
@@ -274,6 +278,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleShowHomeIdx = { viewModel.setShowHomeIdx(it) },
                                     onUpdateIdxDisplayMode = { viewModel.setIdxDisplayMode(it) },
                                     onUpdateIdxSymbols = { viewModel.setIdxSymbols(it) },
+                                    onUpdateIdxAutoRotateInterval = { viewModel.setIdxAutoRotateInterval(it) },
                                     onToggleMarketCarouselAutoRotate = { viewModel.setMarketCarouselAutoRotate(it) },
                                     onUpdateMarketCarouselInterval = { viewModel.setMarketCarouselInterval(it) },
                                     onUpdateMarketCarouselTransition = { viewModel.setMarketCarouselTransition(it) },

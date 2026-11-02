@@ -51,8 +51,28 @@ class IdxRepository {
                 "gainers" -> fetchTopList("gainers.json")
                 "losers" -> fetchTopList("losers.json")
                 "indices" -> fetchIndicesOnly()
+                "auto_rotate" -> fetchIndicesOnly()
                 else -> fetchWatchlist(symbols)
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchAllCategories(symbols: List<String>): Result<Map<String, List<IdxQuote>>> = withContext(Dispatchers.IO) {
+        try {
+            val indices = fetchIndicesOnly().getOrDefault(emptyList())
+            val gainers = fetchTopList("gainers.json").getOrDefault(emptyList())
+            val losers = fetchTopList("losers.json").getOrDefault(emptyList())
+            val watchlist = fetchWatchlist(symbols).getOrDefault(emptyList())
+
+            val map = mutableMapOf<String, List<IdxQuote>>()
+            if (indices.isNotEmpty()) map["indices"] = indices
+            if (gainers.isNotEmpty()) map["gainers"] = gainers
+            if (losers.isNotEmpty()) map["losers"] = losers
+            if (watchlist.isNotEmpty()) map["watchlist"] = watchlist
+
+            Result.success(map)
         } catch (e: Exception) {
             Result.failure(e)
         }

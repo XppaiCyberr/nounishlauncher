@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "launcher_settings")
 
@@ -71,14 +72,16 @@ data class LauncherSettings(
     val cachedUsdChangePercent: Double = 0.0,
     val cachedUsdTimestamp: Long = 0L,
     val showHomeIdx: Boolean = true,
-    val idxDisplayMode: String = "watchlist", // "watchlist", "indices", "gainers", "losers"
+    val idxDisplayMode: String = "auto_rotate", // "auto_rotate", "watchlist", "indices", "gainers", "losers"
     val idxSymbols: List<String> = listOf("IHSG", "BBCA", "BBRI", "BMRI"),
+    val idxAutoRotateIntervalSeconds: Int = 6,
     val marketCarouselAutoRotate: Boolean = true,
     val marketCarouselIntervalSeconds: Int = 7,
     val marketCarouselTransition: String = "slide", // "slide", "crossfade"
     val separateMarketViews: Boolean = true,
     val separatedMarketLayout: String = "stacked", // "stacked", "side_by_side"
     val cachedIdxQuotes: Map<String, CachedIdxQuote> = emptyMap(),
+    val cachedIdxCategories: Map<String, List<CachedIdxQuote>> = emptyMap(),
     val cachedIdxTimestamp: Long = 0L,
     val cachedCryptoPrices: Map<String, CachedCoinPrice> = emptyMap(),
     val currentCryptoIndex: Int = 0,
@@ -125,12 +128,14 @@ class SettingsStore(private val context: Context) {
         private val KEY_SHOW_HOME_IDX = booleanPreferencesKey("show_home_idx")
         private val KEY_IDX_DISPLAY_MODE = stringPreferencesKey("idx_display_mode")
         private val KEY_IDX_SYMBOLS = stringPreferencesKey("idx_symbols")
+        private val KEY_IDX_AUTO_ROTATE_INTERVAL = intPreferencesKey("idx_auto_rotate_interval")
         private val KEY_MARKET_CAROUSEL_AUTO_ROTATE = booleanPreferencesKey("market_carousel_auto_rotate")
         private val KEY_MARKET_CAROUSEL_INTERVAL = intPreferencesKey("market_carousel_interval")
         private val KEY_MARKET_CAROUSEL_TRANSITION = stringPreferencesKey("market_carousel_transition")
         private val KEY_SEPARATE_MARKET_VIEWS = booleanPreferencesKey("separate_market_views")
         private val KEY_SEPARATED_MARKET_LAYOUT = stringPreferencesKey("separated_market_layout")
         private val KEY_CACHED_IDX_QUOTES = stringPreferencesKey("cached_idx_quotes")
+        private val KEY_CACHED_IDX_CATEGORIES = stringPreferencesKey("cached_idx_categories_json")
         private val KEY_CACHED_IDX_TIMESTAMP = longPreferencesKey("cached_idx_timestamp")
     }
 
@@ -181,16 +186,18 @@ class SettingsStore(private val context: Context) {
         val indexAnimation = prefs[KEY_ENABLE_INDEX_ANIMATION] ?: true
 
         val showHomeIdx = prefs[KEY_SHOW_HOME_IDX] ?: true
-        val idxDisplayMode = prefs[KEY_IDX_DISPLAY_MODE] ?: "watchlist"
+        val idxDisplayMode = prefs[KEY_IDX_DISPLAY_MODE] ?: "auto_rotate"
         val idxSymbolsRaw = prefs[KEY_IDX_SYMBOLS] ?: "IHSG,BBCA,BBRI,BMRI"
         val idxSymbols = idxSymbolsRaw.split(",").map { it.trim().uppercase() }.filter { it.isNotEmpty() }
             .ifEmpty { listOf("IHSG", "BBCA", "BBRI", "BMRI") }
+        val idxAutoRotateInterval = prefs[KEY_IDX_AUTO_ROTATE_INTERVAL] ?: 6
         val carouselAutoRotate = prefs[KEY_MARKET_CAROUSEL_AUTO_ROTATE] ?: true
         val carouselInterval = prefs[KEY_MARKET_CAROUSEL_INTERVAL] ?: 7
         val carouselTransition = prefs[KEY_MARKET_CAROUSEL_TRANSITION] ?: "slide"
         val separateMarketViews = prefs[KEY_SEPARATE_MARKET_VIEWS] ?: true
         val separatedMarketLayout = prefs[KEY_SEPARATED_MARKET_LAYOUT] ?: "stacked"
         val cachedIdxQuotes = parseIdxMap(prefs[KEY_CACHED_IDX_QUOTES] ?: "")
+        val cachedIdxCategories = parseIdxCategoriesJson(prefs[KEY_CACHED_IDX_CATEGORIES] ?: "")
         val cachedIdxTimestamp = prefs[KEY_CACHED_IDX_TIMESTAMP] ?: 0L
 
         LauncherSettings(
@@ -226,12 +233,14 @@ class SettingsStore(private val context: Context) {
             showHomeIdx = showHomeIdx,
             idxDisplayMode = idxDisplayMode,
             idxSymbols = idxSymbols,
+            idxAutoRotateIntervalSeconds = idxAutoRotateInterval,
             marketCarouselAutoRotate = carouselAutoRotate,
             marketCarouselIntervalSeconds = carouselInterval,
             marketCarouselTransition = carouselTransition,
             separateMarketViews = separateMarketViews,
             separatedMarketLayout = separatedMarketLayout,
             cachedIdxQuotes = cachedIdxQuotes,
+            cachedIdxCategories = cachedIdxCategories,
             cachedIdxTimestamp = cachedIdxTimestamp,
             cachedCryptoPrices = cachedMap,
             currentCryptoIndex = cryptoIndex,
@@ -400,6 +409,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_IDX_SYMBOLS] = symbols.joinToString(",") }
     }
 
+    suspend fun setIdxAutoRotateInterval(seconds: Int) {
+        context.dataStore.edit { it[KEY_IDX_AUTO_ROTATE_INTERVAL] = seconds }
+    }
+
     suspend fun setMarketCarouselAutoRotate(enabled: Boolean) {
         context.dataStore.edit { it[KEY_MARKET_CAROUSEL_AUTO_ROTATE] = enabled }
     }
@@ -427,6 +440,40 @@ class SettingsStore(private val context: Context) {
             }
             prefs[KEY_CACHED_IDX_QUOTES] = encoded
             prefs[KEY_CACHED_IDX_TIMESTAMP] = timestamp
+        }
+    }
+
+    suspend fun updateCachedIdxCategories(categories: Map<String, List<CachedIdxQuote>>, timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            val root = JSONObject()
+            val flatQuotes = mutableMapOf<String, CachedIdxQuote>()
+            categories.forEach { (cat, list) ->
+                val arr = JSONArray()
+                list.forEach { q ->
+                    val obj = JSONObject()
+                    obj.put("symbol", q.symbol)
+                    obj.put("name", q.name)
+                    obj.put("price", q.price)
+                    obj.put("change", q.change)
+                    obj.put("changePercent", q.changePercent)
+                    obj.put("volume", q.volume)
+                    obj.put("high", q.high)
+                    obj.put("low", q.low)
+                    obj.put("timestamp", q.timestamp)
+                    arr.put(obj)
+                    flatQuotes[q.symbol.uppercase(Locale.US)] = q
+                }
+                root.put(cat, arr)
+            }
+            prefs[KEY_CACHED_IDX_CATEGORIES] = root.toString()
+            prefs[KEY_CACHED_IDX_TIMESTAMP] = timestamp
+
+            if (flatQuotes.isNotEmpty()) {
+                val encoded = flatQuotes.values.joinToString(";") {
+                    "${it.symbol}|${it.name}|${it.price}|${it.change}|${it.changePercent}|${it.volume}|${it.high}|${it.low}|${it.timestamp}"
+                }
+                prefs[KEY_CACHED_IDX_QUOTES] = encoded
+            }
         }
     }
 
@@ -491,6 +538,7 @@ class SettingsStore(private val context: Context) {
         root.put("showHomeIdx", settings.showHomeIdx)
         root.put("idxDisplayMode", settings.idxDisplayMode)
         root.put("idxSymbols", JSONArray(settings.idxSymbols))
+        root.put("idxAutoRotateIntervalSeconds", settings.idxAutoRotateIntervalSeconds)
         root.put("marketCarouselAutoRotate", settings.marketCarouselAutoRotate)
         root.put("marketCarouselIntervalSeconds", settings.marketCarouselIntervalSeconds)
         root.put("marketCarouselTransition", settings.marketCarouselTransition)
@@ -567,6 +615,7 @@ class SettingsStore(private val context: Context) {
                     for (i in 0 until arr.length()) list.add(arr.getString(i))
                     prefs[KEY_IDX_SYMBOLS] = list.joinToString(",")
                 }
+                if (root.has("idxAutoRotateIntervalSeconds")) prefs[KEY_IDX_AUTO_ROTATE_INTERVAL] = root.getInt("idxAutoRotateIntervalSeconds")
                 if (root.has("marketCarouselAutoRotate")) prefs[KEY_MARKET_CAROUSEL_AUTO_ROTATE] = root.getBoolean("marketCarouselAutoRotate")
                 if (root.has("marketCarouselIntervalSeconds")) prefs[KEY_MARKET_CAROUSEL_INTERVAL] = root.getInt("marketCarouselIntervalSeconds")
                 if (root.has("marketCarouselTransition")) prefs[KEY_MARKET_CAROUSEL_TRANSITION] = root.getString("marketCarouselTransition")
@@ -684,6 +733,40 @@ class SettingsStore(private val context: Context) {
                     )
                 } else null
             }.toMap()
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun parseIdxCategoriesJson(raw: String): Map<String, List<CachedIdxQuote>> {
+        if (raw.isBlank()) return emptyMap()
+        return try {
+            val root = JSONObject(raw)
+            val result = mutableMapOf<String, List<CachedIdxQuote>>()
+            val keys = root.keys()
+            while (keys.hasNext()) {
+                val cat = keys.next()
+                val arr = root.getJSONArray(cat)
+                val list = mutableListOf<CachedIdxQuote>()
+                for (i in 0 until arr.length()) {
+                    val obj = arr.getJSONObject(i)
+                    list.add(
+                        CachedIdxQuote(
+                            symbol = obj.optString("symbol"),
+                            name = obj.optString("name"),
+                            price = obj.optDouble("price", 0.0),
+                            change = obj.optDouble("change", 0.0),
+                            changePercent = obj.optDouble("changePercent", 0.0),
+                            volume = obj.optLong("volume", 0L),
+                            high = obj.optDouble("high", 0.0),
+                            low = obj.optDouble("low", 0.0),
+                            timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        )
+                    )
+                }
+                result[cat] = list
+            }
+            result
         } catch (_: Exception) {
             emptyMap()
         }

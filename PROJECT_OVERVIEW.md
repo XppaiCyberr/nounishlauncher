@@ -38,10 +38,13 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Indonesian Stock Exchange (IDX Saham) Market Overview (Center Space)**:
   - Displays live stock prices and indices from Bursa Efek Indonesia via `https://idx.xpp.wtf/`.
   - Configurable display modes:
+    - **Auto Rotate**: Automatically cycles between Market Indices, Top Gainers, Top Losers, and Watchlist with an adjustable rotation timer (default 6 seconds).
     - **Watchlist**: Custom user-defined list of tickers (e.g. `BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`). Supports static cache for 47 major blue-chip stocks and automatic query fallback for other listed equities.
     - **Indices**: Indonesian benchmark market indices (`IHSG`, `LQ45`).
     - **Top Gainers**: Real-time top daily percentage gainers.
     - **Top Losers**: Real-time top daily percentage losers.
+  - **Staggered Wave Transition (1 by 1 sliding to the left)**: During category rotations, stock rows smoothly cascade and slide 1 by 1 to the left with an index-based staggered wave animation (at 120 FPS).
+  - **Dynamic Category Header Labels**: The section header updates dynamically (`IDX SAHAM | Market Indices`, `IDX SAHAM | Top Gainers`, `IDX SAHAM | Top Losers`, `IDX SAHAM | Watchlist`) and can be tapped at any time to immediately advance to the next category.
   - Tap any stock row to expand clean 24-hour high, low, and traded share volume (`24h H: 10,250 · L: 10,000 · Vol: 78.4M`).
   - Full DataStore caching for instantaneous offline rendering with stale age markers (`·now`, `·5m`, `·1h`).
   - Toggleable in Settings under **Market Prices -> Show IDX stocks on home screen**.

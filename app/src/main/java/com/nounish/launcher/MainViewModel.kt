@@ -45,6 +45,12 @@ data class CoinTickerUi(
     val sparkline: String = ""
 )
 
+data class IdxCategoryUi(
+    val categoryId: String,
+    val label: String,
+    val items: List<IdxItemUi>
+)
+
 class MainViewModel(
     application: Application,
     private val savedStateHandle: SavedStateHandle
@@ -193,6 +199,70 @@ class MainViewModel(
                 )
             }
         }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val homeIdxCategories: StateFlow<List<IdxCategoryUi>> = settings.map { pref ->
+        val now = System.currentTimeMillis()
+        val timestamp = pref.cachedIdxTimestamp
+        val isStale = timestamp <= 0L || (now - timestamp) > 300_000L
+        val ageMarker = if (isStale && timestamp > 0L) PriceRepository.formatAgeMarker(timestamp) else ""
+
+        val categoriesMap = pref.cachedIdxCategories
+        val cachedMap = pref.cachedIdxQuotes
+        val result = mutableListOf<IdxCategoryUi>()
+
+        fun mapQuotes(quotes: List<CachedIdxQuote>): List<IdxItemUi> {
+            return quotes.map { quote ->
+                IdxItemUi(
+                    symbol = quote.symbol,
+                    name = quote.name,
+                    priceText = IdxRepository.formatPrice(quote.symbol, quote.price),
+                    changeText = IdxRepository.formatPercent(quote.changePercent),
+                    changePercent = quote.changePercent,
+                    highPrice = if (quote.high > 0) IdxRepository.formatPrice(quote.symbol, quote.high) else "",
+                    lowPrice = if (quote.low > 0) IdxRepository.formatPrice(quote.symbol, quote.low) else "",
+                    volumeText = IdxRepository.formatVolume(quote.volume),
+                    isStale = isStale,
+                    ageMarker = ageMarker
+                )
+            }
+        }
+
+        // 1. Market Indices
+        val indicesList = categoriesMap["indices"] ?: listOf("IHSG", "LQ45").mapNotNull { sym ->
+            cachedMap[sym]
+        }
+        if (indicesList.isNotEmpty()) {
+            result.add(IdxCategoryUi("indices", "Market Indices", mapQuotes(indicesList)))
+        }
+
+        // 2. Top Gainers
+        val gainersList = categoriesMap["gainers"]
+        if (!gainersList.isNullOrEmpty()) {
+            result.add(IdxCategoryUi("gainers", "Top Gainers", mapQuotes(gainersList)))
+        }
+
+        // 3. Top Losers
+        val losersList = categoriesMap["losers"]
+        if (!losersList.isNullOrEmpty()) {
+            result.add(IdxCategoryUi("losers", "Top Losers", mapQuotes(losersList)))
+        }
+
+        // 4. Watchlist
+        val watchlistList = categoriesMap["watchlist"] ?: pref.idxSymbols.mapNotNull { sym ->
+            val clean = sym.trim().uppercase(Locale.US).removeSuffix(".JK")
+            cachedMap[clean]
+        }
+        if (watchlistList.isNotEmpty()) {
+            result.add(IdxCategoryUi("watchlist", "Watchlist", mapQuotes(watchlistList)))
+        }
+
+        // Fallback: if result is still empty, use whatever is in cachedIdxQuotes
+        if (result.isEmpty() && cachedMap.isNotEmpty()) {
+            result.add(IdxCategoryUi("watchlist", "Watchlist", mapQuotes(cachedMap.values.toList())))
+        }
+
+        result
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private var priceJob: Job? = null
@@ -642,29 +712,58 @@ class MainViewModel(
         val currentSettings = settings.value
         if (!currentSettings.showHomeIdx) return
 
-        val result = idxRepository.fetchIdxData(
-            displayMode = currentSettings.idxDisplayMode,
-            symbols = currentSettings.idxSymbols
-        )
-
-        val quotes = result.getOrNull()
-        if (!quotes.isNullOrEmpty()) {
-            val now = System.currentTimeMillis()
-            val updated = currentSettings.cachedIdxQuotes.toMutableMap()
-            quotes.forEach { q ->
-                updated[q.symbol.uppercase(Locale.US)] = CachedIdxQuote(
-                    symbol = q.symbol,
-                    name = q.name,
-                    price = q.price,
-                    change = q.change,
-                    changePercent = q.changePercent,
-                    volume = q.volume,
-                    high = q.high,
-                    low = q.low,
-                    timestamp = now
-                )
+        if (currentSettings.idxDisplayMode == "auto_rotate") {
+            val result = idxRepository.fetchAllCategories(currentSettings.idxSymbols)
+            val categoriesMap = result.getOrNull()
+            if (!categoriesMap.isNullOrEmpty()) {
+                val now = System.currentTimeMillis()
+                val cachedCategories = mutableMapOf<String, List<CachedIdxQuote>>()
+                categoriesMap.forEach { (cat, list) ->
+                    cachedCategories[cat] = list.map { q ->
+                        CachedIdxQuote(
+                            symbol = q.symbol,
+                            name = q.name,
+                            price = q.price,
+                            change = q.change,
+                            changePercent = q.changePercent,
+                            volume = q.volume,
+                            high = q.high,
+                            low = q.low,
+                            timestamp = now
+                        )
+                    }
+                }
+                settingsStore.updateCachedIdxCategories(cachedCategories, now)
             }
-            settingsStore.updateCachedIdxQuotes(updated, now)
+        } else {
+            val result = idxRepository.fetchIdxData(
+                displayMode = currentSettings.idxDisplayMode,
+                symbols = currentSettings.idxSymbols
+            )
+            val quotes = result.getOrNull()
+            if (!quotes.isNullOrEmpty()) {
+                val now = System.currentTimeMillis()
+                val updated = currentSettings.cachedIdxQuotes.toMutableMap()
+                val list = quotes.map { q ->
+                    val cached = CachedIdxQuote(
+                        symbol = q.symbol,
+                        name = q.name,
+                        price = q.price,
+                        change = q.change,
+                        changePercent = q.changePercent,
+                        volume = q.volume,
+                        high = q.high,
+                        low = q.low,
+                        timestamp = now
+                    )
+                    updated[q.symbol.uppercase(Locale.US)] = cached
+                    cached
+                }
+                val mode = currentSettings.idxDisplayMode.lowercase(Locale.US)
+                val catMap = currentSettings.cachedIdxCategories.toMutableMap()
+                catMap[mode] = list
+                settingsStore.updateCachedIdxCategories(catMap, now)
+            }
         }
     }
 
@@ -926,6 +1025,12 @@ class MainViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setIdxSymbols(symbols)
             fetchIdxPrices()
+        }
+    }
+
+    fun setIdxAutoRotateInterval(seconds: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setIdxAutoRotateInterval(seconds)
         }
     }
 
