@@ -1,6 +1,7 @@
 package com.nounish.launcher.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.AlarmClock
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
@@ -51,12 +52,14 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nounish.launcher.CoinTickerUi
 import com.nounish.launcher.IdxCategoryUi
 import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.IdxItemUi
+import com.nounish.launcher.data.NounsProposalUi
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
 import com.nounish.launcher.model.PassiveNote
@@ -84,6 +87,8 @@ fun HomeScreen(
     idxCategories: List<IdxCategoryUi> = emptyList(),
     idxDisplayMode: String = "auto_rotate",
     idxAutoRotateIntervalSeconds: Int = 6,
+    showNouns: Boolean = true,
+    nounsProposals: List<NounsProposalUi> = emptyList(),
     carouselAutoRotate: Boolean = true,
     carouselIntervalSeconds: Int = 7,
     carouselTransition: String = "slide",
@@ -231,6 +236,15 @@ fun HomeScreen(
         // Market Section (middle area): Takes all available vertical space between Clock and Pinned Apps
         val hasCrypto = showCrypto && cryptoCoins.isNotEmpty()
         val hasIdx = showIdx && (idxCategories.isNotEmpty() || idxStocks.isNotEmpty())
+        val hasNouns = showNouns && nounsProposals.isNotEmpty()
+
+        val activeViews = remember(hasCrypto, hasIdx, hasNouns) {
+            buildList {
+                if (hasCrypto) add("crypto")
+                if (hasIdx) add("idx")
+                if (hasNouns) add("nouns")
+            }
+        }
 
         var currentViewIndex by remember { mutableIntStateOf(0) }
         val isIdxAutoRotate = idxDisplayMode == "auto_rotate"
@@ -283,13 +297,15 @@ fun HomeScreen(
             }
         }
 
-        // Auto-advance slideshow timer (for carousel mode between Crypto and IDX)
-        LaunchedEffect(carouselAutoRotate, carouselIntervalSeconds, hasCrypto, hasIdx, separateMarketViews) {
-            if (!separateMarketViews && carouselAutoRotate && hasCrypto && hasIdx) {
+        val nounsHeaderLabel = "NOUNS DAO ⌐◨-◨"
+
+        // Auto-advance slideshow timer (for carousel mode across all active views)
+        LaunchedEffect(carouselAutoRotate, carouselIntervalSeconds, activeViews.size, separateMarketViews) {
+            if (!separateMarketViews && carouselAutoRotate && activeViews.size > 1) {
                 val intervalMs = (carouselIntervalSeconds.coerceIn(3, 30) * 1000L)
                 while (true) {
                     delay(intervalMs)
-                    currentViewIndex = (currentViewIndex + 1) % 2
+                    currentViewIndex = (currentViewIndex + 1) % activeViews.size
                 }
             }
         }
@@ -300,199 +316,246 @@ fun HomeScreen(
                 .fillMaxWidth(),
             contentAlignment = Alignment.CenterStart
         ) {
-            if (hasCrypto || hasIdx) {
-                if (hasCrypto && hasIdx && separateMarketViews) {
-                    // SEPARATED MODE: Display both simultaneously to maximize screen space
+            if (activeViews.isNotEmpty()) {
+                if (activeViews.size > 1 && separateMarketViews) {
+                    // SEPARATED MODE: Display active views simultaneously
                     if (separatedMarketLayout == "side_by_side") {
-                        // Two columns (Side by side)
+                        // Multi-column side by side
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.Top
                         ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = cryptoHeaderLabel,
-                                    style = typography.clock,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textSecondary.copy(alpha = 0.45f),
-                                    letterSpacing = 1.sp,
-                                    modifier = Modifier.padding(bottom = 2.dp)
-                                )
-                                CryptoMarketList(
-                                    cryptoCoins = cryptoCoins,
-                                    compact = true,
-                                    currency = cryptoCurrency,
-                                    currencyFormat = marketCurrencyFormat
-                                )
-                            }
-
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                AnimatedContent(
-                                    targetState = idxHeaderLabel,
-                                    transitionSpec = {
-                                        (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
-                                            .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
-                                    },
-                                    label = "idxSideHeaderLabel"
-                                ) { labelText ->
+                            if (hasCrypto) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     Text(
-                                        text = labelText,
+                                        text = cryptoHeaderLabel,
                                         style = typography.clock,
                                         fontWeight = FontWeight.Bold,
                                         color = colors.textSecondary.copy(alpha = 0.45f),
                                         letterSpacing = 1.sp,
-                                        modifier = Modifier
-                                            .clickable(enabled = isIdxAutoRotate && idxCategories.size > 1) {
-                                                currentIdxCategoryIndex = (currentIdxCategoryIndex + 1) % idxCategories.size
-                                            }
-                                            .padding(bottom = 2.dp)
+                                        modifier = Modifier.padding(bottom = 2.dp)
+                                    )
+                                    CryptoMarketList(
+                                        cryptoCoins = cryptoCoins,
+                                        compact = true,
+                                        currency = cryptoCurrency,
+                                        currencyFormat = marketCurrencyFormat
                                     )
                                 }
-                                IdxWaveMarketList(
-                                    category = activeIdxCategory,
-                                    categoryIndex = currentIdxCategoryIndex,
-                                    compact = true,
-                                    currency = "IDR",
-                                    currencyFormat = marketCurrencyFormat
-                                )
+                            }
+
+                            if (hasIdx) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    AnimatedContent(
+                                        targetState = idxHeaderLabel,
+                                        transitionSpec = {
+                                            (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
+                                                .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
+                                        },
+                                        label = "idxSideHeaderLabel"
+                                    ) { labelText ->
+                                        Text(
+                                            text = labelText,
+                                            style = typography.clock,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textSecondary.copy(alpha = 0.45f),
+                                            letterSpacing = 1.sp,
+                                            modifier = Modifier
+                                                .clickable(enabled = isIdxAutoRotate && idxCategories.size > 1) {
+                                                    currentIdxCategoryIndex = (currentIdxCategoryIndex + 1) % idxCategories.size
+                                                }
+                                                .padding(bottom = 2.dp)
+                                        )
+                                    }
+                                    IdxWaveMarketList(
+                                        category = activeIdxCategory,
+                                        categoryIndex = currentIdxCategoryIndex,
+                                        compact = true,
+                                        currency = "IDR",
+                                        currencyFormat = marketCurrencyFormat
+                                    )
+                                }
+                            }
+
+                            if (hasNouns) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = nounsHeaderLabel,
+                                        style = typography.clock,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textSecondary.copy(alpha = 0.45f),
+                                        letterSpacing = 1.sp,
+                                        modifier = Modifier.padding(bottom = 2.dp)
+                                    )
+                                    NounsProposalList(
+                                        proposals = nounsProposals,
+                                        compact = true
+                                    )
+                                }
                             }
                         }
                     } else {
                         // Stacked vertically (Default separated mode)
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(
-                                    text = cryptoHeaderLabel,
-                                    style = typography.clock,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textSecondary.copy(alpha = 0.45f),
-                                    letterSpacing = 1.sp,
-                                    modifier = Modifier.padding(bottom = 2.dp)
-                                )
-                                CryptoMarketList(
-                                    cryptoCoins = cryptoCoins,
-                                    compact = false,
-                                    currency = cryptoCurrency,
-                                    currencyFormat = marketCurrencyFormat
-                                )
-                            }
-
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                AnimatedContent(
-                                    targetState = idxHeaderLabel,
-                                    transitionSpec = {
-                                        (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
-                                            .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
-                                    },
-                                    label = "idxStackedHeaderLabel"
-                                ) { labelText ->
+                            if (hasCrypto) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text(
-                                        text = labelText,
+                                        text = cryptoHeaderLabel,
                                         style = typography.clock,
                                         fontWeight = FontWeight.Bold,
                                         color = colors.textSecondary.copy(alpha = 0.45f),
                                         letterSpacing = 1.sp,
-                                        modifier = Modifier
-                                            .clickable(enabled = isIdxAutoRotate && idxCategories.size > 1) {
-                                                currentIdxCategoryIndex = (currentIdxCategoryIndex + 1) % idxCategories.size
-                                            }
-                                            .padding(bottom = 2.dp)
+                                        modifier = Modifier.padding(bottom = 2.dp)
+                                    )
+                                    CryptoMarketList(
+                                        cryptoCoins = cryptoCoins,
+                                        compact = false,
+                                        currency = cryptoCurrency,
+                                        currencyFormat = marketCurrencyFormat
                                     )
                                 }
-                                IdxWaveMarketList(
-                                    category = activeIdxCategory,
-                                    categoryIndex = currentIdxCategoryIndex,
-                                    compact = false,
-                                    currency = "IDR",
-                                    currencyFormat = marketCurrencyFormat
-                                )
+                            }
+
+                            if (hasIdx) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    AnimatedContent(
+                                        targetState = idxHeaderLabel,
+                                        transitionSpec = {
+                                            (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
+                                                .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
+                                        },
+                                        label = "idxStackedHeaderLabel"
+                                    ) { labelText ->
+                                        Text(
+                                            text = labelText,
+                                            style = typography.clock,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textSecondary.copy(alpha = 0.45f),
+                                            letterSpacing = 1.sp,
+                                            modifier = Modifier
+                                                .clickable(enabled = isIdxAutoRotate && idxCategories.size > 1) {
+                                                    currentIdxCategoryIndex = (currentIdxCategoryIndex + 1) % idxCategories.size
+                                                }
+                                                .padding(bottom = 2.dp)
+                                        )
+                                    }
+                                    IdxWaveMarketList(
+                                        category = activeIdxCategory,
+                                        categoryIndex = currentIdxCategoryIndex,
+                                        compact = false,
+                                        currency = "IDR",
+                                        currencyFormat = marketCurrencyFormat
+                                    )
+                                }
+                            }
+
+                            if (hasNouns) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        text = nounsHeaderLabel,
+                                        style = typography.clock,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textSecondary.copy(alpha = 0.45f),
+                                        letterSpacing = 1.sp,
+                                        modifier = Modifier.padding(bottom = 2.dp)
+                                    )
+                                    NounsProposalList(
+                                        proposals = nounsProposals,
+                                        compact = false
+                                    )
+                                }
                             }
                         }
                     }
                 } else {
-                    // CAROUSEL MODE (or single market active)
+                    // CAROUSEL MODE (or single view active)
                     Column {
-                        // If both views are active, show a subtle selector tab
-                        if (hasCrypto && hasIdx) {
+                        // If multiple views are active, show subtle tab selectors
+                        if (activeViews.size > 1) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 modifier = Modifier.padding(bottom = 8.dp)
                             ) {
-                                Text(
-                                    text = cryptoHeaderLabel,
-                                    style = typography.clock,
-                                    fontWeight = if (currentViewIndex == 0) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (currentViewIndex == 0) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
-                                    modifier = Modifier
-                                        .clickable { currentViewIndex = 0 }
-                                        .padding(vertical = 2.dp)
-                                )
-                                Text(
-                                    text = "·",
-                                    style = typography.clock,
-                                    color = colors.textSecondary.copy(alpha = 0.35f)
-                                )
-                                Text(
-                                    text = idxHeaderLabel,
-                                    style = typography.clock,
-                                    fontWeight = if (currentViewIndex == 1) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (currentViewIndex == 1) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
-                                    modifier = Modifier
-                                        .clickable { currentViewIndex = 1 }
-                                        .padding(vertical = 2.dp)
-                                )
+                                activeViews.forEachIndexed { i, viewKey ->
+                                    if (i > 0) {
+                                        Text(
+                                            text = "·",
+                                            style = typography.clock,
+                                            color = colors.textSecondary.copy(alpha = 0.35f)
+                                        )
+                                    }
+                                    val label = when (viewKey) {
+                                        "crypto" -> cryptoHeaderLabel
+                                        "idx" -> idxHeaderLabel
+                                        "nouns" -> nounsHeaderLabel
+                                        else -> ""
+                                    }
+                                    val isSelected = (currentViewIndex % activeViews.size) == i
+                                    Text(
+                                        text = label,
+                                        style = typography.clock,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
+                                        modifier = Modifier
+                                            .clickable { currentViewIndex = i }
+                                            .padding(vertical = 2.dp)
+                                    )
+                                }
                             }
                         }
 
-                        val activeIndex = when {
-                            !hasCrypto -> 1
-                            !hasIdx -> 0
-                            else -> currentViewIndex
-                        }
+                        val activeViewKey = activeViews.getOrNull(currentViewIndex % activeViews.size) ?: activeViews.first()
 
                         AnimatedContent(
-                            targetState = activeIndex,
+                            targetState = activeViewKey,
                             transitionSpec = {
                                 if (carouselTransition == "crossfade") {
                                     fadeIn(animationSpec = tween(350)) togetherWith fadeOut(animationSpec = tween(350))
                                 } else {
-                                    if (targetState > initialState) {
-                                        (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeIn(tween(250)))
-                                            .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeOut(tween(200)))
-                                    } else {
-                                        (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeIn(tween(250)))
-                                            .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeOut(tween(200)))
-                                    }
+                                    (slideInHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { it } + fadeIn(tween(250)))
+                                        .togetherWith(slideOutHorizontally(spring(stiffness = Spring.StiffnessMediumLow)) { -it } + fadeOut(tween(200)))
                                 }
                             },
                             label = "marketCarouselTransition"
                         ) { targetView ->
-                            if (targetView == 0) {
-                                CryptoMarketList(
-                                    cryptoCoins = cryptoCoins,
-                                    compact = false,
-                                    currency = cryptoCurrency,
-                                    currencyFormat = marketCurrencyFormat
-                                )
-                            } else {
-                                IdxWaveMarketList(
-                                    category = activeIdxCategory,
-                                    categoryIndex = currentIdxCategoryIndex,
-                                    compact = false,
-                                    currency = "IDR",
-                                    currencyFormat = marketCurrencyFormat
-                                )
+                            when (targetView) {
+                                "crypto" -> {
+                                    CryptoMarketList(
+                                        cryptoCoins = cryptoCoins,
+                                        compact = false,
+                                        currency = cryptoCurrency,
+                                        currencyFormat = marketCurrencyFormat
+                                    )
+                                }
+                                "idx" -> {
+                                    IdxWaveMarketList(
+                                        category = activeIdxCategory,
+                                        categoryIndex = currentIdxCategoryIndex,
+                                        compact = false,
+                                        currency = "IDR",
+                                        currencyFormat = marketCurrencyFormat
+                                    )
+                                }
+                                "nouns" -> {
+                                    NounsProposalList(
+                                        proposals = nounsProposals,
+                                        compact = false
+                                    )
+                                }
                             }
                         }
                     }
@@ -991,6 +1054,107 @@ private fun PassiveNoteCard(
                     .align(Alignment.End)
                     .padding(top = 2.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun NounsProposalList(
+    proposals: List<NounsProposalUi>,
+    compact: Boolean = false
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+    val context = LocalContext.current
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
+    ) {
+        proposals.take(if (compact) 3 else 4).forEach { prop ->
+            var showDetails by remember { mutableStateOf(false) }
+
+            Column(
+                modifier = Modifier
+                    .clickable { showDetails = !showDetails }
+                    .graphicsLayer {
+                        alpha = if (prop.isStale) 0.55f else 1.0f
+                    }
+                    .padding(vertical = 1.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
+                ) {
+                    Text(
+                        text = "#${prop.id}",
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textPrimary
+                    )
+
+                    Text(
+                        text = prop.title,
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+
+                    val statusColor = when (prop.statusLabel.lowercase(Locale.US)) {
+                        "active" -> CryptoGreen
+                        "executed" -> colors.textSecondary.copy(alpha = 0.8f)
+                        "defeated", "canceled", "vetoed" -> CryptoRed.copy(alpha = 0.7f)
+                        "succeeded", "queued" -> colors.textPrimary
+                        else -> colors.textSecondary.copy(alpha = 0.6f)
+                    }
+
+                    Text(
+                        text = prop.statusLabel,
+                        style = typography.priceLabel,
+                        fontWeight = if (prop.statusLabel.equals("Active", ignoreCase = true)) FontWeight.Bold else FontWeight.Normal,
+                        color = statusColor
+                    )
+
+                    if (prop.isStale && prop.ageMarker.isNotEmpty()) {
+                        Text(
+                            text = prop.ageMarker,
+                            style = typography.priceLabel,
+                            color = colors.textSecondary.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                if (showDetails) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        Text(
+                            text = "For: ${prop.forVotes}  ·  Against: ${prop.againstVotes}  ·  Quorum: ${prop.quorum}",
+                            style = typography.clock,
+                            color = colors.textSecondary.copy(alpha = 0.6f)
+                        )
+
+                        Text(
+                            text = "Vote ↗",
+                            style = typography.clock,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary,
+                            modifier = Modifier.clickable {
+                                try {
+                                    val uri = Uri.parse("https://nouns.wtf/vote/${prop.id}")
+                                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }

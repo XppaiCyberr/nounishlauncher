@@ -31,8 +31,9 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Expandable 24h High/Low**: Tapping any coin row reveals its clean 24-hour range (`H: 78,068 · L: 77,262`).
   - **Indonesian Stock Exchange (IDX Saham) Price Overview**: Optional live IDX quotes (`https://idx.xpp.wtf/`) with modes for Auto Rotate, Market Indices (`IHSG`, `LQ45`), Top Gainers, Top Losers, or Custom Watchlist (`BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`), complete with expandable 24h high/low and volume on tap.
   - **Auto-Rotating IDX Categories with Staggered Wave Transition**: In Auto Rotate mode, the IDX view smoothly cycles through Market Indices, Top Gainers, Top Losers, and Watchlist. Each transition features a staggered wave animation where stock rows slide 1 by 1 to the left, accompanied by dynamic descriptive headers (`IDX SAHAM | Top Gainers`, `IDX SAHAM | Market Indices`, etc.) that can also be tapped to manually advance to the next category immediately.
-  - **Separated Market Views (Maximize Screen Space)**: Option to display both Crypto and IDX Saham simultaneously on the Home screen to maximize the generous middle screen area, with your choice of layout: **Stacked vertically** (Crypto above, Saham below) or **Two columns** (Side by side).
-  - **Auto-Rotating Market Carousel (Auto-Advance Slideshow)**: When separation is toggled off, the home center space smoothly alternates between Crypto and IDX views with a configurable slide or crossfade transition, or manual tap switching via interactive tabs.
+  - **Nouns DAO Governance Proposals Overview**: Optional live Nouns DAO governance proposals powered by `https://xpp.wtf/nouns/`. Displays pure minimalist text rows (`#1002  Title  Status`) with color-coded status badges (`Active` in bold green, `Executed` in muted grey, `Defeated` in subtle red). Tapping any proposal reveals live voting statistics (`For`, `Against`, `Quorum`) and a direct `Vote ↗` link opening `https://nouns.wtf/vote/{id}` in your browser. Fully integrated into both Carousel mode and Separated mode, with customizable status filtering (`All`, `Active`, `Executed`) and instant frame-1 DataStore caching.
+  - **Separated Market & Community Views (Maximize Screen Space)**: Option to display Crypto, IDX Saham, and Nouns DAO proposals simultaneously on the Home screen to maximize the generous middle screen area, with your choice of layout: **Stacked vertically** or **Multi-column** (Side by side).
+  - **Auto-Rotating Carousel (Auto-Advance Slideshow)**: When separation is toggled off, the home center space smoothly alternates between active widgets (Crypto, IDX, Nouns DAO) with a configurable slide or crossfade transition, or manual tap switching via interactive tabs (`CRYPTO (USDT)` · `IDX SAHAM (IDR)` · `NOUNS DAO ⌐◨-◨`).
   - **Stale-Data Indicator**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`) so you always know when data was last updated.
   - Pinned apps (4–8 items) in large (`28 sp`) light-weight text, left-aligned for ergonomic one-handed thumb reach.
   - Quick action dialog on long-press to rename, unpin, or open system app settings.
@@ -107,6 +108,7 @@ nounishlauncher/
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper, JSON backup/restore serialization
 │       │   │   ├── PriceRepository.kt           # Binance 24hr ticker, klines sparkline, rate-limit backoff
 │       │   │   ├── IdxRepository.kt             # IDX stock quotes, indices, top gainers/losers, number formatting
+│       │   │   ├── NounsRepository.kt           # Nouns DAO proposals loader and parser (zero-dependency)
 │       │   │   ├── BinanceWebSocketClient.kt    # Native RFC 6455 WebSocket client for live Home stream
 │       │   │   └── NetworkHelper.kt             # Metered network and battery saver detection
 │       │   ├── ui/

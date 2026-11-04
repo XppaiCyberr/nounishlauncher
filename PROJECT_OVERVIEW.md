@@ -48,19 +48,28 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Tap any stock row to expand clean 24-hour high, low, and traded share volume (`24h H: 10,250 · L: 10,000 · Vol: 78.4M`).
   - Full DataStore caching for instantaneous offline rendering with stale age markers (`·now`, `·5m`, `·1h`).
   - Toggleable in Settings under **Market Prices -> Show IDX stocks on home screen**.
-- **Separated Market Views (Maximize Middle Screen Space)**:
-  - Option to display both Crypto and IDX Saham simultaneously on the Home screen to maximize the spacious middle area between the clock and pinned shortcuts.
+- **Nouns DAO Governance Proposals (Center Space)**:
+  - Displays live Nouns DAO governance proposals powered by `https://xpp.wtf/nouns/`.
+  - Minimalist AMOLED text-only presentation: `#1002  Proposal Title  Status`.
+  - Color-coded status indicator: **Active** in bold green (`CryptoGreen`), **Executed** in muted grey, **Defeated/Canceled/Vetoed** in subtle red.
+  - Interactive voting expansion: Tapping any proposal reveals live quorum and vote counts (`For: 215 · Against: 0 · Quorum: 136 · Vote ↗`).
+  - Direct voting action: Tapping `Vote ↗` opens `https://nouns.wtf/vote/{id}` directly in the system web browser.
+  - Status filtering: Option to filter by `All`, `Active`, or `Executed` proposals via Settings.
+  - Instant frame-1 local DataStore caching and resilient offline loading with stale markers.
+  - Toggleable in Settings under **Nouns DAO -> Show Nouns DAO proposals**.
+- **Separated Market & Community Views (Maximize Middle Screen Space)**:
+  - Option to display Crypto, IDX Saham, and Nouns DAO proposals simultaneously on the Home screen to maximize the spacious middle area between the clock and pinned shortcuts.
   - Two selectable layout arrangements:
-    - **Stacked vertically**: Crypto on top, IDX Saham below with clean subtle section headers (`CRYPTO`, `IDX SAHAM`).
-    - **Two columns (Side by side)**: Crypto on the left column, IDX Saham on the right column.
+    - **Stacked vertically**: Clean stacked sections with subtle section headers (`CRYPTO (USDT)`, `IDX SAHAM (IDR) | Market Indices`, `NOUNS DAO ⌐◨-◨`).
+    - **Multi-column (Side by side)**: Displays active widgets side by side in balanced vertical columns.
   - Middle market viewport automatically scales to available vertical space without crowding or colliding with the top clock or bottom pinned shortcuts.
-  - Toggleable in Settings under **Market Prices -> Separate Crypto & Saham**.
-- **Auto-Rotating Market Carousel (Auto-Advance Slideshow)**:
-  - When separation is disabled, an auto-rotating carousel alternates smoothly between the Crypto and IDX views.
+  - Toggleable in Settings under **Market & Community -> Separate home widgets**.
+- **Auto-Rotating Carousel (Auto-Advance Slideshow)**:
+  - When separation is disabled, an auto-rotating carousel alternates smoothly between all active widgets (Crypto, IDX, Nouns DAO).
   - Animation transitions: Horizontal slide with subtle fade (`slide`) or smooth crossfade (`crossfade`).
   - Configurable slideshow rotation interval (5s to 30s, default 7s).
-  - Manual interactive tabs: Tap `CRYPTO` or `IDX SAHAM` to switch immediately and pause/resume smoothly.
-  - Toggleable in Settings under **Market Prices -> Auto-rotate market carousel**.
+  - Manual interactive tabs: Tap `CRYPTO (USDT)`, `IDX SAHAM (IDR)`, or `NOUNS DAO ⌐◨-◨` to switch immediately and pause/resume smoothly.
+  - Toggleable in Settings under **Market & Community -> Auto-rotate market carousel**.
 - **Pinned App Shortcuts & Limits**:
   - Up to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach, with zero minimum limit (unpin down to 0 apps freely).
   - **Pinned App Reordering**: In Settings -> Pinned Apps, dedicated up (`↑`) and down (`↓`) controls allow direct reordering of shortcuts without unpinning and re-pinning.
@@ -178,6 +187,7 @@ nounishlauncher/
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper for all preferences & cached prices
 │       │   │   ├── PriceRepository.kt           # Binance public 24hr ticker client, klines sparklines, rate limit backoff
 │       │   │   ├── IdxRepository.kt             # IDX stock quotes, indices, top gainers/losers, number formatting
+│       │   │   ├── NounsRepository.kt           # Nouns DAO governance proposals loader and parser (zero-dependency)
 │       │   │   ├── BinanceWebSocketClient.kt    # Native RFC 6455 WebSocket client for live Home stream
 │       │   │   └── NetworkHelper.kt             # Metered network and battery saver detection
 │       │   ├── ui/
@@ -234,10 +244,13 @@ Accessible by long-pressing any empty area on the Home screen:
    - `Coins`: Comma-separated list of symbols (e.g. `BTC, ETH, SOL, PEPE, BTCUSDT, ETHBIDR`).
    - `Quote currency`: Pair currency presets (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`) or custom quote.
    - `Currency format`: Select display format for market prices (`Suffix 68,450 USDT / 9,850 IDR`, `Prefix`, or `None`).
-6. **Backup & Restore**:
+6. **Nouns DAO Governance**:
+   - `Show Nouns DAO proposals`: Displays live governance proposals on the Home screen.
+   - `Proposal status filter`: Filter proposals by status (`All`, `Active`, `Executed`).
+7. **Backup & Restore**:
    - `Export settings (JSON)`: Save all settings, pinned apps, hidden apps, and custom labels to a JSON file.
    - `Import settings (JSON)`: Restore setup from a previous JSON backup file.
-7. **Management**:
+8. **Management**:
    - `Hidden Apps`: View and unhide hidden applications.
    - `Pinned Apps`: View and remove pinned home screen applications.
    - `Set as default launcher`: Direct shortcut to Android's default home app settings.

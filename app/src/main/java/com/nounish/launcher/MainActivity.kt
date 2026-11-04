@@ -104,16 +104,17 @@ class MainActivity : ComponentActivity() {
             val homeCryptoList by viewModel.homeCryptoList.collectAsState()
             val homeIdxList by viewModel.homeIdxList.collectAsState()
             val homeIdxCategories by viewModel.homeIdxCategories.collectAsState()
+            val homeNounsList by viewModel.homeNounsList.collectAsState()
 
             var currentScreen by remember { currentScreenState }
 
-            // Manage price refresh lifecycle: runs while drawer or home crypto/idx is active
-            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.useWebSocketOnHome) {
+            // Manage price refresh lifecycle: runs while drawer or home crypto/idx/nouns is active
+            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.useWebSocketOnHome) {
                 when {
-                    !settings.cryptoPriceEnabled -> {
+                    !settings.cryptoPriceEnabled && !settings.showHomeNouns -> {
                         viewModel.stopAllPriceUpdates()
                     }
-                    currentScreen == Screen.Home && (settings.showHomeCrypto || settings.showHomeIdx) -> {
+                    currentScreen == Screen.Home && (settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns) -> {
                         viewModel.startPriceRefresh(isHomeActive = true)
                     }
                     currentScreen == Screen.Drawer -> {
@@ -162,6 +163,8 @@ class MainActivity : ComponentActivity() {
                                     idxCategories = homeIdxCategories,
                                     idxDisplayMode = settings.idxDisplayMode,
                                     idxAutoRotateIntervalSeconds = settings.idxAutoRotateIntervalSeconds,
+                                    showNouns = settings.showHomeNouns,
+                                    nounsProposals = homeNounsList,
                                     carouselAutoRotate = settings.marketCarouselAutoRotate,
                                     carouselIntervalSeconds = settings.marketCarouselIntervalSeconds,
                                     carouselTransition = settings.marketCarouselTransition,
@@ -292,6 +295,8 @@ class MainActivity : ComponentActivity() {
                                     onUpdateIdxDisplayMode = { viewModel.setIdxDisplayMode(it) },
                                     onUpdateIdxSymbols = { viewModel.setIdxSymbols(it) },
                                     onUpdateIdxAutoRotateInterval = { viewModel.setIdxAutoRotateInterval(it) },
+                                    onToggleShowHomeNouns = { viewModel.setShowHomeNouns(it) },
+                                    onUpdateNounsStatusFilter = { viewModel.setNounsStatusFilter(it) },
                                     onToggleMarketCarouselAutoRotate = { viewModel.setMarketCarouselAutoRotate(it) },
                                     onUpdateMarketCarouselInterval = { viewModel.setMarketCarouselInterval(it) },
                                     onUpdateMarketCarouselTransition = { viewModel.setMarketCarouselTransition(it) },
@@ -346,11 +351,12 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // App list is kept in memory and refreshed strictly via PackageChangeReceiver / LauncherApps.Callback.
         val settings = viewModel.settings.value
-        if (settings.cryptoPriceEnabled) {
+        val hasActiveHomeFeed = settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns
+        if (settings.cryptoPriceEnabled || settings.showHomeNouns) {
             val isHome = currentScreenState.value == Screen.Home
-            if (isHome && (settings.showHomeCrypto || settings.showHomeIdx)) {
+            if (isHome && hasActiveHomeFeed) {
                 viewModel.startPriceRefresh(isHomeActive = true)
-            } else if (!isHome) {
+            } else if (!isHome && settings.cryptoPriceEnabled) {
                 viewModel.startPriceRefresh(isHomeActive = false)
             }
         }

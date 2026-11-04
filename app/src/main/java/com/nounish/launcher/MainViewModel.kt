@@ -8,11 +8,14 @@ import com.nounish.launcher.data.AppRepository
 import com.nounish.launcher.data.BinanceWebSocketClient
 import com.nounish.launcher.data.CachedCoinPrice
 import com.nounish.launcher.data.CachedIdxQuote
+import com.nounish.launcher.data.CachedNounsProposal
 import com.nounish.launcher.data.CoinTicker
 import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.data.IdxRepository
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.data.NetworkHelper
+import com.nounish.launcher.data.NounsProposalUi
+import com.nounish.launcher.data.NounsRepository
 import com.nounish.launcher.data.PriceRepository
 import com.nounish.launcher.data.PriceUiState
 import com.nounish.launcher.data.RateLimitException
@@ -265,6 +268,38 @@ class MainViewModel(
         result
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val nounsRepository = NounsRepository()
+
+    val homeNounsList: StateFlow<List<NounsProposalUi>> = settings.map { pref ->
+        val now = System.currentTimeMillis()
+        val cached = pref.cachedNounsProposals
+        val timestamp = pref.cachedNounsTimestamp
+        val isStale = timestamp <= 0L || (now - timestamp) > 300_000L
+        val ageMarker = if (isStale && timestamp > 0L) PriceRepository.formatAgeMarker(timestamp) else ""
+
+        val filtered = when (pref.nounsStatusFilter.lowercase(Locale.US)) {
+            "active" -> cached.filter { it.statusLabel.equals("Active", ignoreCase = true) }
+            "executed" -> cached.filter { it.statusLabel.equals("Executed", ignoreCase = true) }
+            else -> cached
+        }
+
+        filtered.map { p ->
+            NounsProposalUi(
+                id = p.id,
+                title = p.title,
+                statusLabel = p.statusLabel,
+                statusIndex = p.statusIndex,
+                proposer = p.proposer,
+                forVotes = p.forVotes,
+                againstVotes = p.againstVotes,
+                abstainVotes = p.abstainVotes,
+                quorum = p.quorum,
+                isStale = isStale,
+                ageMarker = ageMarker
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     private var priceJob: Job? = null
     private var wsSecondaryPollJob: Job? = null
     private var webSocketClient: BinanceWebSocketClient? = null
@@ -443,6 +478,7 @@ class MainViewModel(
             while (isActive) {
                 fetchUsdRate()
                 fetchIdxPrices()
+                fetchNounsProposals()
                 delay(60_000L)
             }
         }
@@ -542,6 +578,7 @@ class MainViewModel(
 
         fetchUsdRate()
         fetchIdxPrices()
+        fetchNounsProposals()
 
         if (currentSettings.cryptoSymbols.isEmpty()) return
 
@@ -770,6 +807,41 @@ class MainViewModel(
     fun refreshIdxPrices() {
         viewModelScope.launch(Dispatchers.IO) {
             fetchIdxPrices()
+        }
+    }
+
+    private suspend fun fetchNounsProposals() {
+        val currentSettings = settings.value
+        if (!currentSettings.showHomeNouns) return
+
+        val result = nounsRepository.fetchProposals(
+            limit = 10,
+            status = currentSettings.nounsStatusFilter
+        )
+        val proposals = result.getOrNull()
+        if (!proposals.isNullOrEmpty()) {
+            val now = System.currentTimeMillis()
+            val cachedList = proposals.map { p ->
+                CachedNounsProposal(
+                    id = p.id,
+                    title = p.title,
+                    statusLabel = p.statusLabel,
+                    statusIndex = p.statusIndex,
+                    proposer = p.proposer,
+                    forVotes = p.forVotes,
+                    againstVotes = p.againstVotes,
+                    abstainVotes = p.abstainVotes,
+                    quorum = p.quorum,
+                    timestamp = now
+                )
+            }
+            settingsStore.updateCachedNounsProposals(cachedList, now)
+        }
+    }
+
+    fun refreshNounsProposals() {
+        viewModelScope.launch(Dispatchers.IO) {
+            fetchNounsProposals()
         }
     }
 
@@ -1100,6 +1172,20 @@ class MainViewModel(
             val currentIndex = settings.value.homeScreenNoteIndex
             val nextIndex = (currentIndex + 1) % totalNotes
             settingsStore.setHomeScreenNoteIndex(nextIndex)
+        }
+    }
+
+    fun setShowHomeNouns(show: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowHomeNouns(show)
+            if (show) fetchNounsProposals()
+        }
+    }
+
+    fun setNounsStatusFilter(filter: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setNounsStatusFilter(filter)
+            fetchNounsProposals()
         }
     }
 

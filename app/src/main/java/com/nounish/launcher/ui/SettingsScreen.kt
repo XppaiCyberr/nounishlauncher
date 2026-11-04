@@ -67,6 +67,8 @@ fun SettingsScreen(
     onUpdateIdxDisplayMode: (String) -> Unit = {},
     onUpdateIdxSymbols: (List<String>) -> Unit = {},
     onUpdateIdxAutoRotateInterval: (Int) -> Unit = {},
+    onToggleShowHomeNouns: (Boolean) -> Unit = {},
+    onUpdateNounsStatusFilter: (String) -> Unit = {},
     onToggleMarketCarouselAutoRotate: (Boolean) -> Unit = {},
     onUpdateMarketCarouselInterval: (Int) -> Unit = {},
     onUpdateMarketCarouselTransition: (String) -> Unit = {},
@@ -106,6 +108,7 @@ fun SettingsScreen(
     var showCornerTextDialog by remember { mutableStateOf(false) }
     var cornerTextInput by remember(settings.cornerText) { mutableStateOf(settings.cornerText) }
     var showCurrencyFormatDialog by remember { mutableStateOf(false) }
+    var showNounsStatusFilterDialog by remember { mutableStateOf(false) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
         allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
@@ -500,11 +503,17 @@ fun SettingsScreen(
                     }
                 }
 
-                if (settings.showHomeCrypto && settings.showHomeIdx) {
+                val activeHomeWidgetsCount = listOf(
+                    settings.showHomeCrypto,
+                    settings.showHomeIdx,
+                    settings.showHomeNouns
+                ).count { it }
+
+                if (activeHomeWidgetsCount >= 2) {
                     item {
                         SettingsSwitchRow(
-                            title = "Separate Crypto & Saham",
-                            subtitle = if (settings.separateMarketViews) "Display both markets simultaneously (maximize screen space)" else "Rotate between both in a single carousel",
+                            title = "Separate home widgets",
+                            subtitle = if (settings.separateMarketViews) "Display active widgets simultaneously (maximize screen space)" else "Rotate between widgets in a single carousel",
                             checked = settings.separateMarketViews,
                             onCheckedChange = onToggleSeparateMarketViews
                         )
@@ -513,8 +522,8 @@ fun SettingsScreen(
                     if (settings.separateMarketViews) {
                         item {
                             SettingsActionRow(
-                                title = "Separated market layout",
-                                subtitle = if (settings.separatedMarketLayout == "side_by_side") "Two columns (Side by side)" else "Stacked vertically",
+                                title = "Separated widget layout",
+                                subtitle = if (settings.separatedMarketLayout == "side_by_side") "Multi-column (Side by side)" else "Stacked vertically",
                                 onClick = {
                                     val next = if (settings.separatedMarketLayout == "side_by_side") "stacked" else "side_by_side"
                                     onUpdateSeparatedMarketLayout(next)
@@ -525,7 +534,7 @@ fun SettingsScreen(
                         item {
                             SettingsSwitchRow(
                                 title = "Auto-rotate market carousel",
-                                subtitle = if (settings.marketCarouselAutoRotate) "Slideshow alternates between Crypto and IDX" else "Manual tap to switch",
+                                subtitle = if (settings.marketCarouselAutoRotate) "Slideshow alternates between active widgets" else "Manual tap to switch",
                                 checked = settings.marketCarouselAutoRotate,
                                 onCheckedChange = onToggleMarketCarouselAutoRotate
                             )
@@ -570,6 +579,30 @@ fun SettingsScreen(
                         title = "Currency format",
                         subtitle = currencyFormatLabel,
                         onClick = { showCurrencyFormatDialog = true }
+                    )
+                }
+            }
+
+            // Nouns DAO Governance Section
+            item {
+                SettingsSectionHeader(title = "Nouns DAO ⌐◨-◨")
+            }
+
+            item {
+                SettingsSwitchRow(
+                    title = "Show Nouns DAO proposals",
+                    subtitle = if (settings.showHomeNouns) "Display live governance proposals on Home" else "Disabled",
+                    checked = settings.showHomeNouns,
+                    onCheckedChange = onToggleShowHomeNouns
+                )
+            }
+
+            if (settings.showHomeNouns) {
+                item {
+                    SettingsActionRow(
+                        title = "Proposal status filter",
+                        subtitle = settings.nounsStatusFilter,
+                        onClick = { showNounsStatusFilterDialog = true }
                     )
                 }
             }
@@ -707,7 +740,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.14",
+                        text = "Nounish Launcher 1.0.15",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -1371,6 +1404,43 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { showCurrencyFormatDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    if (showNounsStatusFilterDialog) {
+        val options = listOf("All", "Active", "Executed")
+        AlertDialog(
+            onDismissRequest = { showNounsStatusFilterDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text("Filter Proposals", style = typography.settingsHeading, color = colors.textPrimary)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    options.forEach { opt ->
+                        val isSelected = settings.nounsStatusFilter.equals(opt, ignoreCase = true)
+                        Text(
+                            text = opt,
+                            style = typography.settingsItem,
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateNounsStatusFilter(opt)
+                                    showNounsStatusFilterDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showNounsStatusFilterDialog = false }) {
+                    Text("Close", color = colors.textSecondary)
                 }
             }
         )

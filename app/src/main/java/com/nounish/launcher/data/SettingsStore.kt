@@ -41,6 +41,19 @@ data class CachedIdxQuote(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class CachedNounsProposal(
+    val id: Int,
+    val title: String,
+    val statusLabel: String,
+    val statusIndex: Int,
+    val proposer: String,
+    val forVotes: Int,
+    val againstVotes: Int,
+    val abstainVotes: Int = 0,
+    val quorum: Int = 0,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 data class LauncherSettings(
     val pinnedApps: List<String> = emptyList(),
     val pinnedAppLabels: Map<String, String> = emptyMap(),
@@ -92,7 +105,11 @@ data class LauncherSettings(
     val marketCurrencyFormat: String = "suffix", // "suffix", "prefix", "none"
     val showHomeScreenNote: Boolean = true,
     val homeScreenNoteDismissed: Boolean = false,
-    val homeScreenNoteIndex: Int = 0
+    val homeScreenNoteIndex: Int = 0,
+    val showHomeNouns: Boolean = true,
+    val nounsStatusFilter: String = "All",
+    val cachedNounsProposals: List<CachedNounsProposal> = emptyList(),
+    val cachedNounsTimestamp: Long = 0L
 )
 
 class SettingsStore(private val context: Context) {
@@ -149,6 +166,10 @@ class SettingsStore(private val context: Context) {
         private val KEY_SHOW_HOME_NOTE = booleanPreferencesKey("show_home_note")
         private val KEY_HOME_NOTE_DISMISSED = booleanPreferencesKey("home_note_dismissed")
         private val KEY_HOME_NOTE_INDEX = intPreferencesKey("home_note_index")
+        private val KEY_SHOW_HOME_NOUNS = booleanPreferencesKey("show_home_nouns")
+        private val KEY_NOUNS_STATUS_FILTER = stringPreferencesKey("nouns_status_filter")
+        private val KEY_CACHED_NOUNS_PROPOSALS = stringPreferencesKey("cached_nouns_proposals_json")
+        private val KEY_CACHED_NOUNS_TIMESTAMP = longPreferencesKey("cached_nouns_timestamp")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -215,9 +236,13 @@ class SettingsStore(private val context: Context) {
         val showCornerText = prefs[KEY_SHOW_CORNER_TEXT] ?: true
         val cornerText = prefs[KEY_CORNER_TEXT] ?: "xppaicyber"
         val marketCurrencyFormat = prefs[KEY_MARKET_CURRENCY_FORMAT] ?: "suffix"
-        val showHomeNote = prefs[KEY_SHOW_HOME_NOTE] ?: true
+        val showHomeScreenNote = prefs[KEY_SHOW_HOME_NOTE] ?: true
         val homeNoteDismissed = prefs[KEY_HOME_NOTE_DISMISSED] ?: false
         val homeNoteIndex = prefs[KEY_HOME_NOTE_INDEX] ?: 0
+        val showHomeNouns = prefs[KEY_SHOW_HOME_NOUNS] ?: true
+        val nounsStatusFilter = prefs[KEY_NOUNS_STATUS_FILTER] ?: "All"
+        val cachedNounsProposals = parseNounsProposalsJson(prefs[KEY_CACHED_NOUNS_PROPOSALS] ?: "")
+        val cachedNounsTimestamp = prefs[KEY_CACHED_NOUNS_TIMESTAMP] ?: 0L
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -268,9 +293,13 @@ class SettingsStore(private val context: Context) {
             showCornerText = showCornerText,
             cornerText = cornerText,
             marketCurrencyFormat = marketCurrencyFormat,
-            showHomeScreenNote = showHomeNote,
+            showHomeScreenNote = showHomeScreenNote,
             homeScreenNoteDismissed = homeNoteDismissed,
-            homeScreenNoteIndex = homeNoteIndex
+            homeScreenNoteIndex = homeNoteIndex,
+            showHomeNouns = showHomeNouns,
+            nounsStatusFilter = nounsStatusFilter,
+            cachedNounsProposals = cachedNounsProposals,
+            cachedNounsTimestamp = cachedNounsTimestamp
         )
     }
 
@@ -548,6 +577,36 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_HOME_NOTE_INDEX] = index }
     }
 
+    suspend fun setShowHomeNouns(show: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_HOME_NOUNS] = show }
+    }
+
+    suspend fun setNounsStatusFilter(filter: String) {
+        context.dataStore.edit { it[KEY_NOUNS_STATUS_FILTER] = filter }
+    }
+
+    suspend fun updateCachedNounsProposals(proposals: List<CachedNounsProposal>, timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            val arr = JSONArray()
+            proposals.forEach { p ->
+                val obj = JSONObject()
+                obj.put("id", p.id)
+                obj.put("title", p.title)
+                obj.put("statusLabel", p.statusLabel)
+                obj.put("statusIndex", p.statusIndex)
+                obj.put("proposer", p.proposer)
+                obj.put("forVotes", p.forVotes)
+                obj.put("againstVotes", p.againstVotes)
+                obj.put("abstainVotes", p.abstainVotes)
+                obj.put("quorum", p.quorum)
+                obj.put("timestamp", p.timestamp)
+                arr.put(obj)
+            }
+            prefs[KEY_CACHED_NOUNS_PROPOSALS] = arr.toString()
+            prefs[KEY_CACHED_NOUNS_TIMESTAMP] = timestamp
+        }
+    }
+
     suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {
         context.dataStore.edit { prefs ->
             val encoded = prices.entries.joinToString(";") {
@@ -615,6 +674,8 @@ class SettingsStore(private val context: Context) {
         root.put("showHomeScreenNote", settings.showHomeScreenNote)
         root.put("homeScreenNoteDismissed", settings.homeScreenNoteDismissed)
         root.put("homeScreenNoteIndex", settings.homeScreenNoteIndex)
+        root.put("showHomeNouns", settings.showHomeNouns)
+        root.put("nounsStatusFilter", settings.nounsStatusFilter)
 
         return root.toString(2)
     }
@@ -703,6 +764,8 @@ class SettingsStore(private val context: Context) {
                 if (root.has("showHomeScreenNote")) prefs[KEY_SHOW_HOME_NOTE] = root.getBoolean("showHomeScreenNote")
                 if (root.has("homeScreenNoteDismissed")) prefs[KEY_HOME_NOTE_DISMISSED] = root.getBoolean("homeScreenNoteDismissed")
                 if (root.has("homeScreenNoteIndex")) prefs[KEY_HOME_NOTE_INDEX] = root.getInt("homeScreenNoteIndex")
+                if (root.has("showHomeNouns")) prefs[KEY_SHOW_HOME_NOUNS] = root.getBoolean("showHomeNouns")
+                if (root.has("nounsStatusFilter")) prefs[KEY_NOUNS_STATUS_FILTER] = root.getString("nounsStatusFilter")
             }
             true
         } catch (_: Exception) {
@@ -835,6 +898,34 @@ class SettingsStore(private val context: Context) {
             result
         } catch (_: Exception) {
             emptyMap()
+        }
+    }
+
+    private fun parseNounsProposalsJson(raw: String): List<CachedNounsProposal> {
+        if (raw.isBlank()) return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            val list = mutableListOf<CachedNounsProposal>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                list.add(
+                    CachedNounsProposal(
+                        id = obj.optInt("id", 0),
+                        title = obj.optString("title", ""),
+                        statusLabel = obj.optString("statusLabel", "Unknown"),
+                        statusIndex = obj.optInt("statusIndex", 0),
+                        proposer = obj.optString("proposer", ""),
+                        forVotes = obj.optInt("forVotes", 0),
+                        againstVotes = obj.optInt("againstVotes", 0),
+                        abstainVotes = obj.optInt("abstainVotes", 0),
+                        quorum = obj.optInt("quorum", 0),
+                        timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                    )
+                )
+            }
+            list
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 }
