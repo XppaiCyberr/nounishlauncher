@@ -54,6 +54,13 @@ data class CachedNounsProposal(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class CachedNounsCandidate(
+    val slug: String,
+    val title: String,
+    val proposer: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 data class LauncherSettings(
     val pinnedApps: List<String> = emptyList(),
     val pinnedAppLabels: Map<String, String> = emptyMap(),
@@ -108,8 +115,12 @@ data class LauncherSettings(
     val homeScreenNoteIndex: Int = 0,
     val showHomeNouns: Boolean = true,
     val nounsStatusFilter: String = "All",
+    val nounsDisplayMode: String = "auto_rotate", // "auto_rotate", "proposals", "candidates"
+    val nounsMaxDisplayCount: Int = 3,
     val cachedNounsProposals: List<CachedNounsProposal> = emptyList(),
-    val cachedNounsTimestamp: Long = 0L
+    val cachedNounsTimestamp: Long = 0L,
+    val cachedNounsCandidates: List<CachedNounsCandidate> = emptyList(),
+    val cachedNounsCandidatesTimestamp: Long = 0L
 )
 
 class SettingsStore(private val context: Context) {
@@ -168,8 +179,12 @@ class SettingsStore(private val context: Context) {
         private val KEY_HOME_NOTE_INDEX = intPreferencesKey("home_note_index")
         private val KEY_SHOW_HOME_NOUNS = booleanPreferencesKey("show_home_nouns")
         private val KEY_NOUNS_STATUS_FILTER = stringPreferencesKey("nouns_status_filter")
+        private val KEY_NOUNS_DISPLAY_MODE = stringPreferencesKey("nouns_display_mode")
+        private val KEY_NOUNS_MAX_DISPLAY_COUNT = intPreferencesKey("nouns_max_display_count")
         private val KEY_CACHED_NOUNS_PROPOSALS = stringPreferencesKey("cached_nouns_proposals_json")
         private val KEY_CACHED_NOUNS_TIMESTAMP = longPreferencesKey("cached_nouns_timestamp")
+        private val KEY_CACHED_NOUNS_CANDIDATES = stringPreferencesKey("cached_nouns_candidates_json")
+        private val KEY_CACHED_NOUNS_CANDIDATES_TIMESTAMP = longPreferencesKey("cached_nouns_candidates_timestamp")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -241,8 +256,12 @@ class SettingsStore(private val context: Context) {
         val homeNoteIndex = prefs[KEY_HOME_NOTE_INDEX] ?: 0
         val showHomeNouns = prefs[KEY_SHOW_HOME_NOUNS] ?: true
         val nounsStatusFilter = prefs[KEY_NOUNS_STATUS_FILTER] ?: "All"
+        val nounsDisplayMode = prefs[KEY_NOUNS_DISPLAY_MODE] ?: "auto_rotate"
+        val nounsMaxDisplayCount = prefs[KEY_NOUNS_MAX_DISPLAY_COUNT] ?: 3
         val cachedNounsProposals = parseNounsProposalsJson(prefs[KEY_CACHED_NOUNS_PROPOSALS] ?: "")
         val cachedNounsTimestamp = prefs[KEY_CACHED_NOUNS_TIMESTAMP] ?: 0L
+        val cachedNounsCandidates = parseNounsCandidatesJson(prefs[KEY_CACHED_NOUNS_CANDIDATES] ?: "")
+        val cachedNounsCandidatesTimestamp = prefs[KEY_CACHED_NOUNS_CANDIDATES_TIMESTAMP] ?: 0L
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -298,8 +317,12 @@ class SettingsStore(private val context: Context) {
             homeScreenNoteIndex = homeNoteIndex,
             showHomeNouns = showHomeNouns,
             nounsStatusFilter = nounsStatusFilter,
+            nounsDisplayMode = nounsDisplayMode,
+            nounsMaxDisplayCount = nounsMaxDisplayCount,
             cachedNounsProposals = cachedNounsProposals,
-            cachedNounsTimestamp = cachedNounsTimestamp
+            cachedNounsTimestamp = cachedNounsTimestamp,
+            cachedNounsCandidates = cachedNounsCandidates,
+            cachedNounsCandidatesTimestamp = cachedNounsCandidatesTimestamp
         )
     }
 
@@ -585,6 +608,30 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_NOUNS_STATUS_FILTER] = filter }
     }
 
+    suspend fun setNounsDisplayMode(mode: String) {
+        context.dataStore.edit { it[KEY_NOUNS_DISPLAY_MODE] = mode }
+    }
+
+    suspend fun setNounsMaxDisplayCount(count: Int) {
+        context.dataStore.edit { it[KEY_NOUNS_MAX_DISPLAY_COUNT] = count }
+    }
+
+    suspend fun updateCachedNounsCandidates(candidates: List<CachedNounsCandidate>, timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            val arr = JSONArray()
+            candidates.forEach { c ->
+                val obj = JSONObject()
+                obj.put("slug", c.slug)
+                obj.put("title", c.title)
+                obj.put("proposer", c.proposer)
+                obj.put("timestamp", c.timestamp)
+                arr.put(obj)
+            }
+            prefs[KEY_CACHED_NOUNS_CANDIDATES] = arr.toString()
+            prefs[KEY_CACHED_NOUNS_CANDIDATES_TIMESTAMP] = timestamp
+        }
+    }
+
     suspend fun updateCachedNounsProposals(proposals: List<CachedNounsProposal>, timestamp: Long) {
         context.dataStore.edit { prefs ->
             val arr = JSONArray()
@@ -676,6 +723,8 @@ class SettingsStore(private val context: Context) {
         root.put("homeScreenNoteIndex", settings.homeScreenNoteIndex)
         root.put("showHomeNouns", settings.showHomeNouns)
         root.put("nounsStatusFilter", settings.nounsStatusFilter)
+        root.put("nounsDisplayMode", settings.nounsDisplayMode)
+        root.put("nounsMaxDisplayCount", settings.nounsMaxDisplayCount)
 
         return root.toString(2)
     }
@@ -766,6 +815,8 @@ class SettingsStore(private val context: Context) {
                 if (root.has("homeScreenNoteIndex")) prefs[KEY_HOME_NOTE_INDEX] = root.getInt("homeScreenNoteIndex")
                 if (root.has("showHomeNouns")) prefs[KEY_SHOW_HOME_NOUNS] = root.getBoolean("showHomeNouns")
                 if (root.has("nounsStatusFilter")) prefs[KEY_NOUNS_STATUS_FILTER] = root.getString("nounsStatusFilter")
+                if (root.has("nounsDisplayMode")) prefs[KEY_NOUNS_DISPLAY_MODE] = root.getString("nounsDisplayMode")
+                if (root.has("nounsMaxDisplayCount")) prefs[KEY_NOUNS_MAX_DISPLAY_COUNT] = root.getInt("nounsMaxDisplayCount")
             }
             true
         } catch (_: Exception) {
@@ -919,6 +970,28 @@ class SettingsStore(private val context: Context) {
                         againstVotes = obj.optInt("againstVotes", 0),
                         abstainVotes = obj.optInt("abstainVotes", 0),
                         quorum = obj.optInt("quorum", 0),
+                        timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                    )
+                )
+            }
+            list
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun parseNounsCandidatesJson(raw: String): List<CachedNounsCandidate> {
+        if (raw.isBlank()) return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            val list = mutableListOf<CachedNounsCandidate>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                list.add(
+                    CachedNounsCandidate(
+                        slug = obj.optString("slug", ""),
+                        title = obj.optString("title", ""),
+                        proposer = obj.optString("proposer", ""),
                         timestamp = obj.optLong("timestamp", System.currentTimeMillis())
                     )
                 )

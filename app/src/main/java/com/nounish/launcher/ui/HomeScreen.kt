@@ -59,6 +59,7 @@ import com.nounish.launcher.CoinTickerUi
 import com.nounish.launcher.IdxCategoryUi
 import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.IdxItemUi
+import com.nounish.launcher.data.NounsCandidateUi
 import com.nounish.launcher.data.NounsProposalUi
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
@@ -89,6 +90,9 @@ fun HomeScreen(
     idxAutoRotateIntervalSeconds: Int = 6,
     showNouns: Boolean = true,
     nounsProposals: List<NounsProposalUi> = emptyList(),
+    nounsCandidates: List<NounsCandidateUi> = emptyList(),
+    nounsDisplayMode: String = "auto_rotate",
+    nounsMaxDisplayCount: Int = 3,
     carouselAutoRotate: Boolean = true,
     carouselIntervalSeconds: Int = 7,
     carouselTransition: String = "slide",
@@ -236,7 +240,7 @@ fun HomeScreen(
         // Market Section (middle area): Takes all available vertical space between Clock and Pinned Apps
         val hasCrypto = showCrypto && cryptoCoins.isNotEmpty()
         val hasIdx = showIdx && (idxCategories.isNotEmpty() || idxStocks.isNotEmpty())
-        val hasNouns = showNouns && nounsProposals.isNotEmpty()
+        val hasNouns = showNouns && (nounsProposals.isNotEmpty() || nounsCandidates.isNotEmpty())
 
         val activeViews = remember(hasCrypto, hasIdx, hasNouns) {
             buildList {
@@ -259,6 +263,29 @@ fun HomeScreen(
                     currentIdxCategoryIndex = (currentIdxCategoryIndex + 1) % idxCategories.size
                 }
             }
+        }
+
+        // Auto-rotation timer between Nouns proposals and candidates
+        val isNounsAutoRotate = nounsDisplayMode == "auto_rotate"
+        var currentNounsSubIndex by remember { mutableIntStateOf(0) }
+        val hasBothNouns = nounsProposals.isNotEmpty() && nounsCandidates.isNotEmpty()
+
+        LaunchedEffect(isNounsAutoRotate, hasBothNouns) {
+            if (isNounsAutoRotate && hasBothNouns) {
+                while (true) {
+                    delay(7000L)
+                    currentNounsSubIndex = (currentNounsSubIndex + 1) % 2
+                }
+            }
+        }
+
+        val activeNounsSub = when {
+            nounsDisplayMode == "proposals" -> "proposals"
+            nounsDisplayMode == "candidates" -> "candidates"
+            !hasBothNouns && nounsCandidates.isNotEmpty() -> "candidates"
+            !hasBothNouns -> "proposals"
+            currentNounsSubIndex == 1 -> "candidates"
+            else -> "proposals"
         }
 
         val activeIdxCategory = remember(idxCategories, currentIdxCategoryIndex, idxDisplayMode, idxStocks) {
@@ -297,7 +324,13 @@ fun HomeScreen(
             }
         }
 
-        val nounsHeaderLabel = "NOUNS DAO ⌐◨-◨"
+        val nounsHeaderLabel = remember(activeNounsSub, isNounsAutoRotate, hasBothNouns) {
+            when {
+                activeNounsSub == "candidates" -> "NOUNS DAO ⌐◨-◨ | Candidates"
+                isNounsAutoRotate && hasBothNouns -> "NOUNS DAO ⌐◨-◨ | Proposals"
+                else -> "NOUNS DAO ⌐◨-◨"
+            }
+        }
 
         // Auto-advance slideshow timer (for carousel mode across all active views)
         LaunchedEffect(carouselAutoRotate, carouselIntervalSeconds, activeViews.size, separateMarketViews) {
@@ -389,16 +422,32 @@ fun HomeScreen(
                                     modifier = Modifier.weight(1f),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = nounsHeaderLabel,
-                                        style = typography.clock,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textSecondary.copy(alpha = 0.45f),
-                                        letterSpacing = 1.sp,
-                                        modifier = Modifier.padding(bottom = 2.dp)
-                                    )
-                                    NounsProposalList(
+                                    AnimatedContent(
+                                        targetState = nounsHeaderLabel,
+                                        transitionSpec = {
+                                            (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
+                                                .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
+                                        },
+                                        label = "nounsSideHeaderLabel"
+                                    ) { labelText ->
+                                        Text(
+                                            text = labelText,
+                                            style = typography.clock,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textSecondary.copy(alpha = 0.45f),
+                                            letterSpacing = 1.sp,
+                                            modifier = Modifier
+                                                .clickable(enabled = isNounsAutoRotate && hasBothNouns) {
+                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % 2
+                                                }
+                                                .padding(bottom = 2.dp)
+                                        )
+                                    }
+                                    NounsSectionContent(
+                                        activeNounsSub = activeNounsSub,
                                         proposals = nounsProposals,
+                                        candidates = nounsCandidates,
+                                        maxCount = nounsMaxDisplayCount,
                                         compact = true
                                     )
                                 }
@@ -464,16 +513,32 @@ fun HomeScreen(
 
                             if (hasNouns) {
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(
-                                        text = nounsHeaderLabel,
-                                        style = typography.clock,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textSecondary.copy(alpha = 0.45f),
-                                        letterSpacing = 1.sp,
-                                        modifier = Modifier.padding(bottom = 2.dp)
-                                    )
-                                    NounsProposalList(
+                                    AnimatedContent(
+                                        targetState = nounsHeaderLabel,
+                                        transitionSpec = {
+                                            (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
+                                                .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
+                                        },
+                                        label = "nounsStackedHeaderLabel"
+                                    ) { labelText ->
+                                        Text(
+                                            text = labelText,
+                                            style = typography.clock,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textSecondary.copy(alpha = 0.45f),
+                                            letterSpacing = 1.sp,
+                                            modifier = Modifier
+                                                .clickable(enabled = isNounsAutoRotate && hasBothNouns) {
+                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % 2
+                                                }
+                                                .padding(bottom = 2.dp)
+                                        )
+                                    }
+                                    NounsSectionContent(
+                                        activeNounsSub = activeNounsSub,
                                         proposals = nounsProposals,
+                                        candidates = nounsCandidates,
+                                        maxCount = nounsMaxDisplayCount,
                                         compact = false
                                     )
                                 }
@@ -511,7 +576,13 @@ fun HomeScreen(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         color = if (isSelected) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
                                         modifier = Modifier
-                                            .clickable { currentViewIndex = i }
+                                            .clickable {
+                                                if (isSelected && viewKey == "nouns" && isNounsAutoRotate && hasBothNouns) {
+                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % 2
+                                                } else {
+                                                    currentViewIndex = i
+                                                }
+                                            }
                                             .padding(vertical = 2.dp)
                                     )
                                 }
@@ -551,8 +622,11 @@ fun HomeScreen(
                                     )
                                 }
                                 "nouns" -> {
-                                    NounsProposalList(
+                                    NounsSectionContent(
+                                        activeNounsSub = activeNounsSub,
                                         proposals = nounsProposals,
+                                        candidates = nounsCandidates,
+                                        maxCount = nounsMaxDisplayCount,
                                         compact = false
                                     )
                                 }
@@ -1059,18 +1133,53 @@ private fun PassiveNoteCard(
 }
 
 @Composable
+private fun NounsSectionContent(
+    activeNounsSub: String,
+    proposals: List<NounsProposalUi>,
+    candidates: List<NounsCandidateUi>,
+    maxCount: Int,
+    compact: Boolean
+) {
+    AnimatedContent(
+        targetState = activeNounsSub,
+        transitionSpec = {
+            (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(200)))
+                .togetherWith(slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150)))
+        },
+        label = "nounsSubContentTransition"
+    ) { sub ->
+        if (sub == "candidates") {
+            NounsCandidateList(
+                candidates = candidates,
+                maxCount = maxCount,
+                compact = compact
+            )
+        } else {
+            NounsProposalList(
+                proposals = proposals,
+                maxCount = maxCount,
+                compact = compact
+            )
+        }
+    }
+}
+
+@Composable
 private fun NounsProposalList(
     proposals: List<NounsProposalUi>,
+    maxCount: Int = 3,
     compact: Boolean = false
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
     val context = LocalContext.current
 
+    val limit = if (compact) (maxCount - 1).coerceAtLeast(2) else maxCount
+
     Column(
         verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
     ) {
-        proposals.take(if (compact) 3 else 4).forEach { prop ->
+        proposals.take(limit).forEach { prop ->
             var showDetails by remember { mutableStateOf(false) }
 
             Column(
@@ -1145,6 +1254,106 @@ private fun NounsProposalList(
                             modifier = Modifier.clickable {
                                 try {
                                     val uri = Uri.parse("https://nouns.wtf/vote/${prop.id}")
+                                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NounsCandidateList(
+    candidates: List<NounsCandidateUi>,
+    maxCount: Int = 3,
+    compact: Boolean = false
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+    val context = LocalContext.current
+
+    val limit = if (compact) (maxCount - 1).coerceAtLeast(2) else maxCount
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
+    ) {
+        candidates.take(limit).forEach { cand ->
+            var showDetails by remember { mutableStateOf(false) }
+
+            Column(
+                modifier = Modifier
+                    .clickable { showDetails = !showDetails }
+                    .graphicsLayer {
+                        alpha = if (cand.isStale) 0.55f else 1.0f
+                    }
+                    .padding(vertical = 1.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
+                ) {
+                    Text(
+                        text = "Draft",
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textSecondary.copy(alpha = 0.7f)
+                    )
+
+                    Text(
+                        text = cand.title,
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        color = colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+
+                    Text(
+                        text = "Candidate",
+                        style = typography.priceLabel,
+                        color = colors.textSecondary.copy(alpha = 0.6f)
+                    )
+
+                    if (cand.isStale && cand.ageMarker.isNotEmpty()) {
+                        Text(
+                            text = cand.ageMarker,
+                            style = typography.priceLabel,
+                            color = colors.textSecondary.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                if (showDetails) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        val shortProposer = if (cand.proposer.length >= 10) {
+                            "${cand.proposer.take(6)}...${cand.proposer.takeLast(4)}"
+                        } else cand.proposer
+
+                        Text(
+                            text = "By: $shortProposer",
+                            style = typography.clock,
+                            color = colors.textSecondary.copy(alpha = 0.6f)
+                        )
+
+                        Text(
+                            text = "Candidate ↗",
+                            style = typography.clock,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary,
+                            modifier = Modifier.clickable {
+                                try {
+                                    val url = "https://nouns.wtf/candidates/${cand.proposer.lowercase(Locale.US)}-${cand.slug}"
+                                    val uri = Uri.parse(url)
                                     val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     }

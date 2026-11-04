@@ -187,7 +187,7 @@ nounishlauncher/
 │       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper for all preferences & cached prices
 │       │   │   ├── PriceRepository.kt           # Binance public 24hr ticker client, klines sparklines, rate limit backoff
 │       │   │   ├── IdxRepository.kt             # IDX stock quotes, indices, top gainers/losers, number formatting
-│       │   │   ├── NounsRepository.kt           # Nouns DAO governance proposals loader and parser (zero-dependency)
+│       │   │   ├── NounsRepository.kt           # Nouns DAO governance proposals & candidates loader (zero-dependency)
 │       │   │   ├── BinanceWebSocketClient.kt    # Native RFC 6455 WebSocket client for live Home stream
 │       │   │   └── NetworkHelper.kt             # Metered network and battery saver detection
 │       │   ├── ui/
@@ -244,8 +244,10 @@ Accessible by long-pressing any empty area on the Home screen:
    - `Coins`: Comma-separated list of symbols (e.g. `BTC, ETH, SOL, PEPE, BTCUSDT, ETHBIDR`).
    - `Quote currency`: Pair currency presets (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`) or custom quote.
    - `Currency format`: Select display format for market prices (`Suffix 68,450 USDT / 9,850 IDR`, `Prefix`, or `None`).
-6. **Nouns DAO Governance**:
-   - `Show Nouns DAO proposals`: Displays live governance proposals on the Home screen.
+6. **Nouns DAO Governance & Candidates**:
+   - `Show Nouns DAO feed`: Displays live governance proposals and candidate proposals on the Home screen.
+   - `Nouns display mode`: Choose between `Auto Rotate (Proposals & Candidates)`, `Proposals only`, or `Candidates only`.
+   - `Items to display`: Configure maximum items displayed on the Home screen (2, 3, 4, 5, or 6 items).
    - `Proposal status filter`: Filter proposals by status (`All`, `Active`, `Executed`).
 7. **Backup & Restore**:
    - `Export settings (JSON)`: Save all settings, pinned apps, hidden apps, and custom labels to a JSON file.

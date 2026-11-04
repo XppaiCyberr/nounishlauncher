@@ -105,6 +105,7 @@ class MainActivity : ComponentActivity() {
             val homeIdxList by viewModel.homeIdxList.collectAsState()
             val homeIdxCategories by viewModel.homeIdxCategories.collectAsState()
             val homeNounsList by viewModel.homeNounsList.collectAsState()
+            val homeNounsCandidatesList by viewModel.homeNounsCandidatesList.collectAsState()
 
             var currentScreen by remember { currentScreenState }
 
@@ -165,6 +166,9 @@ class MainActivity : ComponentActivity() {
                                     idxAutoRotateIntervalSeconds = settings.idxAutoRotateIntervalSeconds,
                                     showNouns = settings.showHomeNouns,
                                     nounsProposals = homeNounsList,
+                                    nounsCandidates = homeNounsCandidatesList,
+                                    nounsDisplayMode = settings.nounsDisplayMode,
+                                    nounsMaxDisplayCount = settings.nounsMaxDisplayCount,
                                     carouselAutoRotate = settings.marketCarouselAutoRotate,
                                     carouselIntervalSeconds = settings.marketCarouselIntervalSeconds,
                                     carouselTransition = settings.marketCarouselTransition,
@@ -296,6 +300,8 @@ class MainActivity : ComponentActivity() {
                                     onUpdateIdxSymbols = { viewModel.setIdxSymbols(it) },
                                     onUpdateIdxAutoRotateInterval = { viewModel.setIdxAutoRotateInterval(it) },
                                     onToggleShowHomeNouns = { viewModel.setShowHomeNouns(it) },
+                                    onUpdateNounsDisplayMode = { viewModel.setNounsDisplayMode(it) },
+                                    onUpdateNounsMaxDisplayCount = { viewModel.setNounsMaxDisplayCount(it) },
                                     onUpdateNounsStatusFilter = { viewModel.setNounsStatusFilter(it) },
                                     onToggleMarketCarouselAutoRotate = { viewModel.setMarketCarouselAutoRotate(it) },
                                     onUpdateMarketCarouselInterval = { viewModel.setMarketCarouselInterval(it) },

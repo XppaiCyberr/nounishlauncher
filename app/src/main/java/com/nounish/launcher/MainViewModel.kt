@@ -8,12 +8,14 @@ import com.nounish.launcher.data.AppRepository
 import com.nounish.launcher.data.BinanceWebSocketClient
 import com.nounish.launcher.data.CachedCoinPrice
 import com.nounish.launcher.data.CachedIdxQuote
+import com.nounish.launcher.data.CachedNounsCandidate
 import com.nounish.launcher.data.CachedNounsProposal
 import com.nounish.launcher.data.CoinTicker
 import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.data.IdxRepository
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.data.NetworkHelper
+import com.nounish.launcher.data.NounsCandidateUi
 import com.nounish.launcher.data.NounsProposalUi
 import com.nounish.launcher.data.NounsRepository
 import com.nounish.launcher.data.PriceRepository
@@ -300,6 +302,24 @@ class MainViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val homeNounsCandidatesList: StateFlow<List<NounsCandidateUi>> = settings.map { pref ->
+        val now = System.currentTimeMillis()
+        val cached = pref.cachedNounsCandidates
+        val timestamp = pref.cachedNounsCandidatesTimestamp
+        val isStale = timestamp <= 0L || (now - timestamp) > 300_000L
+        val ageMarker = if (isStale && timestamp > 0L) PriceRepository.formatAgeMarker(timestamp) else ""
+
+        cached.map { c ->
+            NounsCandidateUi(
+                slug = c.slug,
+                title = c.title,
+                proposer = c.proposer,
+                isStale = isStale,
+                ageMarker = ageMarker
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     private var priceJob: Job? = null
     private var wsSecondaryPollJob: Job? = null
     private var webSocketClient: BinanceWebSocketClient? = null
@@ -479,6 +499,7 @@ class MainViewModel(
                 fetchUsdRate()
                 fetchIdxPrices()
                 fetchNounsProposals()
+                fetchNounsCandidates()
                 delay(60_000L)
             }
         }
@@ -579,6 +600,7 @@ class MainViewModel(
         fetchUsdRate()
         fetchIdxPrices()
         fetchNounsProposals()
+        fetchNounsCandidates()
 
         if (currentSettings.cryptoSymbols.isEmpty()) return
 
@@ -842,6 +864,28 @@ class MainViewModel(
     fun refreshNounsProposals() {
         viewModelScope.launch(Dispatchers.IO) {
             fetchNounsProposals()
+            fetchNounsCandidates()
+        }
+    }
+
+    private suspend fun fetchNounsCandidates() {
+        val currentSettings = settings.value
+        if (!currentSettings.showHomeNouns) return
+        if (currentSettings.nounsDisplayMode == "proposals") return
+
+        val result = nounsRepository.fetchCandidates(limit = 10)
+        val candidates = result.getOrNull()
+        if (!candidates.isNullOrEmpty()) {
+            val now = System.currentTimeMillis()
+            val cachedList = candidates.map { c ->
+                CachedNounsCandidate(
+                    slug = c.slug,
+                    title = c.title,
+                    proposer = c.proposer,
+                    timestamp = now
+                )
+            }
+            settingsStore.updateCachedNounsCandidates(cachedList, now)
         }
     }
 
@@ -1178,7 +1222,10 @@ class MainViewModel(
     fun setShowHomeNouns(show: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowHomeNouns(show)
-            if (show) fetchNounsProposals()
+            if (show) {
+                fetchNounsProposals()
+                fetchNounsCandidates()
+            }
         }
     }
 
@@ -1186,6 +1233,19 @@ class MainViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setNounsStatusFilter(filter)
             fetchNounsProposals()
+        }
+    }
+
+    fun setNounsDisplayMode(mode: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setNounsDisplayMode(mode)
+            if (mode != "proposals") fetchNounsCandidates()
+        }
+    }
+
+    fun setNounsMaxDisplayCount(count: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setNounsMaxDisplayCount(count)
         }
     }
 

@@ -69,6 +69,8 @@ fun SettingsScreen(
     onUpdateIdxAutoRotateInterval: (Int) -> Unit = {},
     onToggleShowHomeNouns: (Boolean) -> Unit = {},
     onUpdateNounsStatusFilter: (String) -> Unit = {},
+    onUpdateNounsDisplayMode: (String) -> Unit = {},
+    onUpdateNounsMaxDisplayCount: (Int) -> Unit = {},
     onToggleMarketCarouselAutoRotate: (Boolean) -> Unit = {},
     onUpdateMarketCarouselInterval: (Int) -> Unit = {},
     onUpdateMarketCarouselTransition: (String) -> Unit = {},
@@ -109,6 +111,8 @@ fun SettingsScreen(
     var cornerTextInput by remember(settings.cornerText) { mutableStateOf(settings.cornerText) }
     var showCurrencyFormatDialog by remember { mutableStateOf(false) }
     var showNounsStatusFilterDialog by remember { mutableStateOf(false) }
+    var showNounsDisplayModeDialog by remember { mutableStateOf(false) }
+    var showNounsMaxCountDialog by remember { mutableStateOf(false) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
         allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
@@ -590,8 +594,8 @@ fun SettingsScreen(
 
             item {
                 SettingsSwitchRow(
-                    title = "Show Nouns DAO proposals",
-                    subtitle = if (settings.showHomeNouns) "Display live governance proposals on Home" else "Disabled",
+                    title = "Show Nouns DAO feed",
+                    subtitle = if (settings.showHomeNouns) "Display live governance proposals and candidates on Home" else "Disabled",
                     checked = settings.showHomeNouns,
                     onCheckedChange = onToggleShowHomeNouns
                 )
@@ -599,11 +603,34 @@ fun SettingsScreen(
 
             if (settings.showHomeNouns) {
                 item {
+                    val modeLabel = when (settings.nounsDisplayMode) {
+                        "proposals" -> "Proposals only"
+                        "candidates" -> "Candidates only"
+                        else -> "Auto Rotate (Proposals & Candidates)"
+                    }
                     SettingsActionRow(
-                        title = "Proposal status filter",
-                        subtitle = settings.nounsStatusFilter,
-                        onClick = { showNounsStatusFilterDialog = true }
+                        title = "Nouns display mode",
+                        subtitle = modeLabel,
+                        onClick = { showNounsDisplayModeDialog = true }
                     )
+                }
+
+                item {
+                    SettingsActionRow(
+                        title = "Items to display",
+                        subtitle = "${settings.nounsMaxDisplayCount} items",
+                        onClick = { showNounsMaxCountDialog = true }
+                    )
+                }
+
+                if (settings.nounsDisplayMode != "candidates") {
+                    item {
+                        SettingsActionRow(
+                            title = "Proposal status filter",
+                            subtitle = settings.nounsStatusFilter,
+                            onClick = { showNounsStatusFilterDialog = true }
+                        )
+                    }
                 }
             }
 
@@ -740,7 +767,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.15",
+                        text = "Nounish Launcher 1.0.16",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
@@ -1440,6 +1467,84 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showNounsStatusFilterDialog = false }) {
+                    Text("Close", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    if (showNounsDisplayModeDialog) {
+        val options = listOf(
+            "auto_rotate" to "Auto Rotate (Proposals & Candidates)",
+            "proposals" to "Proposals only",
+            "candidates" to "Candidates only"
+        )
+        AlertDialog(
+            onDismissRequest = { showNounsDisplayModeDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text("Nouns Display Mode", style = typography.settingsHeading, color = colors.textPrimary)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    options.forEach { (modeKey, modeTitle) ->
+                        val isSelected = settings.nounsDisplayMode == modeKey
+                        Text(
+                            text = modeTitle,
+                            style = typography.settingsItem,
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateNounsDisplayMode(modeKey)
+                                    showNounsDisplayModeDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showNounsDisplayModeDialog = false }) {
+                    Text("Close", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    if (showNounsMaxCountDialog) {
+        val options = listOf(2, 3, 4, 5, 6)
+        AlertDialog(
+            onDismissRequest = { showNounsMaxCountDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text("Items to Display", style = typography.settingsHeading, color = colors.textPrimary)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    options.forEach { count ->
+                        val isSelected = settings.nounsMaxDisplayCount == count
+                        Text(
+                            text = "$count items",
+                            style = typography.settingsItem,
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateNounsMaxDisplayCount(count)
+                                    showNounsMaxCountDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showNounsMaxCountDialog = false }) {
                     Text("Close", color = colors.textSecondary)
                 }
             }
