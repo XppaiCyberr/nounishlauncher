@@ -131,7 +131,8 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ### 5. Gestures
 - **Swipe Up**: Open App Drawer.
-- **Swipe Down**: Close App Drawer.
+- **Swipe Down on Home**: Manually refresh market and Nouns data (Binance Crypto, IDX, Nouns DAO) with animated `⌐◨-◨` pull, breathing pulse, and character typing indicator.
+- **Swipe Down in Drawer**: Close App Drawer.
 - **Swipe Left**: Launch user-assigned quick app.
 - **Swipe Right**: Launch user-assigned quick app.
 - **Double-Tap**: Screen lock trigger.
@@ -231,6 +232,7 @@ Accessible by long-pressing any empty area on the Home screen:
    - `Alphabet index on right`: Places the alphabetical scrubber on the right edge (default: left).
    - `Alphabet index animation`: Enables/disables the Niagara-style fluid wave animation.
 3. **Gestures**:
+   - `Swipe down to refresh`: Toggle manual refresh of market and Nouns data via downward swipe on Home.
    - `Swipe left app`: Assign an app to launch on left swipe.
    - `Swipe right app`: Assign an app to launch on right swipe.
    - `Double tap to lock screen`: Toggle double-tap screen lock.

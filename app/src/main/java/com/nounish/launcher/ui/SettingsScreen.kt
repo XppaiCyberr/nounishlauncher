@@ -60,6 +60,7 @@ fun SettingsScreen(
     onToggleAutoLaunch: (Boolean) -> Unit,
     onSelectSwipeLeftApp: (String?) -> Unit,
     onSelectSwipeRightApp: (String?) -> Unit,
+    onToggleSwipeDownToRefresh: (Boolean) -> Unit = {},
     onToggleDoubleTapLock: (Boolean) -> Unit,
     onToggleCryptoEnabled: (Boolean) -> Unit,
     onToggleShowHomeCrypto: (Boolean) -> Unit,
@@ -301,6 +302,15 @@ fun SettingsScreen(
             // Gestures Section
             item {
                 SettingsSectionHeader(title = "Gestures")
+            }
+
+            item {
+                SettingsSwitchRow(
+                    title = "Swipe down to refresh",
+                    subtitle = if (settings.swipeDownToRefresh) "Manually refresh Crypto, IDX, and Nouns data" else "Disabled",
+                    checked = settings.swipeDownToRefresh,
+                    onCheckedChange = onToggleSwipeDownToRefresh
+                )
             }
 
             item {
@@ -767,7 +777,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.16",
+                        text = "Nounish Launcher 1.0.17",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )

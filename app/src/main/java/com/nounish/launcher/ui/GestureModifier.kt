@@ -13,7 +13,9 @@ fun Modifier.launcherGestures(
     onSwipeRight: () -> Unit = {},
     onDoubleTap: () -> Unit = {},
     onLongPress: () -> Unit = {},
-    onTap: () -> Unit = {}
+    onTap: () -> Unit = {},
+    onPullDownDelta: ((Float) -> Unit)? = null,
+    onPullDownRelease: (() -> Unit)? = null
 ): Modifier = this
     .pointerInput(Unit) {
         detectTapGestures(
@@ -35,6 +37,7 @@ fun Modifier.launcherGestures(
             onDragEnd = {
                 val absX = abs(totalX)
                 val absY = abs(totalY)
+                onPullDownRelease?.invoke()
 
                 if (absY > absX && absY > swipeThreshold) {
                     if (totalY < -swipeThreshold) {
@@ -50,10 +53,19 @@ fun Modifier.launcherGestures(
                     }
                 }
             },
+            onDragCancel = {
+                onPullDownRelease?.invoke()
+            },
             onDrag = { change, dragAmount ->
                 change.consume()
                 totalX += dragAmount.x
                 totalY += dragAmount.y
+
+                if (totalY > 0f && abs(totalY) > abs(totalX)) {
+                    onPullDownDelta?.invoke(totalY)
+                } else if (totalY <= 0f) {
+                    onPullDownDelta?.invoke(0f)
+                }
             }
         )
     }

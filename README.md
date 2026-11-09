@@ -37,6 +37,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Separated Market & Community Views (Maximize Screen Space)**: Option to display Crypto, IDX Saham, and Nouns DAO simultaneously on the Home screen to maximize the generous middle screen area, with your choice of layout: **Stacked vertically** or **Multi-column** (Side by side).
   - **Auto-Rotating Carousel (Auto-Advance Slideshow)**: When separation is toggled off, the home center space smoothly alternates between active widgets (Crypto, IDX, Nouns DAO) with a configurable slide or crossfade transition, or manual tap switching via interactive tabs (`CRYPTO (USDT)` · `IDX SAHAM (IDR)` · `NOUNS DAO ⌐◨-◨`).
   - **Stale-Data Indicator**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`) so you always know when data was last updated.
+  - **Manual Refresh by Swiping Down (Breathing & Typing ⌐◨-◨)**: Swipe down anywhere on the Home screen to trigger an instantaneous refresh across all active market and community data (Binance Crypto, IDX Saham, and Nouns DAO). Features an organic pull interaction where the iconic `⌐◨-◨` glasses dynamically type out as your finger pulls down, accompanied by tactile haptic feedback. While data is being fetched, the glasses pulse with an organic breathing animation and character typing loop, finishing with an updated indicator and smooth spring retraction. Toggleable in Settings under Gestures.
   - Pinned apps (4–8 items) in large (`28 sp`) light-weight text, left-aligned for ergonomic one-handed thumb reach.
   - Quick action dialog on long-press to rename, unpin, or open system app settings.
   - Long-press background opens Settings.
@@ -60,7 +61,8 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Uses Android's native Storage Access Framework (`CreateDocument` and `OpenDocument`) with zero network transmission, perfectly fitting our offline and zero-telemetry architecture.
 - **Gestures**:
   - **Swipe up**: Open drawer
-  - **Swipe down**: Close drawer
+  - **Swipe down on Home**: Manually refresh Crypto, IDX, and Nouns data with breathing/typing `⌐◨-◨` indicator
+  - **Swipe down in Drawer**: Close drawer
   - **Swipe left / right**: Launch user-assigned quick apps
   - **Double-tap**: Screen lock
   - **Long-press**: Open Settings

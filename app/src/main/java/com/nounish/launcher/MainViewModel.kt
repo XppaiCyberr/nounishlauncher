@@ -320,6 +320,9 @@ class MainViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    private val _isRefreshingData = MutableStateFlow(false)
+    val isRefreshingData: StateFlow<Boolean> = _isRefreshingData.asStateFlow()
+
     private var priceJob: Job? = null
     private var wsSecondaryPollJob: Job? = null
     private var webSocketClient: BinanceWebSocketClient? = null
@@ -889,6 +892,88 @@ class MainViewModel(
         }
     }
 
+    fun refreshMarketAndNounsData() {
+        if (_isRefreshingData.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isRefreshingData.value = true
+            val startTime = System.currentTimeMillis()
+            try {
+                val currentSettings = settings.value
+
+                // 1. Fetch USD rate
+                launch { fetchUsdRate() }
+
+                // 2. Fetch IDX prices (if showHomeIdx)
+                if (currentSettings.showHomeIdx) {
+                    launch { fetchIdxPrices() }
+                }
+
+                // 3. Fetch Nouns proposals & candidates (if showHomeNouns)
+                if (currentSettings.showHomeNouns) {
+                    launch {
+                        fetchNounsProposals()
+                        fetchNounsCandidates()
+                    }
+                }
+
+                // 4. Fetch Binance Crypto prices & sparklines (if cryptoPriceEnabled)
+                if (currentSettings.cryptoPriceEnabled && currentSettings.cryptoSymbols.isNotEmpty()) {
+                    launch {
+                        val cachedSparks = currentSettings.cachedCryptoPrices.mapValues { it.value.sparkline }
+                        val result = priceRepository.fetchPrices(
+                            symbols = currentSettings.cryptoSymbols,
+                            quoteCurrency = currentSettings.cryptoQuoteCurrency,
+                            cachedSparklines = cachedSparks,
+                            fetchSparklines = true
+                        )
+                        result.onSuccess { newPrices ->
+                            consecutiveFailures = 0
+                            val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
+                            newPrices.forEach { (sym, ticker) ->
+                                updatedCache[sym] = CachedCoinPrice(
+                                    price = ticker.price,
+                                    changeText = ticker.formattedChange,
+                                    changePercent = ticker.changePercent,
+                                    highPrice = ticker.highPrice,
+                                    lowPrice = ticker.lowPrice,
+                                    timestamp = ticker.timestamp,
+                                    sparkline = ticker.sparkline
+                                )
+                            }
+                            settingsStore.updateCachedPrices(updatedCache)
+
+                            val symbols = currentSettings.cryptoSymbols
+                            val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
+                            val currentSymbol = (symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC").trim().uppercase(Locale.US)
+                            val ticker = newPrices[currentSymbol] ?: updatedCache[currentSymbol]?.let {
+                                CoinTicker(it.price, it.changePercent, it.changeText, it.highPrice, it.lowPrice, it.timestamp, it.sparkline)
+                            }
+
+                            _priceState.value = PriceUiState(
+                                coinSymbol = currentSymbol,
+                                priceText = ticker?.price ?: "--",
+                                changeText = ticker?.formattedChange ?: "",
+                                changePercent = ticker?.changePercent ?: 0.0,
+                                isStale = false,
+                                ageMarker = "",
+                                isLoading = false,
+                                sparkline = ticker?.sparkline ?: ""
+                            )
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+            } finally {
+                // Keep the indicator visible and breathing for at least 1100ms
+                val elapsed = System.currentTimeMillis() - startTime
+                if (elapsed < 1100L) {
+                    delay(1100L - elapsed)
+                }
+                _isRefreshingData.value = false
+            }
+        }
+    }
+
     fun cycleNextCryptoCoin() {
         val currentSettings = settings.value
         val symbols = currentSettings.cryptoSymbols
@@ -992,6 +1077,12 @@ class MainViewModel(
     fun setSwipeRight(keyOrPackage: String?) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setSwipeRightPackage(keyOrPackage)
+        }
+    }
+
+    fun setSwipeDownToRefresh(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setSwipeDownToRefresh(enabled)
         }
     }
 

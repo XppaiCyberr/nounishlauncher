@@ -9,7 +9,12 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -42,6 +47,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +56,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -69,6 +77,7 @@ import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
 import com.nounish.launcher.ui.theme.getFontScale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -118,7 +127,10 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
-    onDoubleTap: () -> Unit
+    onDoubleTap: () -> Unit,
+    isRefreshing: Boolean = false,
+    swipeDownToRefresh: Boolean = true,
+    onManualRefresh: () -> Unit = {}
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
@@ -162,6 +174,9 @@ fun HomeScreen(
     var appToRename by remember { mutableStateOf<AppItem?>(null) }
     var renameInputText by remember { mutableStateOf("") }
 
+    var pullDistancePx by remember { mutableFloatStateOf(0f) }
+    val haptic = LocalHapticFeedback.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -169,13 +184,37 @@ fun HomeScreen(
             .statusBarsPadding()
             .launcherGestures(
                 onSwipeUp = onOpenDrawer,
+                onSwipeDown = {
+                    if (swipeDownToRefresh) {
+                        try {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        } catch (_: Exception) {}
+                        onManualRefresh()
+                    }
+                },
                 onSwipeLeft = onSwipeLeft,
                 onSwipeRight = onSwipeRight,
                 onDoubleTap = onDoubleTap,
-                onLongPress = onOpenSettings
+                onLongPress = onOpenSettings,
+                onPullDownDelta = { delta ->
+                    if (swipeDownToRefresh) {
+                        pullDistancePx = delta
+                    }
+                },
+                onPullDownRelease = {
+                    pullDistancePx = 0f
+                }
             )
             .padding(horizontal = 24.dp)
     ) {
+        // Nounish Manual Refresh Indicator (breathing / animated typing ⌐◨-◨)
+        if (swipeDownToRefresh) {
+            NounishRefreshIndicator(
+                isRefreshing = isRefreshing,
+                pullDistancePx = pullDistancePx
+            )
+        }
+
         val currentNote = remember(noteIndex) {
             DEFAULT_PASSIVE_NOTES.getOrNull(noteIndex.coerceIn(0, DEFAULT_PASSIVE_NOTES.size - 1))
                 ?: DEFAULT_PASSIVE_NOTES.first()
@@ -1363,6 +1402,158 @@ private fun NounsCandidateList(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NounishRefreshIndicator(
+    isRefreshing: Boolean,
+    pullDistancePx: Float,
+    pullThresholdPx: Float = 160f,
+    modifier: Modifier = Modifier
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+
+    // Track when refresh just completed to show "updated" briefly before collapsing
+    var showUpdatedState by remember { mutableStateOf(false) }
+    var prevRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isRefreshing) {
+        if (!isRefreshing && prevRefreshing) {
+            showUpdatedState = true
+            delay(400L)
+            showUpdatedState = false
+        }
+        prevRefreshing = isRefreshing
+    }
+
+    val pullProgress = (pullDistancePx / pullThresholdPx).coerceIn(0f, 1f)
+
+    val targetHeight = when {
+        isRefreshing || showUpdatedState -> 56.dp
+        pullDistancePx > 0f -> (pullProgress * 56f).dp
+        else -> 0.dp
+    }
+
+    val animatedHeight by animateDpAsState(
+        targetValue = targetHeight,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "refreshHeight"
+    )
+
+    if (animatedHeight > 2.dp) {
+        // Breathing pulse animation for ⌐◨-◨
+        val infiniteTransition = rememberInfiniteTransition(label = "RefreshBreathing")
+        val breathScale by infiniteTransition.animateFloat(
+            initialValue = 0.93f,
+            targetValue = 1.12f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "breathScale"
+        )
+        val breathAlpha by infiniteTransition.animateFloat(
+            initialValue = 0.60f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "breathAlpha"
+        )
+
+        // Animated typing of ⌐◨-◨ while refreshing
+        var typingIndex by remember { mutableIntStateOf(3) }
+        var dotCount by remember { mutableIntStateOf(0) }
+
+        LaunchedEffect(isRefreshing) {
+            if (isRefreshing) {
+                while (isActive) {
+                    // Type glasses: ⌐ -> ⌐◨ -> ⌐◨- -> ⌐◨-◨
+                    for (i in 0..3) {
+                        typingIndex = i
+                        delay(100L)
+                    }
+                    // Hold full glasses and cycle typing dots while breathing
+                    for (d in 0..2) {
+                        dotCount = (dotCount + 1) % 4
+                        delay(220L)
+                    }
+                }
+            } else {
+                typingIndex = 3
+                dotCount = 0
+            }
+        }
+
+        val glassesText = when {
+            showUpdatedState -> "⌐◨-◨"
+            isRefreshing -> when (typingIndex) {
+                0 -> "⌐"
+                1 -> "⌐◨"
+                2 -> "⌐◨-"
+                else -> "⌐◨-◨"
+            }
+            pullProgress < 0.25f -> "⌐"
+            pullProgress < 0.50f -> "⌐◨"
+            pullProgress < 0.75f -> "⌐◨-"
+            else -> "⌐◨-◨"
+        }
+
+        val subText = when {
+            showUpdatedState -> "updated"
+            isRefreshing -> {
+                val dots = ".".repeat(dotCount)
+                "refreshing$dots"
+            }
+            pullProgress >= 1.0f -> "release to refresh"
+            else -> "pull to refresh"
+        }
+
+        val currentScale = if (isRefreshing) breathScale else (0.75f + pullProgress * 0.25f)
+        val currentAlpha = if (isRefreshing) breathAlpha else (0.3f + pullProgress * 0.7f)
+
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(animatedHeight)
+                .padding(top = 6.dp, bottom = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = glassesText,
+                    style = typography.drawerItem.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp
+                    ),
+                    color = colors.textPrimary,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = currentScale
+                        scaleY = currentScale
+                        alpha = currentAlpha
+                    }
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subText,
+                    style = typography.clock.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    color = if (showUpdatedState) CryptoGreen else colors.textSecondary.copy(alpha = 0.75f)
+                )
             }
         }
     }

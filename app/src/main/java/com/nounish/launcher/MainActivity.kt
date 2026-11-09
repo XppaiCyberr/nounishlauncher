@@ -106,6 +106,7 @@ class MainActivity : ComponentActivity() {
             val homeIdxCategories by viewModel.homeIdxCategories.collectAsState()
             val homeNounsList by viewModel.homeNounsList.collectAsState()
             val homeNounsCandidatesList by viewModel.homeNounsCandidatesList.collectAsState()
+            val isRefreshingData by viewModel.isRefreshingData.collectAsState()
 
             var currentScreen by remember { currentScreenState }
 
@@ -219,7 +220,10 @@ class MainActivity : ComponentActivity() {
                                         if (settings.doubleTapLock) {
                                             LockScreenService.lockScreen(this@MainActivity)
                                         }
-                                    }
+                                    },
+                                    isRefreshing = isRefreshingData,
+                                    swipeDownToRefresh = settings.swipeDownToRefresh,
+                                    onManualRefresh = { viewModel.refreshMarketAndNounsData() }
                                 )
                             }
 
@@ -292,6 +296,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleAutoLaunch = { viewModel.setAutoLaunchSingleMatch(it) },
                                     onSelectSwipeLeftApp = { viewModel.setSwipeLeft(it) },
                                     onSelectSwipeRightApp = { viewModel.setSwipeRight(it) },
+                                    onToggleSwipeDownToRefresh = { viewModel.setSwipeDownToRefresh(it) },
                                     onToggleDoubleTapLock = { viewModel.setDoubleTapLock(it) },
                                     onToggleCryptoEnabled = { viewModel.setCryptoPriceEnabled(it) },
                                     onToggleShowHomeCrypto = { viewModel.setShowHomeCrypto(it) },

@@ -75,6 +75,7 @@ data class LauncherSettings(
     val autoLaunchSingleMatch: Boolean = false,
     val swipeLeftPackage: String? = null,
     val swipeRightPackage: String? = null,
+    val swipeDownToRefresh: Boolean = true,
     val doubleTapLock: Boolean = false,
     val cryptoPriceEnabled: Boolean = true,
     val cryptoSymbols: List<String> = listOf("BTC", "ETH", "SOL"),
@@ -139,6 +140,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_AUTO_LAUNCH = booleanPreferencesKey("auto_launch_single_match")
         private val KEY_SWIPE_LEFT = stringPreferencesKey("swipe_left_package")
         private val KEY_SWIPE_RIGHT = stringPreferencesKey("swipe_right_package")
+        private val KEY_SWIPE_DOWN_TO_REFRESH = booleanPreferencesKey("swipe_down_to_refresh")
         private val KEY_DOUBLE_TAP_LOCK = booleanPreferencesKey("double_tap_lock")
         private val KEY_CRYPTO_ENABLED = booleanPreferencesKey("crypto_price_enabled")
         private val KEY_CRYPTO_SYMBOLS = stringPreferencesKey("crypto_symbols")
@@ -207,6 +209,7 @@ class SettingsStore(private val context: Context) {
         val autoLaunch = prefs[KEY_AUTO_LAUNCH] ?: false
         val swipeLeft = prefs[KEY_SWIPE_LEFT]?.takeIf { it.isNotBlank() }
         val swipeRight = prefs[KEY_SWIPE_RIGHT]?.takeIf { it.isNotBlank() }
+        val swipeDownToRefresh = prefs[KEY_SWIPE_DOWN_TO_REFRESH] ?: true
         val doubleTap = prefs[KEY_DOUBLE_TAP_LOCK] ?: false
         val cryptoEnabled = prefs[KEY_CRYPTO_ENABLED] ?: true
 
@@ -277,6 +280,7 @@ class SettingsStore(private val context: Context) {
             autoLaunchSingleMatch = autoLaunch,
             swipeLeftPackage = swipeLeft,
             swipeRightPackage = swipeRight,
+            swipeDownToRefresh = swipeDownToRefresh,
             doubleTapLock = doubleTap,
             cryptoPriceEnabled = cryptoEnabled,
             cryptoSymbols = symbolsList,
@@ -424,6 +428,10 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setSwipeRightPackage(packageName: String?) {
         context.dataStore.edit { it[KEY_SWIPE_RIGHT] = packageName ?: "" }
+    }
+
+    suspend fun setSwipeDownToRefresh(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SWIPE_DOWN_TO_REFRESH] = enabled }
     }
 
     suspend fun setDoubleTapLock(enabled: Boolean) {
@@ -687,6 +695,7 @@ class SettingsStore(private val context: Context) {
 
         root.put("swipeLeftPackage", settings.swipeLeftPackage ?: "")
         root.put("swipeRightPackage", settings.swipeRightPackage ?: "")
+        root.put("swipeDownToRefresh", settings.swipeDownToRefresh)
         root.put("doubleTapLock", settings.doubleTapLock)
 
         root.put("cryptoPriceEnabled", settings.cryptoPriceEnabled)
@@ -769,6 +778,7 @@ class SettingsStore(private val context: Context) {
 
                 if (root.has("swipeLeftPackage")) prefs[KEY_SWIPE_LEFT] = root.getString("swipeLeftPackage")
                 if (root.has("swipeRightPackage")) prefs[KEY_SWIPE_RIGHT] = root.getString("swipeRightPackage")
+                if (root.has("swipeDownToRefresh")) prefs[KEY_SWIPE_DOWN_TO_REFRESH] = root.getBoolean("swipeDownToRefresh")
                 if (root.has("doubleTapLock")) prefs[KEY_DOUBLE_TAP_LOCK] = root.getBoolean("doubleTapLock")
 
                 if (root.has("cryptoPriceEnabled")) prefs[KEY_CRYPTO_ENABLED] = root.getBoolean("cryptoPriceEnabled")
