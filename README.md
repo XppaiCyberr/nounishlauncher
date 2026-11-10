@@ -45,7 +45,9 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Swipe up from Home to open instant search.
   - Zero icon loading: uses direct `PackageManager` labels for sub-millisecond load times and minimal RAM usage.
   - Real-time search filter with optional **Auto-launch** on single match.
+  - **Inline Minimalist Calculator**: Type arithmetic expressions directly into the search bar (e.g. `125 * 8`, `45000 / 12`, `(15 + 5) * 4`, `25% * 80`) to calculate instantly. Shows a clean `= <result>` banner above apps with one-tap copy to clipboard and tactile haptic feedback.
   - Search matches both original system names and custom labels.
+  - **Deep App Shortcuts (Android 7.1+)**: Long-pressing any app on Home or Drawer asynchronously queries dynamic and manifest shortcuts via native `LauncherApps.getShortcuts()` (e.g. Chrome's "New Tab", messaging shortcuts). Displayed as clean AMOLED text rows above standard options.
   - **Bottom Search Bar Option**: Choose whether the search input bar (and live USD/IDR ticker) is anchored at the **Top** or **Bottom** of the drawer for optimal one-handed reachability on modern tall screens.
   - **Live USD/IDR Rate**: Real-time USD to Indonesian Rupiah exchange rate inside the drawer with one-tap tactile refresh and stale-data indicators. Toggleable in Settings.
   - **Alphabetical Fast-Scroll Index**: Vertical `A–Z` + `#` index scrubber with tactile haptic feedback.
@@ -174,8 +176,8 @@ For step-by-step Google Play publishing requirements, package visibility complia
 ### Automated CI / GitHub Releases
 A GitHub Actions workflow (`.github/workflows/release.yml`) automatically builds the signed, minified release APK and attaches it to GitHub Releases whenever a git tag is pushed:
 ```bash
-git tag v1.0.19
-git push origin v1.0.19
+git tag v1.0.20
+git push origin v1.0.20
 ```
 
 ---

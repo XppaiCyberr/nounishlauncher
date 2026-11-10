@@ -93,6 +93,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Minimalist search input at the top filters apps in real time as you type.
   - Searches through both original app labels and user custom labels.
   - **Auto-Launch (Optional)**: Automatically launches the app when search results narrow down to exactly 1 match.
+  - **Inline Minimalist Calculator**: Type arithmetic expressions directly into the search bar (125 * 8, 45000 / 12, (15 + 5) * 4, 25% * 80) to calculate in real time. Displays a clean = <result> banner above results with one-tap copy to clipboard and tactile haptic feedback.
 - **Live USD/IDR Exchange Rate (Top Right)**:
   - Displays the live USD to Indonesian Rupiah exchange rate at the top right of the drawer (e.g. `USD 18,142` with 24h percentage change).
   - Fetched via Binance public market feeds (`USDTIDR` / `USDTBIDR`) with automated fallback to `open.er-api.com` and offline DataStore caching.
@@ -114,6 +115,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Organic Spring Physics**: When released, the list gently springs back to baseline with a physics-based spring animation.
   - **Animation Toggle**: Option in Settings to disable the wave animation for a static, zero-motion list.
 - **App Context Menu (Long-Press on any item)**:
+  - **Deep App Shortcuts (Android 7.1+)**: Asynchronously queries dynamic and manifest shortcuts via LauncherApps.getShortcuts(). Rendered as clean AMOLED text rows above standard actions for instant direct launching.
   - **Rename App**: Assign a custom alias or label (e.g. "Chrome" -> "web"). Includes a one-tap Reset to default option.
   - **Pin to Home / Unpin from Home**
   - **Hide App / Unhide App**
