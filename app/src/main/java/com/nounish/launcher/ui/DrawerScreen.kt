@@ -13,14 +13,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -81,6 +86,7 @@ fun DrawerScreen(
     showAppIcons: Boolean = true,
     monochromeIcons: Boolean = true,
     fontSize: String = "medium",
+    searchBarAtBottom: Boolean = false,
     onSearchQueryChange: (String) -> Unit,
     onAppClick: (AppItem) -> Unit,
     onTogglePinApp: (AppItem) -> Unit,
@@ -141,97 +147,104 @@ fun DrawerScreen(
             .fillMaxSize()
             .background(colors.background)
             .statusBarsPadding()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
             .launcherGestures(
                 onSwipeDown = onCloseDrawer
             )
             .padding(horizontal = 20.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Top Bar: Search field on the left, Crypto price on the right
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Search Input Field
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.CenterStart
+            val searchBarContent: @Composable () -> Unit = {
+                // Search field on the left, Crypto price on the right
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    if (searchQuery.isEmpty()) {
-                        Text(
-                            text = "Search apps...",
-                            style = typography.searchInput,
-                            color = colors.textSecondary.copy(alpha = 0.5f)
-                        )
-                    }
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                        textStyle = typography.searchInput.copy(color = colors.textPrimary),
-                        cursorBrush = SolidColor(colors.textPrimary),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(
-                            onSearch = {
-                                focusManager.clearFocus()
-                                if (apps.isNotEmpty()) {
-                                    onAppClick(apps.first())
-                                }
-                            }
-                        )
-                    )
-                }
-
-                // USD Rate in IDR with 24h percentage change & stale-data indicator
-                if (cryptoPriceEnabled && usdRateState.isNotEmpty) {
-                    val haptic = LocalHapticFeedback.current
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clickable(onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onRefreshUsdRate()
-                            })
-                            .padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
-                            .graphicsLayer {
-                                alpha = if (usdRateState.isStale) 0.55f else 1.0f
-                            }
+                    // Search Input Field
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(
-                            text = "${usdRateState.coinSymbol} ${usdRateState.priceText}",
-                            style = typography.priceLabel,
-                            color = colors.textSecondary
-                        )
-                        if (usdRateState.changeText.isNotEmpty()) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            val changeColor = if (usdRateState.changePercent >= 0.0) CryptoGreen else CryptoRed
+                        if (searchQuery.isEmpty()) {
                             Text(
-                                text = usdRateState.changeText,
-                                style = typography.priceLabel,
-                                color = changeColor
+                                text = "Search apps...",
+                                style = typography.searchInput,
+                                color = colors.textSecondary.copy(alpha = 0.5f)
                             )
                         }
-                        if (usdRateState.isStale && usdRateState.ageMarker.isNotEmpty()) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = usdRateState.ageMarker,
-                                style = typography.priceLabel,
-                                color = colors.textSecondary.copy(alpha = 0.6f)
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
+                            textStyle = typography.searchInput.copy(color = colors.textPrimary),
+                            cursorBrush = SolidColor(colors.textPrimary),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = {
+                                    focusManager.clearFocus()
+                                    if (apps.isNotEmpty()) {
+                                        onAppClick(apps.first())
+                                    }
+                                }
                             )
+                        )
+                    }
+
+                    // USD Rate in IDR with 24h percentage change & stale-data indicator
+                    if (cryptoPriceEnabled && usdRateState.isNotEmpty) {
+                        val haptic = LocalHapticFeedback.current
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clickable(onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onRefreshUsdRate()
+                                })
+                                .padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
+                                .graphicsLayer {
+                                    alpha = if (usdRateState.isStale) 0.55f else 1.0f
+                                }
+                        ) {
+                            Text(
+                                text = "${usdRateState.coinSymbol} ${usdRateState.priceText}",
+                                style = typography.priceLabel,
+                                color = colors.textSecondary
+                            )
+                            if (usdRateState.changeText.isNotEmpty()) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                val changeColor = if (usdRateState.changePercent >= 0.0) CryptoGreen else CryptoRed
+                                Text(
+                                    text = usdRateState.changeText,
+                                    style = typography.priceLabel,
+                                    color = changeColor
+                                )
+                            }
+                            if (usdRateState.isStale && usdRateState.ageMarker.isNotEmpty()) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = usdRateState.ageMarker,
+                                    style = typography.priceLabel,
+                                    color = colors.textSecondary.copy(alpha = 0.6f)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (!searchBarAtBottom) {
+                Spacer(modifier = Modifier.height(16.dp))
+                searchBarContent()
+                Spacer(modifier = Modifier.height(16.dp))
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Main Content: Alphabet Index + Niagara-style Animated App List
             if (apps.isEmpty()) {
@@ -429,7 +442,13 @@ fun DrawerScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (searchBarAtBottom) {
+                Spacer(modifier = Modifier.height(12.dp))
+                searchBarContent()
+                Spacer(modifier = Modifier.height(12.dp))
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 

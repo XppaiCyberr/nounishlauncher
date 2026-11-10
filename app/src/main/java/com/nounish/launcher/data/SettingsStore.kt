@@ -108,6 +108,7 @@ data class LauncherSettings(
     val currentCryptoIndex: Int = 0,
     val alphabetIndexOnRight: Boolean = false,
     val enableIndexAnimation: Boolean = true,
+    val searchBarAtBottom: Boolean = false,
     val showCornerText: Boolean = true,
     val cornerText: String = "xppaicyber",
     val marketCurrencyFormat: String = "suffix", // "suffix", "prefix", "none"
@@ -161,6 +162,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_CRYPTO_INDEX = intPreferencesKey("current_crypto_index")
         private val KEY_INDEX_ON_RIGHT = booleanPreferencesKey("alphabet_index_on_right")
         private val KEY_ENABLE_INDEX_ANIMATION = booleanPreferencesKey("enable_index_animation")
+        private val KEY_SEARCH_BAR_AT_BOTTOM = booleanPreferencesKey("search_bar_at_bottom")
         private val KEY_SHOW_HOME_IDX = booleanPreferencesKey("show_home_idx")
         private val KEY_IDX_DISPLAY_MODE = stringPreferencesKey("idx_display_mode")
         private val KEY_IDX_SYMBOLS = stringPreferencesKey("idx_symbols")
@@ -235,6 +237,7 @@ class SettingsStore(private val context: Context) {
         val cryptoIndex = prefs[KEY_CRYPTO_INDEX] ?: 0
         val indexOnRight = prefs[KEY_INDEX_ON_RIGHT] ?: false
         val indexAnimation = prefs[KEY_ENABLE_INDEX_ANIMATION] ?: true
+        val searchBarAtBottom = prefs[KEY_SEARCH_BAR_AT_BOTTOM] ?: false
 
         val showHomeIdx = prefs[KEY_SHOW_HOME_IDX] ?: true
         val idxDisplayMode = prefs[KEY_IDX_DISPLAY_MODE] ?: "auto_rotate"
@@ -313,6 +316,7 @@ class SettingsStore(private val context: Context) {
             currentCryptoIndex = cryptoIndex,
             alphabetIndexOnRight = indexOnRight,
             enableIndexAnimation = indexAnimation,
+            searchBarAtBottom = searchBarAtBottom,
             showCornerText = showCornerText,
             cornerText = cornerText,
             marketCurrencyFormat = marketCurrencyFormat,
@@ -579,6 +583,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_ENABLE_INDEX_ANIMATION] = enabled }
     }
 
+    suspend fun setSearchBarAtBottom(atBottom: Boolean) {
+        context.dataStore.edit { it[KEY_SEARCH_BAR_AT_BOTTOM] = atBottom }
+    }
+
     suspend fun setShowCornerText(show: Boolean) {
         context.dataStore.edit { it[KEY_SHOW_CORNER_TEXT] = show }
     }
@@ -724,6 +732,7 @@ class SettingsStore(private val context: Context) {
         root.put("monochromeIcons", settings.monochromeIcons)
         root.put("alphabetIndexOnRight", settings.alphabetIndexOnRight)
         root.put("enableIndexAnimation", settings.enableIndexAnimation)
+        root.put("searchBarAtBottom", settings.searchBarAtBottom)
         root.put("showCornerText", settings.showCornerText)
         root.put("cornerText", settings.cornerText)
         root.put("marketCurrencyFormat", settings.marketCurrencyFormat)
@@ -817,6 +826,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("monochromeIcons")) prefs[KEY_MONOCHROME_ICONS] = root.getBoolean("monochromeIcons")
                 if (root.has("alphabetIndexOnRight")) prefs[KEY_INDEX_ON_RIGHT] = root.getBoolean("alphabetIndexOnRight")
                 if (root.has("enableIndexAnimation")) prefs[KEY_ENABLE_INDEX_ANIMATION] = root.getBoolean("enableIndexAnimation")
+                if (root.has("searchBarAtBottom")) prefs[KEY_SEARCH_BAR_AT_BOTTOM] = root.getBoolean("searchBarAtBottom")
                 if (root.has("showCornerText")) prefs[KEY_SHOW_CORNER_TEXT] = root.getBoolean("showCornerText")
                 if (root.has("cornerText")) prefs[KEY_CORNER_TEXT] = root.getString("cornerText")
                 if (root.has("marketCurrencyFormat")) prefs[KEY_MARKET_CURRENCY_FORMAT] = root.getString("marketCurrencyFormat")

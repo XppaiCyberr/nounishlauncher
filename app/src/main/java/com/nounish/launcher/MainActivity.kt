@@ -241,6 +241,7 @@ class MainActivity : ComponentActivity() {
                                     showAppIcons = settings.showAppIcons,
                                     monochromeIcons = settings.monochromeIcons,
                                     fontSize = settings.fontSize,
+                                    searchBarAtBottom = settings.searchBarAtBottom,
                                     onSearchQueryChange = { query ->
                                         viewModel.onSearchQueryChanged(query)
                                     },
@@ -325,6 +326,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleMonochromeIcons = { viewModel.setMonochromeIcons(it) },
                                     onToggleIndexOnRight = { viewModel.setAlphabetIndexOnRight(it) },
                                     onToggleIndexAnimation = { viewModel.setIndexAnimationEnabled(it) },
+                                    onToggleSearchBarAtBottom = { viewModel.setSearchBarAtBottom(it) },
                                     onReorderPinnedApps = { viewModel.reorderPinnedApps(it) },
                                     onUnpinApp = { id ->
                                         viewModel.unpinAppById(id)

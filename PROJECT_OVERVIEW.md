@@ -234,6 +234,7 @@ Accessible by long-pressing any empty area on the Home screen. The Settings expe
      - `Double tap to lock screen`: Toggle double-tap screen lock.
    - `App Drawer`:
      - `Auto-launch on single match`: Instantly opens an app when search results narrow to 1.
+     - `Search bar at bottom`: Moves the search input and live USD/IDR ticker to the bottom of the drawer for optimal one-handed reachability.
      - `Alphabet index on right`: Places the alphabetical scrubber on the right edge (default: left).
      - `Alphabet index animation`: Enables/disables the Niagara-style fluid wave animation.
 

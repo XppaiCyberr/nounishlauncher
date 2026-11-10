@@ -1224,6 +1224,12 @@ class MainViewModel(
         }
     }
 
+    fun setSearchBarAtBottom(atBottom: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setSearchBarAtBottom(atBottom)
+        }
+    }
+
     fun setShowDrawerUsdRate(show: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowDrawerUsdRate(show)

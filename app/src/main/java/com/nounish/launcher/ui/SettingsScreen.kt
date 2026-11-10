@@ -111,6 +111,7 @@ fun SettingsScreen(
     onToggleMonochromeIcons: (Boolean) -> Unit,
     onToggleIndexOnRight: (Boolean) -> Unit,
     onToggleIndexAnimation: (Boolean) -> Unit,
+    onToggleSearchBarAtBottom: (Boolean) -> Unit = {},
     onReorderPinnedApps: (List<String>) -> Unit,
     onUnpinApp: (String) -> Unit,
     onUnhideApp: (String) -> Unit,
@@ -484,6 +485,15 @@ fun SettingsScreen(
                                         subtitle = "Instantly open app when search yields 1 result",
                                         checked = settings.autoLaunchSingleMatch,
                                         onCheckedChange = onToggleAutoLaunch
+                                    )
+                                }
+
+                                item {
+                                    SettingsSwitchRow(
+                                        title = "Search bar at bottom",
+                                        subtitle = if (settings.searchBarAtBottom) "Search bar placed at bottom for one-handed reach" else "Search bar placed at top",
+                                        checked = settings.searchBarAtBottom,
+                                        onCheckedChange = onToggleSearchBarAtBottom
                                     )
                                 }
 
