@@ -26,6 +26,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,6 +72,7 @@ import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.data.NounsCandidateUi
 import com.nounish.launcher.data.NounsProposalUi
 import com.nounish.launcher.model.AppItem
+import com.nounish.launcher.model.AppShortcut
 import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
 import com.nounish.launcher.model.PassiveNote
 import com.nounish.launcher.service.NotificationHelper
@@ -124,6 +127,8 @@ fun HomeScreen(
     onAppInfoClick: (AppItem) -> Unit,
     onUnpinApp: (AppItem) -> Unit,
     onRenameApp: (AppItem, String?) -> Unit,
+    onLoadShortcuts: suspend (AppItem) -> List<AppShortcut> = { emptyList() },
+    onShortcutClick: (AppShortcut) -> Unit = {},
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     onSwipeLeft: () -> Unit,
@@ -172,8 +177,22 @@ fun HomeScreen(
     }
 
     var selectedAppForDialog by remember { mutableStateOf<AppItem?>(null) }
+    var homeShortcuts by remember(selectedAppForDialog) { mutableStateOf<List<AppShortcut>>(emptyList()) }
     var appToRename by remember { mutableStateOf<AppItem?>(null) }
     var renameInputText by remember { mutableStateOf("") }
+
+    LaunchedEffect(selectedAppForDialog) {
+        val app = selectedAppForDialog
+        homeShortcuts = if (app != null) {
+            try {
+                onLoadShortcuts(app)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
 
     var pullDistancePx by remember { mutableFloatStateOf(0f) }
     val haptic = LocalHapticFeedback.current
@@ -765,7 +784,38 @@ fun HomeScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Deep app shortcuts (e.g. Chrome's "New Tab", WhatsApp's recent chats)
+                    if (homeShortcuts.isNotEmpty()) {
+                        homeShortcuts.forEach { shortcut ->
+                            Text(
+                                text = shortcut.label,
+                                style = typography.settingsItem,
+                                color = colors.textPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onShortcutClick(shortcut)
+                                        selectedAppForDialog = null
+                                    }
+                                    .padding(vertical = 12.dp)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .height(0.5.dp)
+                                .background(colors.border)
+                        )
+                    }
+
                     Text(
                         text = "Rename",
                         style = typography.settingsItem,

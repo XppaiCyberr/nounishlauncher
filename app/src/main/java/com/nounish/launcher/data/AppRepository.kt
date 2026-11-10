@@ -11,12 +11,14 @@ import android.os.UserHandle
 import android.provider.Settings
 import android.widget.Toast
 import com.nounish.launcher.model.AppItem
+import com.nounish.launcher.model.AppShortcut
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -279,6 +281,139 @@ class AppRepository(
             context.startActivity(intent)
         } catch (e: Exception) {
             Toast.makeText(context, "Cannot uninstall app", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Queries deep shortcuts (dynamic, manifest, and pinned) for the given [AppItem].
+     * Returns a list of enabled shortcuts sorted by rank, up to 5 items.
+     * Safely checks shortcut host permission and catches any exceptions.
+     */
+    fun getShortcuts(item: AppItem): List<AppShortcut> {
+        val lApps = launcherApps ?: return emptyList()
+        return try {
+            if (!lApps.hasShortcutHostPermission()) {
+                return emptyList()
+            }
+            val user = item.userHandle ?: try {
+                Process.myUserHandle()
+            } catch (_: Exception) {
+                null
+            } ?: return emptyList()
+
+            val query = LauncherApps.ShortcutQuery().apply {
+                setPackage(item.packageName)
+                setQueryFlags(
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or
+                    LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED
+                )
+            }
+
+            val shortcuts = lApps.getShortcuts(query, user) ?: return emptyList()
+            shortcuts
+                .filter { it.isEnabled }
+                .sortedWith(compareBy({ it.rank }, { it.id }))
+                .map { info ->
+                    val short = info.shortLabel?.toString()?.trim()
+                    val long = info.longLabel?.toString()?.trim()
+                    val label = when {
+                        !short.isNullOrBlank() -> short
+                        !long.isNullOrBlank() -> long
+                        else -> info.id
+                    }
+                    val shortcutUser = try { info.userHandle } catch (_: Exception) { user }
+                    AppShortcut(
+                        id = info.id,
+                        packageName = item.packageName,
+                        label = label,
+                        shortLabel = short,
+                        longLabel = long,
+                        rank = info.rank,
+                        isEnabled = info.isEnabled,
+                        disabledMessage = info.disabledMessage?.toString(),
+                        userHandle = shortcutUser
+                    )
+                }
+                .distinctBy { it.id }
+                .take(5)
+        } catch (_: SecurityException) {
+            emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Asynchronously loads deep shortcuts on Dispatchers.IO.
+     */
+    suspend fun loadShortcuts(item: AppItem): List<AppShortcut> = withContext(Dispatchers.IO) {
+        getShortcuts(item)
+    }
+
+    /**
+     * Launches an app deep shortcut safely via LauncherApps.
+     */
+    fun launchShortcut(shortcut: AppShortcut) {
+        try {
+            val lApps = launcherApps
+            if (lApps == null) {
+                Toast.makeText(context, "Launcher service unavailable", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val user = shortcut.userHandle ?: try {
+                Process.myUserHandle()
+            } catch (_: Exception) {
+                null
+            }
+            if (user == null) {
+                Toast.makeText(context, "Cannot resolve user profile", Toast.LENGTH_SHORT).show()
+                return
+            }
+            lApps.startShortcut(
+                shortcut.packageName,
+                shortcut.id,
+                null,
+                null,
+                user
+            )
+        } catch (e: SecurityException) {
+            Toast.makeText(context, "Permission denied launching shortcut", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Cannot launch shortcut: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Launches a shortcut given its package, id, and optional user handle.
+     */
+    fun launchShortcut(packageName: String, shortcutId: String, userHandle: UserHandle? = null) {
+        try {
+            val lApps = launcherApps
+            if (lApps == null) {
+                Toast.makeText(context, "Launcher service unavailable", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val user = userHandle ?: try {
+                Process.myUserHandle()
+            } catch (_: Exception) {
+                null
+            }
+            if (user == null) {
+                Toast.makeText(context, "Cannot resolve user profile", Toast.LENGTH_SHORT).show()
+                return
+            }
+            lApps.startShortcut(
+                packageName,
+                shortcutId,
+                null,
+                null,
+                user
+            )
+        } catch (e: SecurityException) {
+            Toast.makeText(context, "Permission denied launching shortcut", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Cannot launch shortcut: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
         }
     }
 }

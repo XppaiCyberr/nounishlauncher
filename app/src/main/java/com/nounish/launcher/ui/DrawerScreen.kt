@@ -29,9 +29,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,11 +62,13 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.PriceUiState
 import com.nounish.launcher.model.AppItem
+import com.nounish.launcher.model.AppShortcut
 import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
@@ -95,7 +99,9 @@ fun DrawerScreen(
     onAppInfoClick: (AppItem) -> Unit,
     onUninstallClick: (AppItem) -> Unit,
     onRefreshUsdRate: () -> Unit,
-    onCloseDrawer: () -> Unit
+    onCloseDrawer: () -> Unit,
+    onLoadShortcuts: suspend (AppItem) -> List<AppShortcut> = { emptyList() },
+    onShortcutClick: (AppShortcut) -> Unit = {}
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
@@ -106,8 +112,22 @@ fun DrawerScreen(
     val density = LocalDensity.current
 
     var selectedAppForMenu by remember { mutableStateOf<AppItem?>(null) }
+    var menuShortcuts by remember(selectedAppForMenu) { mutableStateOf<List<AppShortcut>>(emptyList()) }
     var appToRename by remember { mutableStateOf<AppItem?>(null) }
     var renameInputText by remember { mutableStateOf("") }
+
+    LaunchedEffect(selectedAppForMenu) {
+        val app = selectedAppForMenu
+        menuShortcuts = if (app != null) {
+            try {
+                onLoadShortcuts(app)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
 
     val alphabet = remember { ('A'..'Z').toList() + listOf('#') }
     val activeLetters = remember(apps) {
@@ -468,7 +488,39 @@ fun DrawerScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Deep app shortcuts (e.g. Chrome's "New Tab", WhatsApp's recent chats)
+                    if (menuShortcuts.isNotEmpty()) {
+                        menuShortcuts.forEach { shortcut ->
+                            Text(
+                                text = shortcut.label,
+                                style = typography.settingsItem,
+                                color = colors.textPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onShortcutClick(shortcut)
+                                        selectedAppForMenu = null
+                                        onCloseDrawer()
+                                    }
+                                    .padding(vertical = 12.dp)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .height(0.5.dp)
+                                .background(colors.border)
+                        )
+                    }
+
                     Text(
                         text = "Rename app",
                         style = typography.settingsItem,

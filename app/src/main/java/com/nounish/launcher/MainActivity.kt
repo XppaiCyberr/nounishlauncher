@@ -199,6 +199,12 @@ class MainActivity : ComponentActivity() {
                                     onRenameApp = { app, newLabel ->
                                         viewModel.setAppCustomLabel(app, newLabel)
                                     },
+                                    onLoadShortcuts = { app ->
+                                        viewModel.appRepository.loadShortcuts(app)
+                                    },
+                                    onShortcutClick = { shortcut ->
+                                        viewModel.appRepository.launchShortcut(shortcut)
+                                    },
                                     onOpenDrawer = {
                                         viewModel.onSearchQueryChanged("")
                                         currentScreen = Screen.Drawer
@@ -278,6 +284,12 @@ class MainActivity : ComponentActivity() {
                                     onCloseDrawer = {
                                         viewModel.onSearchQueryChanged("")
                                         currentScreen = Screen.Home
+                                    },
+                                    onLoadShortcuts = { app ->
+                                        viewModel.appRepository.loadShortcuts(app)
+                                    },
+                                    onShortcutClick = { shortcut ->
+                                        viewModel.appRepository.launchShortcut(shortcut)
                                     }
                                 )
                             }
