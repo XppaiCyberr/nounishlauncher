@@ -37,7 +37,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Separated Market & Community Views (Maximize Screen Space)**: Option to display Crypto, IDX Saham, and Nouns DAO simultaneously on the Home screen to maximize the generous middle screen area, with your choice of layout: **Stacked vertically** or **Multi-column** (Side by side).
   - **Auto-Rotating Carousel (Auto-Advance Slideshow)**: When separation is toggled off, the home center space smoothly alternates between active widgets (Crypto, IDX, Nouns DAO) with a configurable slide or crossfade transition, or manual tap switching via interactive tabs (`CRYPTO (USDT)` · `IDX SAHAM (IDR)` · `NOUNS DAO ⌐◨-◨`).
   - **Stale-Data Indicator**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`) so you always know when data was last updated.
-  - **Manual Refresh by Swiping Down (Breathing & Typing ⌐◨-◨)**: Swipe down anywhere on the Home screen to trigger an instantaneous refresh across all active market and community data (Binance Crypto, IDX Saham, and Nouns DAO). When enabled in Settings, automatic background polling is turned off to eliminate battery and network overhead; feeds update strictly on demand when swiping down. When disabled, automatic background polling remains active (every 15s–60s). Features an organic pull interaction where the iconic `⌐◨-◨` glasses dynamically type out as your finger pulls down, accompanied by tactile haptic feedback. While data is being fetched, the glasses pulse with an organic breathing animation and character typing loop, finishing with an updated indicator and smooth spring retraction.
+  - **Manual Refresh by Swiping Down (Breathing & Typing ⌐◨-◨)**: Swipe down anywhere on the Home screen to trigger an instantaneous refresh across all active market and community data (Binance Crypto, IDX Saham, and Nouns DAO). When enabled in Settings, automatic background polling is turned off to eliminate battery and network overhead; feeds update strictly on demand when swiping down. When disabled, automatic background polling remains active (every 15s–60s). Features an organic pull interaction where the iconic `⌐◨-◨` glasses dynamically type out as your finger pulls down, accompanied by tactile haptic feedback. While data is being fetched, the glasses pulse with an organic breathing animation and character typing loop, finishing with an updated indicator and smooth spring retraction. Toggleable in Settings under Gestures.
   - Pinned apps (4–8 items) in large (`28 sp`) light-weight text, left-aligned for ergonomic one-handed thumb reach.
   - Quick action dialog on long-press to rename, unpin, or open system app settings.
   - Long-press background opens Settings.
@@ -88,7 +88,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Storage**: Jetpack DataStore Preferences
 - **Document Management**: Android Storage Access Framework (SAF) for offline JSON backup/restore
 - **Networking**: Native `HttpURLConnection` and custom zero-dependency RFC 6455 `BinanceWebSocketClient` (zero bulky external libraries)
-- **Footprint**: **~1.05 MB** optimized release APK with R8 minification and resource shrinking
+- **Footprint**: **~1.08 MB** optimized release APK with R8 minification and resource shrinking
 
 ---
 
@@ -135,6 +135,7 @@ nounishlauncher/
 ├── build.gradle.kts                             # Root Gradle build script
 ├── settings.gradle.kts                          # Module inclusion & repository management
 ├── gradle.properties                            # JVM memory allocation & AndroidX settings
+├── PLAY_STORE_COMPLIANCE_GUIDE.md               # Google Play Store compliance, package visibility & publishing guide
 └── PROJECT_OVERVIEW.md                          # In-depth architectural & technical documentation
 ```
 
@@ -158,20 +159,29 @@ Output: `app/build/outputs/apk/debug/app-debug.apk`
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.05 MB**)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.08 MB**)
+
+### Build Android App Bundle (.aab) for Google Play
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat bundleRelease
+```
+Output: `app/build/outputs/bundle/release/app-release.aab`
+
+For step-by-step Google Play publishing requirements, package visibility compliance, Data Safety declarations, and privacy policy templates, see [PLAY_STORE_COMPLIANCE_GUIDE.md](PLAY_STORE_COMPLIANCE_GUIDE.md).
 
 ### Automated CI / GitHub Releases
 A GitHub Actions workflow (`.github/workflows/release.yml`) automatically builds the signed, minified release APK and attaches it to GitHub Releases whenever a git tag is pushed:
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.18
+git push origin v1.0.18
 ```
 
 ---
 
 ## Privacy & Permissions
 
-- **INTERNET**: Used solely for the public Binance market ticker. Completely inert when crypto features are toggled off in Settings.
+- **INTERNET**: Used solely for optional public market tickers (Binance public market data, IDX mirror, and Nouns DAO feeds). Completely inert when crypto, IDX, and Nouns features are toggled off.
 - **ACCESS_NETWORK_STATE**: Used strictly on-device to check for mobile data vs Wi-Fi to stretch polling intervals.
-- **QUERY_ALL_PACKAGES / CATEGORY_LAUNCHER**: Used strictly on-device to query installed apps for the drawer.
+- **Package Visibility (`<queries>`)**: Uses Android 11+ `<queries>` matching `CATEGORY_LAUNCHER` and `LauncherApps` API. Does not request broad `QUERY_ALL_PACKAGES` permission, ensuring full compliance with Google Play Store policies.
 - **Zero tracking, zero analytics, zero external logging, zero telemetry.**
