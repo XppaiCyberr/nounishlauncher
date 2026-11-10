@@ -219,45 +219,63 @@ nounishlauncher/
 
 ## Configuration & Settings Guide
 
-Accessible by long-pressing any empty area on the Home screen:
+Accessible by long-pressing any empty area on the Home screen. The Settings experience is organized into a modular Settings Hub with direct category selector pills (`General` · `Crypto` · `IDX` · `Nouns` · `Theme` · `Layout` · `Apps`) and nested back gesture navigation:
 
-1. **Home Screen**:
-   - `Show clock`: Toggle time in top-left corner.
-   - `Show date`: Toggle date below the clock.
-   - `Corner text`: Toggle custom text display in the bottom-right corner.
-   - `Custom corner text`: Edit the corner text string (default: `xppaicyber`) or reset to default.
-   - `Passive learning note`: Toggle passive learning card in top-right corner (features Nounish `⌐◨-◨` ethos, crypto slang, closeable with `x`, and tap to cycle).
-2. **App Drawer**:
-   - `Auto-launch on single match`: Instantly opens an app when search results narrow to 1.
-   - `Alphabet index on right`: Places the alphabetical scrubber on the right edge (default: left).
-   - `Alphabet index animation`: Enables/disables the Niagara-style fluid wave animation.
-3. **Gestures**:
-   - `Swipe down to refresh`: Toggle manual refresh of market and Nouns data via downward swipe on Home. When enabled, automatic background polling is turned off. When disabled, automatic periodic polling remains active (every 15s–60s).
-   - `Swipe left app`: Assign an app to launch on left swipe.
-   - `Swipe right app`: Assign an app to launch on right swipe.
-   - `Double tap to lock screen`: Toggle double-tap screen lock.
-4. **Appearance**:
-   - `Light theme`: Switch between AMOLED Black (`#000000`) and Light theme.
-   - `Monospace font`: Switch between system sans-serif and monospace typeface.
-5. **Crypto Price (Binance)**:
+1. **General**:
+   - `Default launcher`: Direct shortcut to Android's default home app settings.
+   - `Show clock & time format`: Toggle time display in top-left corner, 12h/24h format, and seconds display.
+   - `Show date & date format`: Toggle date display below the clock and configure date pattern.
+   - `Corner text`: Toggle custom text display in the bottom-right corner and edit the string (default: `xppaicyber`).
+   - `Passive learning note`: Toggle passive learning card in top-right corner (features Nounish `⌐◨-◨` ethos, crypto slang, closeable with `x`, tap to cycle next tip).
+   - `Gestures`:
+     - `Swipe down to refresh`: Toggle manual refresh of market and Nouns data via downward swipe on Home. When enabled, automatic background polling is turned off. When disabled, automatic periodic polling remains active (every 15s–60s).
+     - `Swipe left app`: Assign an app to launch on left swipe.
+     - `Swipe right app`: Assign an app to launch on right swipe.
+     - `Double tap to lock screen`: Toggle double-tap screen lock.
+   - `App Drawer`:
+     - `Auto-launch on single match`: Instantly opens an app when search results narrow to 1.
+     - `Alphabet index on right`: Places the alphabetical scrubber on the right edge (default: left).
+     - `Alphabet index animation`: Enables/disables the Niagara-style fluid wave animation.
+
+2. **Crypto**:
    - `Enable crypto price label`: Master toggle for all crypto features.
    - `Show crypto on home screen`: Displays the multi-coin market widget on the Home screen.
-   - `Live WebSocket for Home screen`: Toggle live streaming of prices directly to the Home screen.
+   - `Show USD/IDR rate in drawer`: Shows live exchange rate header inside the app drawer.
+   - `Live WebSocket for Home screen`: Toggle live real-time price streaming directly on the Home screen.
    - `Coins`: Comma-separated list of symbols (e.g. `BTC, ETH, SOL, PEPE, BTCUSDT, ETHBIDR`).
    - `Quote currency`: Pair currency presets (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`) or custom quote.
-   - `Currency format`: Select display format for market prices (`Suffix 68,450 USDT / 9,850 IDR`, `Prefix`, or `None`).
-6. **Nouns DAO Governance & Candidates**:
+
+3. **IDX Saham**:
+   - `Show IDX on home screen`: Toggle Indonesian stock market data on the Home screen.
+   - `IDX display mode`: Choose between `Summary` (IHSG + LQ45 overview), `Rotating tickers` (single ticker rotation), or `All tickers` (full watchlist list).
+   - `Rotation interval`: Configure ticker rotation timing (3s, 5s, 8s, 10s, 15s).
+   - `Watchlist symbols`: Comma-separated list of IDX stocks and indices (e.g. `IHSG, LQ45, BBCA, BBRI, BMRI, TLKM, ASII, GOTO, BBNI`).
+
+4. **Nouns DAO ⌐◨-◨**:
    - `Show Nouns DAO feed`: Displays live governance proposals and candidate proposals on the Home screen.
    - `Nouns display mode`: Choose between `Auto Rotate (Proposals & Candidates)`, `Proposals only`, or `Candidates only`.
    - `Items to display`: Configure maximum items displayed on the Home screen (2, 3, 4, 5, or 6 items).
    - `Proposal status filter`: Filter proposals by status (`All`, `Active`, `Executed`).
-7. **Backup & Restore**:
+
+5. **Theme & Typography**:
+   - `Theme mode`: Switch between AMOLED Black (`#000000`) and Light theme.
+   - `Monospace font`: Switch between system sans-serif and monospace typeface.
+   - `Font size scaling`: Adjust global font size across 5 scale levels (`Micro`, `Small`, `Medium`, `Large`, `Extra Large`).
+   - `Show app icons`: Toggle visibility of app icons in drawer and pinned lists.
+   - `Monochrome icons`: Toggle black & white tinted app icons for ultra-minimalist aesthetics.
+
+6. **Market Layout**:
+   - `Separate home widgets`: Toggle separate widgets for Crypto and IDX vs single combined widget.
+   - `Separated layout mode`: Choose between `Stacked` (vertical list) or `Side-by-side` (multi-column horizontal).
+   - `Carousel auto-rotate`: Automatically cycles through market widgets or pages.
+   - `Carousel interval & transition`: Configure timing (3s, 5s, 8s, 10s, 15s) and animation style (`Slide`, `Fade`, `Instant`).
+   - `Currency format`: Select display format for market prices (`Suffix 68,450 USDT / 9,850 IDR`, `Prefix`, or `None`).
+
+7. **Apps & Backup**:
+   - `Pinned apps manager`: Reorder pinned home screen applications using move up/down (`↑`/`↓`) buttons or unpin.
+   - `Hidden apps manager`: View hidden applications and unhide with a single tap.
    - `Export settings (JSON)`: Save all settings, pinned apps, hidden apps, and custom labels to a JSON file.
    - `Import settings (JSON)`: Restore setup from a previous JSON backup file.
-8. **Management**:
-   - `Hidden Apps`: View and unhide hidden applications.
-   - `Pinned Apps`: View and remove pinned home screen applications.
-   - `Set as default launcher`: Direct shortcut to Android's default home app settings.
 
 ---
 
