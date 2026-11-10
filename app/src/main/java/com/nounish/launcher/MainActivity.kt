@@ -111,9 +111,9 @@ class MainActivity : ComponentActivity() {
             var currentScreen by remember { currentScreenState }
 
             // Manage price refresh lifecycle: runs while drawer or home crypto/idx/nouns is active
-            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.useWebSocketOnHome) {
+            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.useWebSocketOnHome, settings.swipeDownToRefresh) {
                 when {
-                    !settings.cryptoPriceEnabled && !settings.showHomeNouns -> {
+                    !settings.cryptoPriceEnabled && !settings.showHomeNouns && !settings.showHomeIdx -> {
                         viewModel.stopAllPriceUpdates()
                     }
                     currentScreen == Screen.Home && (settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns) -> {

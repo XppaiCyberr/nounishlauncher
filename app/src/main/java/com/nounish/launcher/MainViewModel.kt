@@ -424,7 +424,8 @@ class MainViewModel(
 
     fun startPriceRefresh(isHomeActive: Boolean = false) {
         val currentSettings = settings.value
-        if (!currentSettings.cryptoPriceEnabled) {
+        val hasActiveFeed = currentSettings.cryptoPriceEnabled || currentSettings.showHomeNouns || currentSettings.showHomeIdx
+        if (!hasActiveFeed) {
             stopAllPriceUpdates()
             _priceState.value = PriceUiState()
             _usdRateState.value = PriceUiState()
@@ -433,6 +434,13 @@ class MainViewModel(
 
         updatePriceDisplayFromCache(currentSettings)
         updateUsdRateDisplayFromCache(currentSettings)
+
+        // When swipe down to refresh is enabled, automatic background polling is turned off on Home.
+        // Data is only refreshed on-demand when the user swipes down.
+        if (isHomeActive && currentSettings.swipeDownToRefresh) {
+            stopAllPriceUpdates()
+            return
+        }
 
         if (isHomeActive && currentSettings.useWebSocketOnHome && currentSettings.showHomeCrypto) {
             stopPolling()
@@ -449,6 +457,8 @@ class MainViewModel(
     }
 
     private fun startPolling() {
+        val currentSettings = settings.value
+        if (currentSettings.swipeDownToRefresh) return
         if (priceJob?.isActive == true) return
 
         priceJob = viewModelScope.launch(Dispatchers.IO) {
@@ -470,6 +480,7 @@ class MainViewModel(
     }
 
     private fun startHomeWebSocket(currentSettings: LauncherSettings) {
+        if (currentSettings.swipeDownToRefresh) return
         if (webSocketClient != null) return
 
         val pairs = currentSettings.cryptoSymbols.map { sym ->
@@ -1083,6 +1094,11 @@ class MainViewModel(
     fun setSwipeDownToRefresh(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setSwipeDownToRefresh(enabled)
+            if (enabled) {
+                stopAllPriceUpdates()
+            } else {
+                startPriceRefresh(isHomeActive = true)
+            }
         }
     }
 

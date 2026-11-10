@@ -307,7 +307,11 @@ fun SettingsScreen(
             item {
                 SettingsSwitchRow(
                     title = "Swipe down to refresh",
-                    subtitle = if (settings.swipeDownToRefresh) "Manually refresh Crypto, IDX, and Nouns data" else "Disabled",
+                    subtitle = if (settings.swipeDownToRefresh) {
+                        "Manual refresh on swipe down (automatic background polling off)"
+                    } else {
+                        "Automatic background polling active (every 15s–60s)"
+                    },
                     checked = settings.swipeDownToRefresh,
                     onCheckedChange = onToggleSwipeDownToRefresh
                 )
@@ -777,7 +781,7 @@ fun SettingsScreen(
             item {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(
-                        text = "Nounish Launcher 1.0.17",
+                        text = "Nounish Launcher 1.0.18",
                         style = typography.settingsItem,
                         color = colors.textPrimary
                     )
