@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
             var currentScreen by remember { currentScreenState }
 
             // Manage price refresh lifecycle: runs while drawer or home crypto/idx/nouns is active
-            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.useWebSocketOnHome, settings.swipeDownToRefresh) {
+            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.useWebSocketOnHome, settings.swipeDownAction, settings.swipeDownToRefresh) {
                 when {
                     !settings.cryptoPriceEnabled && !settings.showHomeNouns && !settings.showHomeIdx -> {
                         viewModel.stopAllPriceUpdates()
@@ -222,7 +222,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     isRefreshing = isRefreshingData,
-                                    swipeDownToRefresh = settings.swipeDownToRefresh,
+                                    swipeDownAction = settings.swipeDownAction,
                                     onManualRefresh = { viewModel.refreshMarketAndNounsData() }
                                 )
                             }
@@ -297,7 +297,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleAutoLaunch = { viewModel.setAutoLaunchSingleMatch(it) },
                                     onSelectSwipeLeftApp = { viewModel.setSwipeLeft(it) },
                                     onSelectSwipeRightApp = { viewModel.setSwipeRight(it) },
-                                    onToggleSwipeDownToRefresh = { viewModel.setSwipeDownToRefresh(it) },
+                                    onUpdateSwipeDownAction = { viewModel.setSwipeDownAction(it) },
                                     onToggleDoubleTapLock = { viewModel.setDoubleTapLock(it) },
                                     onToggleCryptoEnabled = { viewModel.setCryptoPriceEnabled(it) },
                                     onToggleShowHomeCrypto = { viewModel.setShowHomeCrypto(it) },

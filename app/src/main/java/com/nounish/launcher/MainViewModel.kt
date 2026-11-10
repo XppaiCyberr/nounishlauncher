@@ -1091,6 +1091,17 @@ class MainViewModel(
         }
     }
 
+    fun setSwipeDownAction(action: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setSwipeDownAction(action)
+            if (action == "refresh") {
+                stopAllPriceUpdates()
+            } else {
+                startPriceRefresh(isHomeActive = true)
+            }
+        }
+    }
+
     fun setSwipeDownToRefresh(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setSwipeDownToRefresh(enabled)

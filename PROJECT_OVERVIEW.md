@@ -131,7 +131,11 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ### 5. Gestures
 - **Swipe Up**: Open App Drawer.
-- **Swipe Down on Home**: Manually refresh market and Nouns data (Binance Crypto, IDX, Nouns DAO) with animated `⌐◨-◨` pull, breathing pulse, and character typing indicator. When enabled, automatic background polling is turned off.
+- **Swipe Down on Home**: Fully configurable action:
+  - **Open Notification Shade** (default): Pulls down the system notification shade from anywhere on the screen for effortless one-handed ergonomics.
+  - **Refresh Market & Nouns Data**: Manually refresh market and Nouns data (Binance Crypto, IDX, Nouns DAO) with animated `⌐◨-◨` pull, breathing pulse, and character typing indicator. When selected, automatic background polling is paused.
+  - **Open App Drawer**: Opens the search and app drawer on downward swipe.
+  - **Disabled**: Turns off downward swipe on Home.
 - **Swipe Down in Drawer**: Close App Drawer.
 - **Swipe Left**: Launch user-assigned quick app.
 - **Swipe Right**: Launch user-assigned quick app.
@@ -228,7 +232,7 @@ Accessible by long-pressing any empty area on the Home screen. The Settings expe
    - `Corner text`: Toggle custom text display in the bottom-right corner and edit the string (default: `xppaicyber`).
    - `Passive learning note`: Toggle passive learning card in top-right corner (features Nounish `⌐◨-◨` ethos, crypto slang, closeable with `x`, tap to cycle next tip).
    - `Gestures`:
-     - `Swipe down to refresh`: Toggle manual refresh of market and Nouns data via downward swipe on Home. When enabled, automatic background polling is turned off. When disabled, automatic periodic polling remains active (every 15s–60s).
+      - Swipe down action: Configure downward swipe action on Home: Open notification shade (default), Refresh market & Nouns data (pull-down with ⌐◨-◨ indicator; pauses background polling), Open app drawer, or Disabled.
      - `Swipe left app`: Assign an app to launch on left swipe.
      - `Swipe right app`: Assign an app to launch on right swipe.
      - `Double tap to lock screen`: Toggle double-tap screen lock.
@@ -320,4 +324,5 @@ git push origin v1.0.0
 - **Minimal Permissions**:
   - `INTERNET`: Exclusively for public Binance price tickers and WebSockets. Completely dormant when crypto features are turned off.
   - `ACCESS_NETWORK_STATE`: Used locally to stretch poll intervals on mobile cellular data or battery saver mode.
+  - EXPAND_STATUS_BAR: Standard normal-level Android permission enabling the swipe-down gesture to expand the system notification shade.
   - `QUERY_ALL_PACKAGES` / `CATEGORY_LAUNCHER`: Used strictly on-device to enumerate installed apps.

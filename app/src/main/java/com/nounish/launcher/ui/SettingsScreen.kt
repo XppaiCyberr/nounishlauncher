@@ -82,7 +82,7 @@ fun SettingsScreen(
     onToggleAutoLaunch: (Boolean) -> Unit,
     onSelectSwipeLeftApp: (String?) -> Unit,
     onSelectSwipeRightApp: (String?) -> Unit,
-    onToggleSwipeDownToRefresh: (Boolean) -> Unit = {},
+    onUpdateSwipeDownAction: (String) -> Unit = {},
     onToggleDoubleTapLock: (Boolean) -> Unit,
     onToggleCryptoEnabled: (Boolean) -> Unit,
     onToggleShowHomeCrypto: (Boolean) -> Unit,
@@ -132,6 +132,7 @@ fun SettingsScreen(
 
     // Dialog state variables
     var showAppPickerForSwipe by remember { mutableStateOf<String?>(null) }
+    var showSwipeDownDialog by remember { mutableStateOf(false) }
     var showEditCoinsDialog by remember { mutableStateOf(false) }
     var showEditQuoteDialog by remember { mutableStateOf(false) }
     var showIdxModeDialog by remember { mutableStateOf(false) }
@@ -435,15 +436,17 @@ fun SettingsScreen(
                                 item { SettingsSectionHeader(title = "Gestures") }
 
                                 item {
-                                    SettingsSwitchRow(
-                                        title = "Swipe down to refresh",
-                                        subtitle = if (settings.swipeDownToRefresh) {
-                                            "Manual refresh on swipe down (automatic background polling off)"
-                                        } else {
-                                            "Automatic background polling active (every 15s–60s)"
-                                        },
-                                        checked = settings.swipeDownToRefresh,
-                                        onCheckedChange = onToggleSwipeDownToRefresh
+                                    val swipeDownSubtitle = when (settings.swipeDownAction) {
+                                        "notifications" -> "Open notification shade"
+                                        "refresh" -> "Refresh market & Nouns data (automatic polling off)"
+                                        "drawer" -> "Open app drawer"
+                                        "none" -> "Disabled"
+                                        else -> "Open notification shade"
+                                    }
+                                    SettingsActionRow(
+                                        title = "Swipe down action",
+                                        subtitle = swipeDownSubtitle,
+                                        onClick = { showSwipeDownDialog = true }
                                     )
                                 }
 
@@ -933,6 +936,69 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // Swipe Down Action Dialog
+    if (showSwipeDownDialog) {
+        val actions = listOf(
+            "notifications" to "Open notification shade",
+            "refresh" to "Refresh market & Nouns data",
+            "drawer" to "Open app drawer",
+            "none" to "Disabled"
+        )
+        AlertDialog(
+            onDismissRequest = { showSwipeDownDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Swipe Down Action",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                LazyColumn(modifier = Modifier.height(260.dp)) {
+                    items(actions) { (key, label) ->
+                        val isSelected = key == settings.swipeDownAction
+                        val description = when (key) {
+                            "notifications" -> "Pulls down notification shade from anywhere on Home"
+                            "refresh" -> "Manual pull-down refresh with ⌐◨-◨ indicator (turns off background polling)"
+                            "drawer" -> "Opens the search and app drawer"
+                            "none" -> "Do nothing"
+                            else -> ""
+                        }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateSwipeDownAction(key)
+                                    showSwipeDownDialog = false
+                                }
+                                .padding(vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                style = typography.settingsItem.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = if (isSelected) colors.textPrimary else colors.textSecondary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = description,
+                                style = typography.settingsDescription,
+                                color = colors.textSecondary.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSwipeDownDialog = false }) {
+                    Text("Close", color = colors.textPrimary)
+                }
+            }
+        )
     }
 
     // App Picker Dialog for Swipe Gestures

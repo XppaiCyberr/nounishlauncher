@@ -75,7 +75,8 @@ data class LauncherSettings(
     val autoLaunchSingleMatch: Boolean = false,
     val swipeLeftPackage: String? = null,
     val swipeRightPackage: String? = null,
-    val swipeDownToRefresh: Boolean = true,
+    val swipeDownAction: String = "notifications", // "notifications", "refresh", "drawer", "none"
+    val swipeDownToRefresh: Boolean = false,
     val doubleTapLock: Boolean = false,
     val cryptoPriceEnabled: Boolean = true,
     val cryptoSymbols: List<String> = listOf("BTC", "ETH", "SOL"),
@@ -141,6 +142,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_AUTO_LAUNCH = booleanPreferencesKey("auto_launch_single_match")
         private val KEY_SWIPE_LEFT = stringPreferencesKey("swipe_left_package")
         private val KEY_SWIPE_RIGHT = stringPreferencesKey("swipe_right_package")
+        private val KEY_SWIPE_DOWN_ACTION = stringPreferencesKey("swipe_down_action")
         private val KEY_SWIPE_DOWN_TO_REFRESH = booleanPreferencesKey("swipe_down_to_refresh")
         private val KEY_DOUBLE_TAP_LOCK = booleanPreferencesKey("double_tap_lock")
         private val KEY_CRYPTO_ENABLED = booleanPreferencesKey("crypto_price_enabled")
@@ -211,7 +213,14 @@ class SettingsStore(private val context: Context) {
         val autoLaunch = prefs[KEY_AUTO_LAUNCH] ?: false
         val swipeLeft = prefs[KEY_SWIPE_LEFT]?.takeIf { it.isNotBlank() }
         val swipeRight = prefs[KEY_SWIPE_RIGHT]?.takeIf { it.isNotBlank() }
-        val swipeDownToRefresh = prefs[KEY_SWIPE_DOWN_TO_REFRESH] ?: true
+        val savedSwipeDownAction = prefs[KEY_SWIPE_DOWN_ACTION]
+        val legacySwipeDownToRefresh = prefs[KEY_SWIPE_DOWN_TO_REFRESH]
+        val swipeDownAction = when {
+            savedSwipeDownAction != null -> savedSwipeDownAction
+            legacySwipeDownToRefresh == true -> "refresh"
+            else -> "notifications"
+        }
+        val swipeDownToRefresh = (swipeDownAction == "refresh")
         val doubleTap = prefs[KEY_DOUBLE_TAP_LOCK] ?: false
         val cryptoEnabled = prefs[KEY_CRYPTO_ENABLED] ?: true
 
@@ -283,6 +292,7 @@ class SettingsStore(private val context: Context) {
             autoLaunchSingleMatch = autoLaunch,
             swipeLeftPackage = swipeLeft,
             swipeRightPackage = swipeRight,
+            swipeDownAction = swipeDownAction,
             swipeDownToRefresh = swipeDownToRefresh,
             doubleTapLock = doubleTap,
             cryptoPriceEnabled = cryptoEnabled,
@@ -434,8 +444,18 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_SWIPE_RIGHT] = packageName ?: "" }
     }
 
+    suspend fun setSwipeDownAction(action: String) {
+        context.dataStore.edit {
+            it[KEY_SWIPE_DOWN_ACTION] = action
+            it[KEY_SWIPE_DOWN_TO_REFRESH] = (action == "refresh")
+        }
+    }
+
     suspend fun setSwipeDownToRefresh(enabled: Boolean) {
-        context.dataStore.edit { it[KEY_SWIPE_DOWN_TO_REFRESH] = enabled }
+        context.dataStore.edit {
+            it[KEY_SWIPE_DOWN_TO_REFRESH] = enabled
+            it[KEY_SWIPE_DOWN_ACTION] = if (enabled) "refresh" else "notifications"
+        }
     }
 
     suspend fun setDoubleTapLock(enabled: Boolean) {
@@ -703,6 +723,7 @@ class SettingsStore(private val context: Context) {
 
         root.put("swipeLeftPackage", settings.swipeLeftPackage ?: "")
         root.put("swipeRightPackage", settings.swipeRightPackage ?: "")
+        root.put("swipeDownAction", settings.swipeDownAction)
         root.put("swipeDownToRefresh", settings.swipeDownToRefresh)
         root.put("doubleTapLock", settings.doubleTapLock)
 
@@ -787,7 +808,15 @@ class SettingsStore(private val context: Context) {
 
                 if (root.has("swipeLeftPackage")) prefs[KEY_SWIPE_LEFT] = root.getString("swipeLeftPackage")
                 if (root.has("swipeRightPackage")) prefs[KEY_SWIPE_RIGHT] = root.getString("swipeRightPackage")
-                if (root.has("swipeDownToRefresh")) prefs[KEY_SWIPE_DOWN_TO_REFRESH] = root.getBoolean("swipeDownToRefresh")
+                if (root.has("swipeDownAction")) {
+                    val action = root.getString("swipeDownAction")
+                    prefs[KEY_SWIPE_DOWN_ACTION] = action
+                    prefs[KEY_SWIPE_DOWN_TO_REFRESH] = (action == "refresh")
+                } else if (root.has("swipeDownToRefresh")) {
+                    val isRefresh = root.getBoolean("swipeDownToRefresh")
+                    prefs[KEY_SWIPE_DOWN_TO_REFRESH] = isRefresh
+                    prefs[KEY_SWIPE_DOWN_ACTION] = if (isRefresh) "refresh" else "notifications"
+                }
                 if (root.has("doubleTapLock")) prefs[KEY_DOUBLE_TAP_LOCK] = root.getBoolean("doubleTapLock")
 
                 if (root.has("cryptoPriceEnabled")) prefs[KEY_CRYPTO_ENABLED] = root.getBoolean("cryptoPriceEnabled")

@@ -15,6 +15,7 @@ class LockScreenService : AccessibilityService() {
         private var serviceRef: WeakReference<LockScreenService>? = null
 
         fun isServiceRunning(): Boolean = serviceRef?.get() != null
+        fun getService(): LockScreenService? = serviceRef?.get()
 
         fun lockScreen(context: Context): Boolean {
             val service = serviceRef?.get()

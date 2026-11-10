@@ -62,7 +62,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Uses Android's native Storage Access Framework (`CreateDocument` and `OpenDocument`) with zero network transmission, perfectly fitting our offline and zero-telemetry architecture.
 - **Gestures**:
   - **Swipe up**: Open drawer
-  - **Swipe down on Home**: Manually refresh Crypto, IDX, and Nouns data with breathing/typing `⌐◨-◨` indicator (automatic background polling is turned off when enabled)
+  - **Swipe down on Home**: Configurable in Settings: **Open notification shade** (default, pulls down notifications from anywhere on Home), **Manual refresh** (market and Nouns data with breathing/typing `⌐◨-◨` indicator; automatic background polling is paused when selected), **Open drawer**, or **Disabled**
   - **Swipe down in Drawer**: Close drawer
   - **Swipe left / right**: Launch user-assigned quick apps
   - **Double-tap**: Screen lock
@@ -174,8 +174,8 @@ For step-by-step Google Play publishing requirements, package visibility complia
 ### Automated CI / GitHub Releases
 A GitHub Actions workflow (`.github/workflows/release.yml`) automatically builds the signed, minified release APK and attaches it to GitHub Releases whenever a git tag is pushed:
 ```bash
-git tag v1.0.18
-git push origin v1.0.18
+git tag v1.0.19
+git push origin v1.0.19
 ```
 
 ---
@@ -184,5 +184,6 @@ git push origin v1.0.18
 
 - **INTERNET**: Used solely for optional public market tickers (Binance public market data, IDX mirror, and Nouns DAO feeds). Completely inert when crypto, IDX, and Nouns features are toggled off.
 - **ACCESS_NETWORK_STATE**: Used strictly on-device to check for mobile data vs Wi-Fi to stretch polling intervals.
+- **EXPAND_STATUS_BAR**: Standard normal-level Android permission enabling the swipe-down gesture to expand the system notification shade.
 - **Package Visibility (`<queries>`)**: Uses Android 11+ `<queries>` matching `CATEGORY_LAUNCHER` and `LauncherApps` API. Does not request broad `QUERY_ALL_PACKAGES` permission, ensuring full compliance with Google Play Store policies.
 - **Zero tracking, zero analytics, zero external logging, zero telemetry.**

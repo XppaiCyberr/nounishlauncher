@@ -72,6 +72,7 @@ import com.nounish.launcher.data.NounsProposalUi
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
 import com.nounish.launcher.model.PassiveNote
+import com.nounish.launcher.service.NotificationHelper
 import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
@@ -129,7 +130,7 @@ fun HomeScreen(
     onSwipeRight: () -> Unit,
     onDoubleTap: () -> Unit,
     isRefreshing: Boolean = false,
-    swipeDownToRefresh: Boolean = true,
+    swipeDownAction: String = "notifications",
     onManualRefresh: () -> Unit = {}
 ) {
     val colors = LauncherTheme.colors
@@ -185,11 +186,22 @@ fun HomeScreen(
             .launcherGestures(
                 onSwipeUp = onOpenDrawer,
                 onSwipeDown = {
-                    if (swipeDownToRefresh) {
-                        try {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        } catch (_: Exception) {}
-                        onManualRefresh()
+                    when (swipeDownAction) {
+                        "notifications" -> {
+                            NotificationHelper.expandNotificationShade(context)
+                        }
+                        "refresh" -> {
+                            try {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            } catch (_: Exception) {}
+                            onManualRefresh()
+                        }
+                        "drawer" -> {
+                            onOpenDrawer()
+                        }
+                        "none" -> {
+                            // Disabled
+                        }
                     }
                 },
                 onSwipeLeft = onSwipeLeft,
@@ -197,7 +209,7 @@ fun HomeScreen(
                 onDoubleTap = onDoubleTap,
                 onLongPress = onOpenSettings,
                 onPullDownDelta = { delta ->
-                    if (swipeDownToRefresh) {
+                    if (swipeDownAction == "refresh") {
                         pullDistancePx = delta
                     }
                 },
@@ -208,7 +220,7 @@ fun HomeScreen(
             .padding(horizontal = 24.dp)
     ) {
         // Nounish Manual Refresh Indicator (breathing / animated typing ⌐◨-◨)
-        if (swipeDownToRefresh) {
+        if (swipeDownAction == "refresh") {
             NounishRefreshIndicator(
                 isRefreshing = isRefreshing,
                 pullDistancePx = pullDistancePx
