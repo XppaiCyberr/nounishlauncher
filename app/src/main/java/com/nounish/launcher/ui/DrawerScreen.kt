@@ -54,9 +54,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +71,8 @@ import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
 import com.nounish.launcher.ui.theme.getFontScale
+import com.nounish.launcher.util.MathEvaluator
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -101,9 +105,15 @@ fun DrawerScreen(
     val typography = LauncherTheme.typography
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val clipboardManager = LocalClipboardManager.current
+    val haptic = LocalHapticFeedback.current
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
+
+    val calculationResult = remember(searchQuery) {
+        MathEvaluator.evaluate(searchQuery)?.let { MathEvaluator.formatResult(it) }
+    }
 
     var selectedAppForMenu by remember { mutableStateOf<AppItem?>(null) }
     var appToRename by remember { mutableStateOf<AppItem?>(null) }
@@ -136,8 +146,8 @@ fun DrawerScreen(
     }
 
     // Auto-launch if exactly one match remains (optional setting)
-    LaunchedEffect(searchQuery, apps, autoLaunchSingleMatch) {
-        if (autoLaunchSingleMatch && searchQuery.trim().length >= 2 && apps.size == 1) {
+    LaunchedEffect(searchQuery, apps, autoLaunchSingleMatch, calculationResult) {
+        if (autoLaunchSingleMatch && calculationResult == null && searchQuery.trim().length >= 2 && apps.size == 1) {
             onAppClick(apps.first())
         }
     }
@@ -188,7 +198,10 @@ fun DrawerScreen(
                             keyboardActions = KeyboardActions(
                                 onSearch = {
                                     focusManager.clearFocus()
-                                    if (apps.isNotEmpty()) {
+                                    if (calculationResult != null) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        clipboardManager.setText(AnnotatedString(calculationResult))
+                                    } else if (apps.isNotEmpty()) {
                                         onAppClick(apps.first())
                                     }
                                 }
@@ -198,7 +211,6 @@ fun DrawerScreen(
 
                     // USD Rate in IDR with 24h percentage change & stale-data indicator
                     if (cryptoPriceEnabled && usdRateState.isNotEmpty) {
-                        val haptic = LocalHapticFeedback.current
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -246,6 +258,15 @@ fun DrawerScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            // Minimalist Math Calculation Result Row
+            if (calculationResult != null) {
+                CalculationResultRow(
+                    result = calculationResult,
+                    fontSize = fontSize
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             // Main Content: Alphabet Index + Niagara-style Animated App List
             if (apps.isEmpty()) {
                 Box(
@@ -254,11 +275,13 @@ fun DrawerScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (searchQuery.isNotBlank()) "No apps found" else "Loading...",
-                        style = typography.drawerItem,
-                        color = colors.textSecondary
-                    )
+                    if (calculationResult == null) {
+                        Text(
+                            text = if (searchQuery.isNotBlank()) "No apps found" else "Loading...",
+                            style = typography.drawerItem,
+                            color = colors.textSecondary
+                        )
+                    }
                 }
             } else {
                 Row(
@@ -715,3 +738,56 @@ private fun findTargetIndex(apps: List<AppItem>, target: Char): Int? {
 
     return apps.lastIndex
 }
+
+@Composable
+private fun CalculationResultRow(
+    result: String,
+    fontSize: String = "medium",
+    modifier: Modifier = Modifier
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+    val clipboardManager = LocalClipboardManager.current
+    val haptic = LocalHapticFeedback.current
+    var isCopied by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isCopied) {
+        if (isCopied) {
+            delay(1500)
+            isCopied = false
+        }
+    }
+
+    val fontScale = getFontScale(fontSize)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                clipboardManager.setText(AnnotatedString(result))
+                isCopied = true
+            }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "= $result",
+            style = typography.drawerItem.copy(
+                fontSize = (20 * fontScale).sp,
+                lineHeight = (28 * fontScale).sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.textPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        if (isCopied) {
+            Text(
+                text = "Copied",
+                style = typography.settingsDescription,
+                color = colors.textSecondary.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
