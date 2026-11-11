@@ -211,7 +211,8 @@ class MainActivity : ComponentActivity() {
                 useMonospace = settings.useMonospace,
                 fontSize = settings.fontSize,
                 showWallpaper = settings.showWallpaper,
-                wallpaperDimLevel = settings.wallpaperDimLevel
+                wallpaperDimLevel = settings.wallpaperDimLevel,
+                accentColor = settings.accentColor
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -316,6 +317,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     isRefreshing = isRefreshingData,
                                     swipeDownAction = settings.swipeDownAction,
+                                    hapticFeedbackLevel = settings.hapticFeedbackLevel,
                                     onManualRefresh = { viewModel.refreshMarketAndNounsData() }
                                 )
                             }
@@ -336,6 +338,7 @@ class MainActivity : ComponentActivity() {
                                     monochromeIcons = settings.monochromeIcons,
                                     fontSize = settings.fontSize,
                                     searchBarAtBottom = settings.searchBarAtBottom,
+                                    hapticFeedbackLevel = settings.hapticFeedbackLevel,
                                     onSearchQueryChange = { query ->
                                         viewModel.onSearchQueryChanged(query)
                                     },
@@ -423,6 +426,8 @@ class MainActivity : ComponentActivity() {
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },
                                     onToggleShowWallpaper = { viewModel.setShowWallpaper(it) },
                                     onUpdateWallpaperDimLevel = { viewModel.setWallpaperDimLevel(it) },
+                                    onUpdateAccentColor = { viewModel.setAccentColor(it) },
+                                    onUpdateHapticFeedbackLevel = { viewModel.setHapticFeedbackLevel(it) },
                                     onChangeWallpaperSystem = { openSystemWallpaperPicker() },
                                     onChangeWallpaperGallery = { openGalleryWallpaperPicker() },
                                     onToggleShowRecentApps = { viewModel.setShowRecentApps(it) },

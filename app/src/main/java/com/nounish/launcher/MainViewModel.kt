@@ -1247,6 +1247,18 @@ class MainViewModel(
         }
     }
 
+    fun setAccentColor(color: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setAccentColor(color)
+        }
+    }
+
+    fun setHapticFeedbackLevel(level: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setHapticFeedbackLevel(level)
+        }
+    }
+
     fun setShowRecentApps(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowRecentApps(enabled)

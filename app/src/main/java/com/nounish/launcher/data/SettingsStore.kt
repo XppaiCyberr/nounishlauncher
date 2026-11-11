@@ -83,6 +83,8 @@ data class LauncherSettings(
     val recentApps: List<String> = emptyList(),
     val showWallpaper: Boolean = false,
     val wallpaperDimLevel: Float = 0.80f,
+    val accentColor: String = "monochrome", // "monochrome", "nounish_red", "warm_amber", "mint_green", "slate_blue", "lavender"
+    val hapticFeedbackLevel: String = "standard", // "standard", "subtle", "firm", "off"
     val cryptoPriceEnabled: Boolean = true,
     val cryptoSymbols: List<String> = listOf("BTC", "ETH", "SOL"),
     val cryptoQuoteCurrency: String = "USDT",
@@ -157,6 +159,8 @@ class SettingsStore(private val context: Context) {
         private val KEY_LIGHT_THEME = booleanPreferencesKey("is_light_theme")
         private val KEY_SHOW_WALLPAPER = booleanPreferencesKey("show_wallpaper")
         private val KEY_WALLPAPER_DIM_LEVEL = floatPreferencesKey("wallpaper_dim_level")
+        private val KEY_ACCENT_COLOR = stringPreferencesKey("accent_color")
+        private val KEY_HAPTIC_FEEDBACK_LEVEL = stringPreferencesKey("haptic_feedback_level")
         private val KEY_SHOW_RECENT_APPS = booleanPreferencesKey("show_recent_apps")
         private val KEY_RECENT_APPS = stringPreferencesKey("recent_apps")
         private val KEY_USE_MONOSPACE = booleanPreferencesKey("use_monospace")
@@ -242,6 +246,8 @@ class SettingsStore(private val context: Context) {
         val isLight = prefs[KEY_LIGHT_THEME] ?: false
         val showWallpaper = prefs[KEY_SHOW_WALLPAPER] ?: false
         val wallpaperDimLevel = prefs[KEY_WALLPAPER_DIM_LEVEL] ?: 0.80f
+        val accentColor = prefs[KEY_ACCENT_COLOR] ?: "monochrome"
+        val hapticFeedbackLevel = prefs[KEY_HAPTIC_FEEDBACK_LEVEL] ?: "standard"
         val showRecentApps = prefs[KEY_SHOW_RECENT_APPS] ?: true
         val recentAppsRaw = prefs[KEY_RECENT_APPS] ?: ""
         val recentApps = recentAppsRaw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -313,6 +319,8 @@ class SettingsStore(private val context: Context) {
             recentApps = recentApps,
             showWallpaper = showWallpaper,
             wallpaperDimLevel = wallpaperDimLevel,
+            accentColor = accentColor,
+            hapticFeedbackLevel = hapticFeedbackLevel,
             cryptoPriceEnabled = cryptoEnabled,
             cryptoSymbols = symbolsList,
             cryptoQuoteCurrency = cryptoQuote,
@@ -506,6 +514,14 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setWallpaperDimLevel(level: Float) {
         context.dataStore.edit { it[KEY_WALLPAPER_DIM_LEVEL] = level.coerceIn(0.2f, 0.98f) }
+    }
+
+    suspend fun setAccentColor(color: String) {
+        context.dataStore.edit { it[KEY_ACCENT_COLOR] = color }
+    }
+
+    suspend fun setHapticFeedbackLevel(level: String) {
+        context.dataStore.edit { it[KEY_HAPTIC_FEEDBACK_LEVEL] = level }
     }
 
     suspend fun setShowRecentApps(enabled: Boolean) {
@@ -791,6 +807,8 @@ class SettingsStore(private val context: Context) {
         root.put("isLightTheme", settings.isLightTheme)
         root.put("showWallpaper", settings.showWallpaper)
         root.put("wallpaperDimLevel", settings.wallpaperDimLevel.toDouble())
+        root.put("accentColor", settings.accentColor)
+        root.put("hapticFeedbackLevel", settings.hapticFeedbackLevel)
         root.put("showRecentApps", settings.showRecentApps)
         root.put("recentApps", JSONArray(settings.recentApps))
         root.put("useMonospace", settings.useMonospace)
@@ -897,6 +915,8 @@ class SettingsStore(private val context: Context) {
                 if (root.has("isLightTheme")) prefs[KEY_LIGHT_THEME] = root.getBoolean("isLightTheme")
                 if (root.has("showWallpaper")) prefs[KEY_SHOW_WALLPAPER] = root.getBoolean("showWallpaper")
                 if (root.has("wallpaperDimLevel")) prefs[KEY_WALLPAPER_DIM_LEVEL] = root.getDouble("wallpaperDimLevel").toFloat()
+                if (root.has("accentColor")) prefs[KEY_ACCENT_COLOR] = root.getString("accentColor")
+                if (root.has("hapticFeedbackLevel")) prefs[KEY_HAPTIC_FEEDBACK_LEVEL] = root.getString("hapticFeedbackLevel")
                 if (root.has("showRecentApps")) prefs[KEY_SHOW_RECENT_APPS] = root.getBoolean("showRecentApps")
                 if (root.has("recentApps")) {
                     val arr = root.getJSONArray("recentApps")

@@ -79,6 +79,7 @@ import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
 import com.nounish.launcher.ui.theme.getFontScale
+import com.nounish.launcher.util.LauncherHaptic
 import com.nounish.launcher.util.MathEvaluator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -100,6 +101,7 @@ fun DrawerScreen(
     fontSize: String = "medium",
     searchBarAtBottom: Boolean = false,
     recentApps: List<AppItem> = emptyList(),
+    hapticFeedbackLevel: String = "standard",
     onSearchQueryChange: (String) -> Unit,
     onAppClick: (AppItem) -> Unit,
     onTogglePinApp: (AppItem) -> Unit,
@@ -216,14 +218,14 @@ fun DrawerScreen(
                                 .fillMaxWidth()
                                 .focusRequester(focusRequester),
                             textStyle = typography.searchInput.copy(color = colors.textPrimary),
-                            cursorBrush = SolidColor(colors.textPrimary),
+                            cursorBrush = SolidColor(colors.accent),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                             keyboardActions = KeyboardActions(
                                 onSearch = {
                                     focusManager.clearFocus()
                                     if (calculationResult != null) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        LauncherHaptic.performMedium(haptic, hapticFeedbackLevel)
                                         clipboardManager.setText(AnnotatedString(calculationResult))
                                     } else if (apps.isNotEmpty()) {
                                         onAppClick(apps.first())
@@ -239,7 +241,7 @@ fun DrawerScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clickable(onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
                                     onRefreshUsdRate()
                                 })
                                 .padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
@@ -351,7 +353,8 @@ fun DrawerScreen(
             if (calculationResult != null) {
                 CalculationResultRow(
                     result = calculationResult,
-                    fontSize = fontSize
+                    fontSize = fontSize,
+                    hapticFeedbackLevel = hapticFeedbackLevel
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -410,6 +413,7 @@ fun DrawerScreen(
                         AlphabetIndex(
                             letters = alphabet,
                             activeLetters = activeLetters,
+                            hapticFeedbackLevel = hapticFeedbackLevel,
                             onInteractionStart = {
                                 isInteractingWithIndex = true
                             },
@@ -473,7 +477,7 @@ fun DrawerScreen(
                                 isHidden -> colors.textSecondary.copy(alpha = if (isMatching) 0.85f else 0.5f)
                                 isInteracting -> {
                                     if (isMatching) {
-                                        colors.textPrimary
+                                        colors.accent
                                     } else {
                                         colors.textSecondary
                                     }
@@ -542,6 +546,7 @@ fun DrawerScreen(
                         AlphabetIndex(
                             letters = alphabet,
                             activeLetters = activeLetters,
+                            hapticFeedbackLevel = hapticFeedbackLevel,
                             onInteractionStart = {
                                 isInteractingWithIndex = true
                             },
@@ -755,6 +760,7 @@ fun DrawerScreen(
 private fun AlphabetIndex(
     letters: List<Char>,
     activeLetters: Set<Char>,
+    hapticFeedbackLevel: String = "standard",
     onInteractionStart: () -> Unit,
     onInteractionEnd: () -> Unit,
     onLetterSelected: (Char, Float) -> Unit,
@@ -773,7 +779,7 @@ private fun AlphabetIndex(
         val letter = letters[index]
         if (letter != currentHoveredLetter) {
             currentHoveredLetter = letter
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
             onLetterSelected(letter, fraction)
         }
     }
@@ -820,7 +826,7 @@ private fun AlphabetIndex(
                     fontSize = if (isHovered) 14.sp else 10.5.sp,
                     fontWeight = if (isHovered) FontWeight.Bold else if (isActive) FontWeight.Medium else FontWeight.Normal,
                     color = when {
-                        isHovered -> colors.textPrimary
+                        isHovered -> colors.accent
                         isActive -> colors.textSecondary
                         else -> colors.textSecondary.copy(alpha = 0.25f)
                     },
@@ -865,6 +871,7 @@ private fun findTargetIndex(apps: List<AppItem>, target: Char): Int? {
 private fun CalculationResultRow(
     result: String,
     fontSize: String = "medium",
+    hapticFeedbackLevel: String = "standard",
     modifier: Modifier = Modifier
 ) {
     val colors = LauncherTheme.colors
@@ -886,7 +893,7 @@ private fun CalculationResultRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                LauncherHaptic.performMedium(haptic, hapticFeedbackLevel)
                 clipboardManager.setText(AnnotatedString(result))
                 isCopied = true
             }
@@ -900,7 +907,7 @@ private fun CalculationResultRow(
                 lineHeight = (28 * fontScale).sp,
                 fontWeight = FontWeight.Medium
             ),
-            color = colors.textPrimary,
+            color = colors.accent,
             modifier = Modifier.weight(1f)
         )
         if (isCopied) {

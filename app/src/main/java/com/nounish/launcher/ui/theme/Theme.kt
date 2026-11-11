@@ -15,8 +15,20 @@ data class LauncherColors(
     val textPrimary: Color,
     val textSecondary: Color,
     val surface: Color,
-    val border: Color
+    val border: Color,
+    val accent: Color
 )
+
+fun getAccentColor(accentKey: String, isLightTheme: Boolean): Color {
+    return when (accentKey) {
+        "nounish_red" -> NounishRed
+        "warm_amber" -> WarmAmber
+        "mint_green" -> MintGreen
+        "slate_blue" -> if (isLightTheme) SlateBlueDark else SlateBlue
+        "lavender" -> if (isLightTheme) SoftLavenderDark else SoftLavender
+        else -> if (isLightTheme) LightTextPrimary else AmoledTextPrimary
+    }
+}
 
 val LocalLauncherColors = staticCompositionLocalOf {
     LauncherColors(
@@ -24,7 +36,8 @@ val LocalLauncherColors = staticCompositionLocalOf {
         textPrimary = AmoledTextPrimary,
         textSecondary = AmoledTextSecondary,
         surface = AmoledSurface,
-        border = AmoledBorder
+        border = AmoledBorder,
+        accent = AmoledTextPrimary
     )
 }
 
@@ -51,9 +64,11 @@ fun NounishLauncherTheme(
     fontSize: String = "medium",
     showWallpaper: Boolean = false,
     wallpaperDimLevel: Float = 0.80f,
+    accentColor: String = "monochrome",
     content: @Composable () -> Unit
 ) {
     val dimAlpha = wallpaperDimLevel.coerceIn(0.2f, 0.98f)
+    val chosenAccent = getAccentColor(accentColor, isLightTheme)
     val colors = if (isLightTheme) {
         val bg = if (showWallpaper) Color.White.copy(alpha = dimAlpha) else LightBackground
         val surf = if (showWallpaper) Color(0xFFF2F2F2).copy(alpha = 0.85f) else LightSurface
@@ -62,7 +77,8 @@ fun NounishLauncherTheme(
             textPrimary = LightTextPrimary,
             textSecondary = LightTextSecondary,
             surface = surf,
-            border = LightBorder
+            border = LightBorder,
+            accent = chosenAccent
         )
     } else {
         val bg = if (showWallpaper) Color.Black.copy(alpha = dimAlpha) else AmoledBackground
@@ -72,7 +88,8 @@ fun NounishLauncherTheme(
             textPrimary = AmoledTextPrimary,
             textSecondary = AmoledTextSecondary,
             surface = surf,
-            border = AmoledBorder
+            border = AmoledBorder,
+            accent = chosenAccent
         )
     }
 

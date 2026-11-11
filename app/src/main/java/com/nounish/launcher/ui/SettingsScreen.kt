@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -107,6 +109,8 @@ fun SettingsScreen(
     onToggleLightTheme: (Boolean) -> Unit,
     onToggleShowWallpaper: (Boolean) -> Unit = {},
     onUpdateWallpaperDimLevel: (Float) -> Unit = {},
+    onUpdateAccentColor: (String) -> Unit = {},
+    onUpdateHapticFeedbackLevel: (String) -> Unit = {},
     onChangeWallpaperSystem: () -> Unit = {},
     onChangeWallpaperGallery: () -> Unit = {},
     onToggleShowRecentApps: (Boolean) -> Unit = {},
@@ -146,6 +150,8 @@ fun SettingsScreen(
     var showClockFormatDialog by remember { mutableStateOf(false) }
     var showWallpaperDimDialog by remember { mutableStateOf(false) }
     var showChangeWallpaperDialog by remember { mutableStateOf(false) }
+    var showAccentColorDialog by remember { mutableStateOf(false) }
+    var showHapticDialog by remember { mutableStateOf(false) }
     var showDateFormatDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
     var showCornerTextDialog by remember { mutableStateOf(false) }
@@ -304,11 +310,11 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .border(
                                         width = 1.dp,
-                                        color = if (isSelected) colors.textPrimary else colors.textSecondary.copy(alpha = 0.25f),
+                                        color = if (isSelected) colors.accent else colors.textSecondary.copy(alpha = 0.25f),
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .background(
-                                        if (isSelected) colors.textPrimary.copy(alpha = 0.12f) else colors.background,
+                                        if (isSelected) colors.accent.copy(alpha = 0.15f) else Color.Transparent,
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .clickable { selectedCategory = cat }
@@ -320,7 +326,7 @@ fun SettingsScreen(
                                         fontSize = 12.sp,
                                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                                     ),
-                                    color = if (isSelected) colors.textPrimary else colors.textSecondary
+                                    color = if (isSelected) colors.accent else colors.textSecondary
                                 )
                             }
                         }
@@ -740,6 +746,38 @@ fun SettingsScreen(
                                         title = "Change wallpaper",
                                         subtitle = "Choose from gallery or system wallpaper picker",
                                         onClick = { showChangeWallpaperDialog = true }
+                                    )
+                                }
+
+                                val accentLabel = when (settings.accentColor) {
+                                    "nounish_red" -> "Nounish Red ⌐◨-◨ (#E53935)"
+                                    "warm_amber" -> "Warm Amber (#FFB300)"
+                                    "mint_green" -> "AMOLED Mint Green (#00E676)"
+                                    "slate_blue" -> "Muted Slate (#90A4AE)"
+                                    "lavender" -> "Soft Lavender (#B39DDB)"
+                                    else -> "Pure Monochrome (Default)"
+                                }
+
+                                item {
+                                    SettingsActionRow(
+                                        title = "Accent color",
+                                        subtitle = accentLabel,
+                                        onClick = { showAccentColorDialog = true }
+                                    )
+                                }
+
+                                val hapticLabel = when (settings.hapticFeedbackLevel) {
+                                    "subtle" -> "Subtle (Light Tick)"
+                                    "firm" -> "Firm (Strong)"
+                                    "off" -> "Off (Disabled)"
+                                    else -> "Standard (Default)"
+                                }
+
+                                item {
+                                    SettingsActionRow(
+                                        title = "Haptic feedback intensity",
+                                        subtitle = hapticLabel,
+                                        onClick = { showHapticDialog = true }
                                     )
                                 }
 
@@ -1658,6 +1696,116 @@ fun SettingsScreen(
         )
     }
 
+    // Accent Color Dialog
+    if (showAccentColorDialog) {
+        val accents = listOf(
+            "monochrome" to "Pure Monochrome (Default)",
+            "nounish_red" to "Nounish Red ⌐◨-◨ (#E53935)",
+            "warm_amber" to "Warm Amber (#FFB300)",
+            "mint_green" to "AMOLED Mint Green (#00E676)",
+            "slate_blue" to "Muted Slate (#90A4AE)",
+            "lavender" to "Soft Lavender (#B39DDB)"
+        )
+        AlertDialog(
+            onDismissRequest = { showAccentColorDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Accent Color",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                LazyColumn(modifier = Modifier.height(280.dp)) {
+                    items(accents) { (key, label) ->
+                        val isSelected = key == settings.accentColor
+                        val previewColor = com.nounish.launcher.ui.theme.getAccentColor(key, settings.isLightTheme)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateAccentColor(key)
+                                    showAccentColorDialog = false
+                                }
+                                .padding(vertical = 10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .background(previewColor, RoundedCornerShape(8.dp))
+                                    .border(1.dp, colors.border, RoundedCornerShape(8.dp))
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = label,
+                                style = typography.settingsItem.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = if (isSelected) previewColor else colors.textSecondary
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showAccentColorDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Haptic Feedback Intensity Dialog
+    if (showHapticDialog) {
+        val hapticLevels = listOf(
+            "standard" to "Standard (Default)",
+            "subtle" to "Subtle (Light Tick)",
+            "firm" to "Firm (Strong)",
+            "off" to "Off (Disabled)"
+        )
+        AlertDialog(
+            onDismissRequest = { showHapticDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Haptic Feedback",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                LazyColumn(modifier = Modifier.height(200.dp)) {
+                    items(hapticLevels) { (key, label) ->
+                        val isSelected = key == settings.hapticFeedbackLevel
+                        Text(
+                            text = label,
+                            style = typography.settingsItem.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            ),
+                            color = if (isSelected) colors.accent else colors.textSecondary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateHapticFeedbackLevel(key)
+                                    showHapticDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showHapticDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
     // Corner Text Dialog
     if (showCornerTextDialog) {
         AlertDialog(
@@ -2002,8 +2150,8 @@ private fun SettingsSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = colors.background,
-                checkedTrackColor = colors.textPrimary,
+                checkedThumbColor = if (colors.accent == colors.textPrimary) colors.surface else Color.White,
+                checkedTrackColor = colors.accent,
                 uncheckedThumbColor = colors.textSecondary,
                 uncheckedTrackColor = colors.surface
             )

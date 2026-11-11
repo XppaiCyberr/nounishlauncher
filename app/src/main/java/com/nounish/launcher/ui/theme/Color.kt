@@ -16,3 +16,12 @@ val LightBorder = Color(0xFFE0E0E0)
 
 val CryptoGreen = Color(0xFF00E676)
 val CryptoRed = Color(0xFFFF5252)
+
+// Signature Nounish Accent Colors
+val NounishRed = Color(0xFFE53935)
+val WarmAmber = Color(0xFFFFB300)
+val MintGreen = Color(0xFF00E676)
+val SlateBlue = Color(0xFF90A4AE)
+val SlateBlueDark = Color(0xFF546E7A)
+val SoftLavender = Color(0xFFB39DDB)
+val SoftLavenderDark = Color(0xFF7E57C2)

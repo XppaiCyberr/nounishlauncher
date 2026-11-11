@@ -15,7 +15,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Zero-Jank Network Architecture**: All network operations (polling and WebSockets) run strictly on `Dispatchers.IO` and are cancelled the instant Home leaves the screen or during `onPause()`.
 - **Minimalist App Icons & Pure Text Mode**: Option to display subtle, minimalist app icons beside each app (Home screen and App Drawer) with an optional monochrome/grayscale filter that preserves the AMOLED calm aesthetic, or toggle off completely for a pure text-only experience.
 - **Custom App Renaming**: Long-press any app in the Home screen or Drawer to assign a custom label (e.g. "Chrome" -> "web", "Spotify" -> "music"). Easily reset back to default at any time.
-- **AMOLED Monochrome & Typography**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme, monospace toggle, system wallpaper scrim dimmer (50% to 95% AMOLED dark overlay) with a dedicated **Change Wallpaper** option (choose from Gallery/Photos or System Wallpaper & Style picker), and adjustable font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%) with live preview and compact, refined layout spacing.
+- **AMOLED Monochrome & Typography**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme, monospace toggle, system wallpaper scrim dimmer (50% to 95% AMOLED dark overlay) with a dedicated **Change Wallpaper** option (choose from Gallery/Photos or System Wallpaper & Style picker), signature **Nounish Accent Colors** (Pure Monochrome, Nounish Red `⌐◨-◨` `#E53935`, Warm Amber `#FFB300`, AMOLED Mint Green `#00E676`, Muted Slate `#90A4AE`, Soft Lavender `#B39DDB`), customizable **Haptic Feedback Intensity** (Subtle, Standard, Firm, Off), and adjustable font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%) with live preview and compact, refined layout spacing.
 - **Home Screen Essentials**:
   - **Pinned App Editing & Reordering**: Reorder pinned shortcuts with dedicated up (`↑`) and down (`↓`) controls in Settings without needing to unpin and re-pin.
   - **Pinned App Limits**: Enforces a maximum of 8 pinned apps to keep Home distraction-free, with zero minimum limit (unpin down to 0 freely). Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first."
@@ -177,8 +177,8 @@ For step-by-step Google Play publishing requirements, package visibility complia
 ### Automated CI / GitHub Releases
 A GitHub Actions workflow (`.github/workflows/release.yml`) automatically builds the signed, minified release APK and attaches it to GitHub Releases whenever a git tag is pushed:
 ```bash
-git tag v1.0.23
-git push origin v1.0.23
+git tag v1.0.24
+git push origin v1.0.24
 ```
 
 ---

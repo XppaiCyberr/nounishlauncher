@@ -78,6 +78,7 @@ import com.nounish.launcher.model.PassiveNote
 import com.nounish.launcher.service.NotificationHelper
 import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
+import com.nounish.launcher.util.LauncherHaptic
 import com.nounish.launcher.ui.theme.LauncherTheme
 import com.nounish.launcher.ui.theme.getFontScale
 import kotlinx.coroutines.delay
@@ -136,6 +137,7 @@ fun HomeScreen(
     onDoubleTap: () -> Unit,
     isRefreshing: Boolean = false,
     swipeDownAction: String = "notifications",
+    hapticFeedbackLevel: String = "standard",
     onManualRefresh: () -> Unit = {}
 ) {
     val colors = LauncherTheme.colors
@@ -209,9 +211,7 @@ fun HomeScreen(
                             NotificationHelper.expandNotificationShade(context)
                         }
                         "refresh" -> {
-                            try {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            } catch (_: Exception) {}
+                            LauncherHaptic.performStrong(haptic, hapticFeedbackLevel)
                             onManualRefresh()
                         }
                         "drawer" -> {
@@ -643,7 +643,7 @@ fun HomeScreen(
                                         text = label,
                                         style = typography.clock,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) colors.textPrimary else colors.textSecondary.copy(alpha = 0.35f),
+                                        color = if (isSelected) colors.accent else colors.textSecondary.copy(alpha = 0.35f),
                                         modifier = Modifier
                                             .clickable {
                                                 if (isSelected && viewKey == "nouns" && isNounsAutoRotate && hasBothNouns) {
@@ -1195,7 +1195,7 @@ private fun PassiveNoteCard(
                 text = note.title,
                 style = typography.clock.copy(fontSize = 11.5.sp),
                 fontWeight = FontWeight.Bold,
-                color = colors.textPrimary,
+                color = colors.accent,
                 letterSpacing = 0.5.sp
             )
             Box(
@@ -1599,7 +1599,7 @@ private fun NounishRefreshIndicator(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp
                     ),
-                    color = colors.textPrimary,
+                    color = colors.accent,
                     modifier = Modifier.graphicsLayer {
                         scaleX = currentScale
                         scaleY = currentScale
