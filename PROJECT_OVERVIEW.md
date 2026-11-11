@@ -268,8 +268,10 @@ Accessible by long-pressing any empty area on the Home screen. The Settings expe
 
 5. **Theme & Typography**:
    - `Theme mode`: Switch between AMOLED Black (`#000000`) and Light theme.
+   - `Show system wallpaper & dark scrim dimmer`: Toggle displaying the device wallpaper behind a customizable dark AMOLED scrim overlay (50% to 95%).
+   - `Change wallpaper`: Update device wallpaper directly from Gallery / Photos or open the Android System Wallpaper & Style picker.
    - `Monospace font`: Switch between system sans-serif and monospace typeface.
-   - `Font size scaling`: Adjust global font size across 5 scale levels (`Micro`, `Small`, `Medium`, `Large`, `Extra Large`).
+   - `Font size scaling`: Adjust global font size across 7 scale levels (`Micro`, `Extra Small`, `Small`, `Compact`, `Default`, `Large`, `Extra Large`).
    - `Show app icons`: Toggle visibility of app icons in drawer and pinned lists.
    - `Monochrome icons`: Toggle black & white tinted app icons for ultra-minimalist aesthetics.
 

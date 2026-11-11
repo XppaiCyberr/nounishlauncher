@@ -1,5 +1,6 @@
 package com.nounish.launcher
 
+import android.app.WallpaperManager
 import android.content.Intent
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -30,7 +31,9 @@ import com.nounish.launcher.ui.DrawerScreen
 import com.nounish.launcher.ui.HomeScreen
 import com.nounish.launcher.ui.SettingsScreen
 import com.nounish.launcher.ui.theme.NounishLauncherTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class Screen {
     Home,
@@ -79,6 +82,60 @@ class MainActivity : ComponentActivity() {
                     Toast.makeText(this@MainActivity, "Error importing settings", Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+    }
+
+    private val pickWallpaperLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val wallpaperManager = WallpaperManager.getInstance(this@MainActivity)
+                    try {
+                        val cropIntent = wallpaperManager.getCropAndSetWallpaperIntent(it)
+                        startActivity(cropIntent)
+                    } catch (_: Exception) {
+                        contentResolver.openInputStream(it)?.use { stream ->
+                            wallpaperManager.setStream(stream)
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity, "Wallpaper updated", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    if (!viewModel.settings.value.showWallpaper) {
+                        viewModel.setShowWallpaper(true)
+                    }
+                } catch (_: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "Failed to set wallpaper", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun openSystemWallpaperPicker() {
+        try {
+            val intent = Intent(Intent.ACTION_SET_WALLPAPER)
+            startActivity(Intent.createChooser(intent, "Set Wallpaper"))
+            if (!viewModel.settings.value.showWallpaper) {
+                viewModel.setShowWallpaper(true)
+            }
+        } catch (_: Exception) {
+            try {
+                pickWallpaperLauncher.launch("image/*")
+            } catch (_: Exception) {
+                Toast.makeText(this, "No wallpaper app found", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun openGalleryWallpaperPicker() {
+        try {
+            pickWallpaperLauncher.launch("image/*")
+        } catch (_: Exception) {
+            Toast.makeText(this, "Unable to open gallery", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -356,6 +413,8 @@ class MainActivity : ComponentActivity() {
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },
                                     onToggleShowWallpaper = { viewModel.setShowWallpaper(it) },
                                     onUpdateWallpaperDimLevel = { viewModel.setWallpaperDimLevel(it) },
+                                    onChangeWallpaperSystem = { openSystemWallpaperPicker() },
+                                    onChangeWallpaperGallery = { openGalleryWallpaperPicker() },
                                     onToggleShowRecentApps = { viewModel.setShowRecentApps(it) },
                                     onClearRecentApps = { viewModel.clearRecentApps() },
                                     onToggleMonospace = { viewModel.setUseMonospace(it) },

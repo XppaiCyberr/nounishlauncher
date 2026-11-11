@@ -107,6 +107,8 @@ fun SettingsScreen(
     onToggleLightTheme: (Boolean) -> Unit,
     onToggleShowWallpaper: (Boolean) -> Unit = {},
     onUpdateWallpaperDimLevel: (Float) -> Unit = {},
+    onChangeWallpaperSystem: () -> Unit = {},
+    onChangeWallpaperGallery: () -> Unit = {},
     onToggleShowRecentApps: (Boolean) -> Unit = {},
     onClearRecentApps: () -> Unit = {},
     onToggleMonospace: (Boolean) -> Unit,
@@ -143,6 +145,7 @@ fun SettingsScreen(
     var showIdxSymbolsDialog by remember { mutableStateOf(false) }
     var showClockFormatDialog by remember { mutableStateOf(false) }
     var showWallpaperDimDialog by remember { mutableStateOf(false) }
+    var showChangeWallpaperDialog by remember { mutableStateOf(false) }
     var showDateFormatDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
     var showCornerTextDialog by remember { mutableStateOf(false) }
@@ -731,6 +734,14 @@ fun SettingsScreen(
                                             onClick = { showWallpaperDimDialog = true }
                                         )
                                     }
+                                }
+
+                                item {
+                                    SettingsActionRow(
+                                        title = "Change wallpaper",
+                                        subtitle = "Choose from gallery or system wallpaper picker",
+                                        onClick = { showChangeWallpaperDialog = true }
+                                    )
                                 }
 
                                 item {
@@ -1587,6 +1598,61 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showWallpaperDimDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Change Wallpaper Dialog
+    if (showChangeWallpaperDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangeWallpaperDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Change Wallpaper",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Select how you would like to set your wallpaper:",
+                        style = typography.settingsDescription,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    Text(
+                        text = "Choose from Gallery / Photos",
+                        style = typography.settingsItem,
+                        color = colors.textPrimary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showChangeWallpaperDialog = false
+                                onChangeWallpaperGallery()
+                            }
+                            .padding(vertical = 12.dp)
+                    )
+                    Text(
+                        text = "System Wallpaper & Style",
+                        style = typography.settingsItem,
+                        color = colors.textPrimary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showChangeWallpaperDialog = false
+                                onChangeWallpaperSystem()
+                            }
+                            .padding(vertical = 12.dp)
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showChangeWallpaperDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }
