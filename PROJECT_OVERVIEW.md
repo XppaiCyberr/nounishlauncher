@@ -88,6 +88,8 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Accent- & Case-Insensitive Alphabetical Sorting**:
   - Uses Unicode NFD normalization to strip combining marks, sorting diacritics naturally (`Écran` under `E`, `Über` under `U`).
   - Apps starting with numbers or symbols (`1Password`, `7-Zip`, `@voice`) are cleanly sorted under `#` at the bottom of the list.
+- **Recent Apps**:
+  - Displays recent apps in a horizontal pill row at the top (or above the bottom search bar for one-handed reach). Hides automatically when typing.
 - **Instant Search**:
   - Swipe up from anywhere on the Home screen to open the app list.
   - Minimalist search input at the top filters apps in real time as you type.

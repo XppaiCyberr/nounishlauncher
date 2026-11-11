@@ -1,7 +1,9 @@
 package com.nounish.launcher
 
 import android.content.Intent
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -98,6 +100,7 @@ class MainActivity : ComponentActivity() {
             val settings by viewModel.settings.collectAsState()
             val allApps by viewModel.allApps.collectAsState()
             val pinnedApps by viewModel.pinnedApps.collectAsState()
+            val recentApps by viewModel.recentApps.collectAsState()
             val filteredApps by viewModel.filteredApps.collectAsState()
             val searchQuery by viewModel.searchQuery.collectAsState()
             val usdRateState by viewModel.usdRateState.collectAsState()
@@ -109,6 +112,17 @@ class MainActivity : ComponentActivity() {
             val isRefreshingData by viewModel.isRefreshingData.collectAsState()
 
             var currentScreen by remember { currentScreenState }
+
+            // Wallpaper window flag synchronization
+            LaunchedEffect(settings.showWallpaper) {
+                if (settings.showWallpaper) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+                    window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+                    window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.BLACK))
+                }
+            }
 
             // Manage price refresh lifecycle: runs while drawer or home crypto/idx/nouns is active
             LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.useWebSocketOnHome, settings.swipeDownAction, settings.swipeDownToRefresh) {
@@ -131,9 +145,14 @@ class MainActivity : ComponentActivity() {
             NounishLauncherTheme(
                 isLightTheme = settings.isLightTheme,
                 useMonospace = settings.useMonospace,
-                fontSize = settings.fontSize
+                fontSize = settings.fontSize,
+                showWallpaper = settings.showWallpaper,
+                wallpaperDimLevel = settings.wallpaperDimLevel
             ) {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = androidx.compose.ui.graphics.Color.Transparent
+                ) {
                     // Back button handling
                     BackHandler(enabled = currentScreen != Screen.Home) {
                         if (currentScreen == Screen.Drawer && searchQuery.isNotEmpty()) {
@@ -188,6 +207,7 @@ class MainActivity : ComponentActivity() {
                                     onDismissNote = { viewModel.dismissHomeScreenNote() },
                                     onNextNote = { viewModel.nextHomeScreenNote(DEFAULT_PASSIVE_NOTES.size) },
                                     onAppClick = { app ->
+                                        viewModel.recordRecentApp(app)
                                         viewModel.appRepository.launchApp(app)
                                     },
                                     onAppInfoClick = { app ->
@@ -237,6 +257,7 @@ class MainActivity : ComponentActivity() {
                                 DrawerScreen(
                                     apps = filteredApps,
                                     searchQuery = searchQuery,
+                                    recentApps = recentApps,
                                     pinnedPackages = settings.pinnedApps,
                                     hiddenPackages = settings.hiddenApps,
                                     usdRateState = usdRateState,
@@ -252,6 +273,7 @@ class MainActivity : ComponentActivity() {
                                         viewModel.onSearchQueryChanged(query)
                                     },
                                     onAppClick = { app ->
+                                        viewModel.recordRecentApp(app)
                                         viewModel.appRepository.launchApp(app)
                                         viewModel.onSearchQueryChanged("")
                                         currentScreen = Screen.Home
@@ -332,6 +354,10 @@ class MainActivity : ComponentActivity() {
                                     onUpdateCryptoSymbols = { viewModel.setCryptoSymbols(it) },
                                     onUpdateCryptoQuote = { viewModel.setCryptoQuoteCurrency(it) },
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },
+                                    onToggleShowWallpaper = { viewModel.setShowWallpaper(it) },
+                                    onUpdateWallpaperDimLevel = { viewModel.setWallpaperDimLevel(it) },
+                                    onToggleShowRecentApps = { viewModel.setShowRecentApps(it) },
+                                    onClearRecentApps = { viewModel.clearRecentApps() },
                                     onToggleMonospace = { viewModel.setUseMonospace(it) },
                                     onUpdateFontSize = { viewModel.setFontSize(it) },
                                     onToggleShowAppIcons = { viewModel.setShowAppIcons(it) },

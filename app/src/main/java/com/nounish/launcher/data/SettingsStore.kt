@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -78,6 +79,10 @@ data class LauncherSettings(
     val swipeDownAction: String = "notifications", // "notifications", "refresh", "drawer", "none"
     val swipeDownToRefresh: Boolean = false,
     val doubleTapLock: Boolean = false,
+    val showRecentApps: Boolean = true,
+    val recentApps: List<String> = emptyList(),
+    val showWallpaper: Boolean = false,
+    val wallpaperDimLevel: Float = 0.80f,
     val cryptoPriceEnabled: Boolean = true,
     val cryptoSymbols: List<String> = listOf("BTC", "ETH", "SOL"),
     val cryptoQuoteCurrency: String = "USDT",
@@ -150,6 +155,10 @@ class SettingsStore(private val context: Context) {
         private val KEY_CRYPTO_QUOTE = stringPreferencesKey("crypto_quote_currency")
         private val KEY_USE_WEBSOCKET_ON_HOME = booleanPreferencesKey("use_websocket_on_home")
         private val KEY_LIGHT_THEME = booleanPreferencesKey("is_light_theme")
+        private val KEY_SHOW_WALLPAPER = booleanPreferencesKey("show_wallpaper")
+        private val KEY_WALLPAPER_DIM_LEVEL = floatPreferencesKey("wallpaper_dim_level")
+        private val KEY_SHOW_RECENT_APPS = booleanPreferencesKey("show_recent_apps")
+        private val KEY_RECENT_APPS = stringPreferencesKey("recent_apps")
         private val KEY_USE_MONOSPACE = booleanPreferencesKey("use_monospace")
         private val KEY_FONT_SIZE = stringPreferencesKey("font_size")
         private val KEY_SHOW_APP_ICONS = booleanPreferencesKey("show_app_icons")
@@ -231,6 +240,11 @@ class SettingsStore(private val context: Context) {
         val cryptoQuote = prefs[KEY_CRYPTO_QUOTE] ?: "USDT"
         val useWebSocket = prefs[KEY_USE_WEBSOCKET_ON_HOME] ?: false
         val isLight = prefs[KEY_LIGHT_THEME] ?: false
+        val showWallpaper = prefs[KEY_SHOW_WALLPAPER] ?: false
+        val wallpaperDimLevel = prefs[KEY_WALLPAPER_DIM_LEVEL] ?: 0.80f
+        val showRecentApps = prefs[KEY_SHOW_RECENT_APPS] ?: true
+        val recentAppsRaw = prefs[KEY_RECENT_APPS] ?: ""
+        val recentApps = recentAppsRaw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         val useMono = prefs[KEY_USE_MONOSPACE] ?: false
         val fontSize = prefs[KEY_FONT_SIZE] ?: "medium"
         val showIcons = prefs[KEY_SHOW_APP_ICONS] ?: true
@@ -295,6 +309,10 @@ class SettingsStore(private val context: Context) {
             swipeDownAction = swipeDownAction,
             swipeDownToRefresh = swipeDownToRefresh,
             doubleTapLock = doubleTap,
+            showRecentApps = showRecentApps,
+            recentApps = recentApps,
+            showWallpaper = showWallpaper,
+            wallpaperDimLevel = wallpaperDimLevel,
             cryptoPriceEnabled = cryptoEnabled,
             cryptoSymbols = symbolsList,
             cryptoQuoteCurrency = cryptoQuote,
@@ -480,6 +498,30 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setLightTheme(enabled: Boolean) {
         context.dataStore.edit { it[KEY_LIGHT_THEME] = enabled }
+    }
+
+    suspend fun setShowWallpaper(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_WALLPAPER] = enabled }
+    }
+
+    suspend fun setWallpaperDimLevel(level: Float) {
+        context.dataStore.edit { it[KEY_WALLPAPER_DIM_LEVEL] = level.coerceIn(0.2f, 0.98f) }
+    }
+
+    suspend fun setShowRecentApps(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_RECENT_APPS] = enabled }
+    }
+
+    suspend fun recordRecentApp(appKeyOrPackage: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[KEY_RECENT_APPS]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+            val updated = (listOf(appKeyOrPackage) + current.filter { it != appKeyOrPackage }).take(8)
+            prefs[KEY_RECENT_APPS] = updated.joinToString(",")
+        }
+    }
+
+    suspend fun clearRecentApps() {
+        context.dataStore.edit { it[KEY_RECENT_APPS] = "" }
     }
 
     suspend fun setUseMonospace(enabled: Boolean) {
@@ -747,6 +789,10 @@ class SettingsStore(private val context: Context) {
         root.put("useWebSocketOnHome", settings.useWebSocketOnHome)
 
         root.put("isLightTheme", settings.isLightTheme)
+        root.put("showWallpaper", settings.showWallpaper)
+        root.put("wallpaperDimLevel", settings.wallpaperDimLevel.toDouble())
+        root.put("showRecentApps", settings.showRecentApps)
+        root.put("recentApps", JSONArray(settings.recentApps))
         root.put("useMonospace", settings.useMonospace)
         root.put("fontSize", settings.fontSize)
         root.put("showAppIcons", settings.showAppIcons)
@@ -849,6 +895,15 @@ class SettingsStore(private val context: Context) {
                 if (root.has("useWebSocketOnHome")) prefs[KEY_USE_WEBSOCKET_ON_HOME] = root.getBoolean("useWebSocketOnHome")
 
                 if (root.has("isLightTheme")) prefs[KEY_LIGHT_THEME] = root.getBoolean("isLightTheme")
+                if (root.has("showWallpaper")) prefs[KEY_SHOW_WALLPAPER] = root.getBoolean("showWallpaper")
+                if (root.has("wallpaperDimLevel")) prefs[KEY_WALLPAPER_DIM_LEVEL] = root.getDouble("wallpaperDimLevel").toFloat()
+                if (root.has("showRecentApps")) prefs[KEY_SHOW_RECENT_APPS] = root.getBoolean("showRecentApps")
+                if (root.has("recentApps")) {
+                    val arr = root.getJSONArray("recentApps")
+                    val list = mutableListOf<String>()
+                    for (i in 0 until arr.length()) list.add(arr.getString(i))
+                    prefs[KEY_RECENT_APPS] = list.joinToString(",")
+                }
                 if (root.has("useMonospace")) prefs[KEY_USE_MONOSPACE] = root.getBoolean("useMonospace")
                 if (root.has("fontSize")) prefs[KEY_FONT_SIZE] = root.getString("fontSize")
                 if (root.has("showAppIcons")) prefs[KEY_SHOW_APP_ICONS] = root.getBoolean("showAppIcons")

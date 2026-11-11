@@ -15,7 +15,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Zero-Jank Network Architecture**: All network operations (polling and WebSockets) run strictly on `Dispatchers.IO` and are cancelled the instant Home leaves the screen or during `onPause()`.
 - **Minimalist App Icons & Pure Text Mode**: Option to display subtle, minimalist app icons beside each app (Home screen and App Drawer) with an optional monochrome/grayscale filter that preserves the AMOLED calm aesthetic, or toggle off completely for a pure text-only experience.
 - **Custom App Renaming**: Long-press any app in the Home screen or Drawer to assign a custom label (e.g. "Chrome" -> "web", "Spotify" -> "music"). Easily reset back to default at any time.
-- **AMOLED Monochrome & Typography**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme, monospace toggle, and adjustable font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%) with live preview and compact, refined layout spacing.
+- **AMOLED Monochrome & Typography**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme, monospace toggle, system wallpaper scrim dimmer (50% to 95% AMOLED dark overlay), and adjustable font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%) with live preview and compact, refined layout spacing.
 - **Home Screen Essentials**:
   - **Pinned App Editing & Reordering**: Reorder pinned shortcuts with dedicated up (`↑`) and down (`↓`) controls in Settings without needing to unpin and re-pin.
   - **Pinned App Limits**: Enforces a maximum of 8 pinned apps to keep Home distraction-free, with zero minimum limit (unpin down to 0 freely). Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first."
@@ -45,6 +45,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Swipe up from Home to open instant search.
   - Zero icon loading: uses direct `PackageManager` labels for sub-millisecond load times and minimal RAM usage.
   - Real-time search filter with optional **Auto-launch** on single match.
+  - **Recent Apps**: Displays your most recently used apps in a clean, scrollable horizontal row of pills at the top (or anchored above the bottom search bar for instant one-handed reach). Updates automatically on launch and hides seamlessly when searching.
   - **Inline Minimalist Calculator**: Type arithmetic expressions directly into the search bar (e.g. `125 * 8`, `45000 / 12`, `(15 + 5) * 4`, `25% * 80`) to calculate instantly. Shows a clean `= <result>` banner above apps with one-tap copy to clipboard and tactile haptic feedback.
   - Search matches both original system names and custom labels.
   - **Deep App Shortcuts (Android 7.1+)**: Long-pressing any app on Home or Drawer asynchronously queries dynamic and manifest shortcuts via native `LauncherApps.getShortcuts()` (e.g. Chrome's "New Tab", messaging shortcuts). Displayed as clean AMOLED text rows above standard options.
@@ -176,8 +177,8 @@ For step-by-step Google Play publishing requirements, package visibility complia
 ### Automated CI / GitHub Releases
 A GitHub Actions workflow (`.github/workflows/release.yml`) automatically builds the signed, minified release APK and attaches it to GitHub Releases whenever a git tag is pushed:
 ```bash
-git tag v1.0.20
-git push origin v1.0.20
+git tag v1.0.21
+git push origin v1.0.21
 ```
 
 ---

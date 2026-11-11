@@ -110,6 +110,18 @@ class MainViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val recentApps: StateFlow<List<AppItem>> = combine(allApps, settings) { apps, pref ->
+        if (!pref.showRecentApps) {
+            emptyList()
+        } else {
+            pref.recentApps.mapNotNull { key ->
+                findMatchingApp(apps, key)
+            }.filter { app ->
+                !isAppHidden(app, pref.hiddenApps)
+            }.take(5)
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     val filteredApps: StateFlow<List<AppItem>> = combine(allApps, settings, searchQuery) { apps, pref, query ->
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
@@ -1220,6 +1232,36 @@ class MainViewModel(
     fun setMonochromeIcons(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setMonochromeIcons(enabled)
+        }
+    }
+
+    fun setShowWallpaper(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowWallpaper(enabled)
+        }
+    }
+
+    fun setWallpaperDimLevel(level: Float) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setWallpaperDimLevel(level)
+        }
+    }
+
+    fun setShowRecentApps(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowRecentApps(enabled)
+        }
+    }
+
+    fun recordRecentApp(app: AppItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.recordRecentApp(app.key)
+        }
+    }
+
+    fun clearRecentApps() {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.clearRecentApps()
         }
     }
 

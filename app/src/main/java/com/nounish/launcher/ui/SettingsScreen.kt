@@ -105,6 +105,10 @@ fun SettingsScreen(
     onUpdateCryptoSymbols: (List<String>) -> Unit,
     onUpdateCryptoQuote: (String) -> Unit,
     onToggleLightTheme: (Boolean) -> Unit,
+    onToggleShowWallpaper: (Boolean) -> Unit = {},
+    onUpdateWallpaperDimLevel: (Float) -> Unit = {},
+    onToggleShowRecentApps: (Boolean) -> Unit = {},
+    onClearRecentApps: () -> Unit = {},
     onToggleMonospace: (Boolean) -> Unit,
     onUpdateFontSize: (String) -> Unit,
     onToggleShowAppIcons: (Boolean) -> Unit,
@@ -138,6 +142,7 @@ fun SettingsScreen(
     var showIdxModeDialog by remember { mutableStateOf(false) }
     var showIdxSymbolsDialog by remember { mutableStateOf(false) }
     var showClockFormatDialog by remember { mutableStateOf(false) }
+    var showWallpaperDimDialog by remember { mutableStateOf(false) }
     var showDateFormatDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
     var showCornerTextDialog by remember { mutableStateOf(false) }
@@ -484,6 +489,25 @@ fun SettingsScreen(
 
                                 item {
                                     SettingsSwitchRow(
+                                        title = "Show recent apps",
+                                        subtitle = if (settings.showRecentApps) "Display recently launched apps at the top of the drawer" else "Recent apps hidden",
+                                        checked = settings.showRecentApps,
+                                        onCheckedChange = onToggleShowRecentApps
+                                    )
+                                }
+
+                                if (settings.showRecentApps && settings.recentApps.isNotEmpty()) {
+                                    item {
+                                        SettingsActionRow(
+                                            title = "Clear recent apps history",
+                                            subtitle = "Clears ${settings.recentApps.size} recent entries",
+                                            onClick = onClearRecentApps
+                                        )
+                                    }
+                                }
+
+                                item {
+                                    SettingsSwitchRow(
                                         title = "Auto-launch on single match",
                                         subtitle = "Instantly open app when search yields 1 result",
                                         checked = settings.autoLaunchSingleMatch,
@@ -684,6 +708,29 @@ fun SettingsScreen(
                                         checked = settings.isLightTheme,
                                         onCheckedChange = onToggleLightTheme
                                     )
+                                }
+
+                                item {
+                                    SettingsSwitchRow(
+                                        title = "Show system wallpaper",
+                                        subtitle = if (settings.showWallpaper) {
+                                            "Wallpaper visible with ${(settings.wallpaperDimLevel * 100).toInt()}% dark scrim"
+                                        } else {
+                                            "Pitch black AMOLED background"
+                                        },
+                                        checked = settings.showWallpaper,
+                                        onCheckedChange = onToggleShowWallpaper
+                                    )
+                                }
+
+                                if (settings.showWallpaper) {
+                                    item {
+                                        SettingsActionRow(
+                                            title = "Wallpaper dark scrim level",
+                                            subtitle = "${(settings.wallpaperDimLevel * 100).toInt()}% dark overlay",
+                                            onClick = { showWallpaperDimDialog = true }
+                                        )
+                                    }
                                 }
 
                                 item {
@@ -1491,6 +1538,55 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showFontSizeDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Wallpaper Dim Level Dialog
+    if (showWallpaperDimDialog) {
+        val dimLevels = listOf(
+            0.50f to "50% - Moderate Scrim",
+            0.65f to "65% - Balanced Dim",
+            0.80f to "80% - Deep AMOLED Dim (Recommended)",
+            0.90f to "90% - Ultra Dark",
+            0.95f to "95% - Nearly Black"
+        )
+        AlertDialog(
+            onDismissRequest = { showWallpaperDimDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Wallpaper Scrim Level",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                LazyColumn(modifier = Modifier.height(240.dp)) {
+                    items(dimLevels) { (level, label) ->
+                        val isSelected = kotlin.math.abs(level - settings.wallpaperDimLevel) < 0.05f
+                        Text(
+                            text = label,
+                            style = typography.settingsItem.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            ),
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateWallpaperDimLevel(level)
+                                    showWallpaperDimDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showWallpaperDimDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }

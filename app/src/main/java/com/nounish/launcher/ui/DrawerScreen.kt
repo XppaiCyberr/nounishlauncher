@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -27,9 +28,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -95,6 +99,7 @@ fun DrawerScreen(
     monochromeIcons: Boolean = true,
     fontSize: String = "medium",
     searchBarAtBottom: Boolean = false,
+    recentApps: List<AppItem> = emptyList(),
     onSearchQueryChange: (String) -> Unit,
     onAppClick: (AppItem) -> Unit,
     onTogglePinApp: (AppItem) -> Unit,
@@ -270,10 +275,75 @@ fun DrawerScreen(
                 }
             }
 
+            val recentAppsContent: @Composable () -> Unit = {
+                if (searchQuery.isEmpty() && recentApps.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Text(
+                            text = "RECENT",
+                            style = typography.settingsDescription.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.sp
+                            ),
+                            color = colors.textSecondary.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(recentApps, key = { "recent_" + it.key }) { app ->
+                                val fontScale = getFontScale(fontSize)
+                                val iconSize = (16 * fontScale).coerceIn(12f, 22f).dp
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .background(
+                                            color = colors.surface.copy(alpha = 0.75f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = colors.border.copy(alpha = 0.45f),
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
+                                        .combinedClickable(
+                                            onClick = { onAppClick(app) },
+                                            onLongClick = { selectedAppForMenu = app }
+                                        )
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    if (showAppIcons) {
+                                        AppIcon(
+                                            item = app,
+                                            modifier = Modifier.size(iconSize),
+                                            isMonochrome = monochromeIcons
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+                                    Text(
+                                        text = app.displayLabel,
+                                        style = typography.drawerItem.copy(fontSize = (13 * fontScale).sp),
+                                        color = colors.textPrimary,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (!searchBarAtBottom) {
                 Spacer(modifier = Modifier.height(16.dp))
                 searchBarContent()
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                recentAppsContent()
+                Spacer(modifier = Modifier.height(4.dp))
             } else {
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -486,7 +556,8 @@ fun DrawerScreen(
             }
 
             if (searchBarAtBottom) {
-                Spacer(modifier = Modifier.height(12.dp))
+                recentAppsContent()
+                Spacer(modifier = Modifier.height(8.dp))
                 searchBarContent()
                 Spacer(modifier = Modifier.height(12.dp))
             } else {

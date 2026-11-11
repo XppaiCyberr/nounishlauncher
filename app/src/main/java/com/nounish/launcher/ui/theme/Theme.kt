@@ -49,22 +49,29 @@ fun NounishLauncherTheme(
     isLightTheme: Boolean = false,
     useMonospace: Boolean = false,
     fontSize: String = "medium",
+    showWallpaper: Boolean = false,
+    wallpaperDimLevel: Float = 0.80f,
     content: @Composable () -> Unit
 ) {
+    val dimAlpha = wallpaperDimLevel.coerceIn(0.2f, 0.98f)
     val colors = if (isLightTheme) {
+        val bg = if (showWallpaper) Color.White.copy(alpha = dimAlpha) else LightBackground
+        val surf = if (showWallpaper) Color(0xFFF2F2F2).copy(alpha = 0.85f) else LightSurface
         LauncherColors(
-            background = LightBackground,
+            background = bg,
             textPrimary = LightTextPrimary,
             textSecondary = LightTextSecondary,
-            surface = LightSurface,
+            surface = surf,
             border = LightBorder
         )
     } else {
+        val bg = if (showWallpaper) Color.Black.copy(alpha = dimAlpha) else AmoledBackground
+        val surf = if (showWallpaper) Color(0xFF141414).copy(alpha = 0.85f) else AmoledSurface
         LauncherColors(
-            background = AmoledBackground,
+            background = bg,
             textPrimary = AmoledTextPrimary,
             textSecondary = AmoledTextSecondary,
-            surface = AmoledSurface,
+            surface = surf,
             border = AmoledBorder
         )
     }
