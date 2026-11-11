@@ -2,97 +2,116 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
+**Version**: `1.0.24` (versionCode `25`) · **Release APK Footprint**: `~1.11 MB` (1,164,866 bytes)
+
 ---
 
 ## Features
 
+### 1. Signature Nounish Aesthetics & Accent Colors
+- **Signature Nounish Accent Color Palettes**: Choose from 6 curated palettes to personalize your experience while maintaining AMOLED elegance:
+  - **Pure Monochrome**: Crisp white (`#FFFFFF`) on AMOLED Black / Deep graphite (`#121212`) in Light Theme.
+  - **Nounish Red `⌐◨-◨`**: Iconic vibrant red (`#E53935`).
+  - **Warm Amber**: High-contrast golden amber (`#FFB300`).
+  - **AMOLED Mint Green**: Vivid, battery-saving green (`#00E676`).
+  - **Muted Slate**: Calm slate blue (`#90A4AE` in Dark / `#546E7A` in Light).
+  - **Soft Lavender**: Soothing pastel lavender (`#B39DDB` in Dark / `#7E57C2` in Light).
+- **Targeted Accent Tinting**: The selected accent color subtly and cohesively tints key interactive elements throughout the launcher:
+  1. **Breathing & Typing Glasses**: The iconic `⌐◨-◨` glasses during Home pull-to-refresh.
+  2. **Active Carousel Tabs**: Highlighted category headers (`CRYPTO (USDT)`, `IDX SAHAM (IDR)`, `NOUNS DAO ⌐◨-◨`).
+  3. **Passive Learning Note Title**: The `NOUNISH ⌐◨-◨` card header on Home.
+  4. **Math Calculation Result**: The clean `= <result>` text banner in the App Drawer search.
+  5. **Alphabet Index Scrub Highlights**: The active hovered letter indicator and the targeted app waving out during alphabetical scrubbing.
+  6. **Search Text Cursor**: The active text input cursor in the App Drawer.
+  7. **Settings Category Pills**: Active selector pill border, background tint, and label text in Settings.
+  8. **Switch Toggles**: Checked switch track color across all settings toggles.
+
+### 2. Customizable Haptic Feedback Intensity
+- **4 Distinct Feedback Levels**: Fine-tune tactile feedback across the launcher:
+  - **Standard**: Balanced tactile ticks for navigation and firm long-press triggers.
+  - **Subtle (Light Tick)**: Gentle, understated micro-ticks across all interactions.
+  - **Firm (Strong)**: Pronounced, confident vibration feedback.
+  - **Off (Disabled)**: Completely silent, vibration-free operation.
+- **Universal Application**: Seamlessly integrated across pull-to-refresh resistance milestones, gesture triggers (swipe down, screen lock), alphabet index scrubbing (tick on each letter crossed), and one-tap clipboard copy actions.
+
+### 3. Wallpaper Change Support & AMOLED Dark Scrim
+- **Wallpaper Change Options**: Update the system wallpaper directly from Settings without leaving the launcher:
+  - **Gallery / Photos Picker**: Select any photo with native crop-and-set intent (`WallpaperManager.getCropAndSetWallpaperIntent`) and direct bitmap stream fallback.
+  - **System Wallpaper & Style Picker**: Direct shortcut to Android's native wallpaper chooser (`Intent.ACTION_SET_WALLPAPER`).
+- **AMOLED Dark Scrim Overlay**: Pair device wallpaper with a customizable dark scrim overlay (adjustable from **50% to 95%**, default **80%**) to ensure typography remains crisp, legible, and AMOLED-friendly over any image.
+
+### 4. Window Hardware Alpha Compositing Architecture (Zero-Ghosting)
+- **RGBA_8888 Translucent Window Surface**: Explicitly configured via `window.setFormat(PixelFormat.TRANSLUCENT)`, ensuring Android's SurfaceFlinger hardware compositor blends window pixels directly with the wallpaper layer without color-depth reduction or banding artifacts.
+- **Window Translucency & Wallpaper Flags**: Configured with `android:windowIsTranslucent = true` and `android:windowShowWallpaper = true` in window styles with transparent backgrounds, allowing hardware-accelerated wallpaper presentation.
+- **Static Root Scrim Layer**: The root `Surface` applies `LauncherTheme.colors.background` (using `Color.Black.copy(alpha = dimAlpha)` or `#000000`) as a single, static compositing layer. Child screens (Home, Drawer, Settings) render on transparent surfaces, eliminating double-scrim multiplication and preventing background darkening during transitions.
+- **`AnimatedContent` Sequential Transitions**: Screen transitions utilize `AnimatedContent` with `fadeIn(tween(120))` together with `fadeOut(tween(90))`. Screen composables are cleanly disposed upon exit rather than overlapping simultaneously, guaranteeing **zero ghosting, no lingering text afterimages**, and silky-smooth 120 FPS transitions.
+
+### 5. App Drawer, Search & Ergonomics
+- **Recent Apps**: Displays your most recently used apps in a clean, scrollable horizontal row of pills at the top (or anchored above the bottom search bar for instant one-handed reach). Automatically tracks up to 5 launched apps with LRU deduplication and hides seamlessly when searching.
+- **Inline Minimalist Calculator**: Type arithmetic expressions directly into the search bar (`125 * 8`, `45000 / 12`, `(15 + 5) * 4`, `25% * 80`, `2^8`, `100 - 15%`) to calculate in real time. Displays a clean `= <result>` row in your chosen accent color with one-tap copy to clipboard, subtle "Copied" confirmation, tactile haptic feedback, and zero interference with normal app searching.
+- **Deep App Shortcuts (Android 7.1+)**: Long-pressing any app on Home or Drawer queries dynamic, manifest, and pinned shortcuts via native `LauncherApps.getShortcuts()` (e.g. Chrome's "New Tab", chat conversations). Displayed as clean AMOLED text rows above standard options for instant one-tap launch.
 - **Multi-Activity & Work Profile Support**: Uses Android's native `LauncherApps` API to display and launch both personal and work profile apps (`(Work)`) with independent user handles. Apps with multiple launcher activities are identified by unique composite keys (`packageName/activityName`).
-- **Clean Uninstall Pruning**: Automatically drops removed or uninstalled apps from pinned shortcuts and DataStore, eliminating dead entries.
-- **Accent- & Case-Insensitive Alphabetical Sorting**: Strips diacritics and normalizes accents so `Écran` and `Über` sort under `E` and `U` without distortion. Numbers and symbols (`1Password`, `7-Zip`, `@voice`) are cleanly grouped under `#` at the end.
-- **Cold Start under 300 ms**: Pinned apps and market prices are drawn on frame 1 directly from local DataStore cache, while the full app list queries asynchronously in the background.
-- **In-Memory App Caching**: The installed app list is loaded once into memory with disk persistence (`apps_cache.json`) and updated strictly when `PackageChangeReceiver` notifies of package changes. Opening the drawer never re-queries `PackageManager`.
-- **Process-Death Resilient**: Full state restoration across OS process kills (active screen, search query, scroll position, and user configurations).
-- **Zero-Jank Network Architecture**: All network operations (polling and WebSockets) run strictly on `Dispatchers.IO` and are cancelled the instant Home leaves the screen or during `onPause()`.
-- **Minimalist App Icons & Pure Text Mode**: Option to display subtle, minimalist app icons beside each app (Home screen and App Drawer) with an optional monochrome/grayscale filter that preserves the AMOLED calm aesthetic, or toggle off completely for a pure text-only experience.
-- **Custom App Renaming**: Long-press any app in the Home screen or Drawer to assign a custom label (e.g. "Chrome" -> "web", "Spotify" -> "music"). Easily reset back to default at any time.
-- **AMOLED Monochrome & Typography**: Pitch black background (`#000000`) with crisp white and subtle grey typography. Includes an optional light theme, monospace toggle, system wallpaper scrim dimmer (50% to 95% AMOLED dark overlay) with a dedicated **Change Wallpaper** option (choose from Gallery/Photos or System Wallpaper & Style picker), signature **Nounish Accent Colors** (Pure Monochrome, Nounish Red `⌐◨-◨` `#E53935`, Warm Amber `#FFB300`, AMOLED Mint Green `#00E676`, Muted Slate `#90A4AE`, Soft Lavender `#B39DDB`), customizable **Haptic Feedback Intensity** (Subtle, Standard, Firm, Off), and adjustable font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%) with live preview and compact, refined layout spacing.
-- **Home Screen Essentials**:
-  - **Pinned App Editing & Reordering**: Reorder pinned shortcuts with dedicated up (`↑`) and down (`↓`) controls in Settings without needing to unpin and re-pin.
-  - **Pinned App Limits**: Enforces a maximum of 8 pinned apps to keep Home distraction-free, with zero minimum limit (unpin down to 0 freely). Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first."
-  - **Clock Options**: Choose between System Default (respects Android's 24-hour setting), 24-hour (`HH:mm`), 12-hour with AM/PM (`h:mm a`), or 12-hour without AM/PM (`h:mm`).
-  - **Optional Seconds**: Live second display (`:ss`) for atomic precision.
-  - **Date Format Customization**: Pick from common presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or input any custom `SimpleDateFormat` pattern.
-  - **Custom Corner Text (Bottom Right)**: Display custom text (such as your username, handle, or motivational quote) in the bottom-right corner of the Home screen, styled in muted secondary tone. Configurable in Settings (default: `xppaicyber`) or toggled off completely.
-  - **Closeable Passive Learning Notes (Top Right)**: A calm, minimalist floating note card anchored at the top-right corner of the Home screen for passive learning. Features the definition of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto slang and web3 culture. Dismissable via a subtle `x` close button and easily restored anytime from Settings.
-  - **Currency Format (Crypto USDT & Saham IDR)**: Real-time market prices clearly specify currency format across tickers, section headers, and 24h ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`). Configurable in Settings (Suffix, Prefix, or None).
-  - Live clock and date (configurable, tap clock to open system clock).
-  - **Live Binance Crypto Market Overview**: Fills the spacious center area with real-time tickers, current prices, 24-hour daily percentage change, and text sparklines.
-  - **Text Sparklines**: 24-hour financial trends drawn with text block characters (` ▂▃▄▅▆▇█`) that remain strictly text-only on the main ticker row.
-  - **Expandable 24h High/Low**: Tapping any coin row reveals its clean 24-hour range (`H: 78,068 · L: 77,262`).
-  - **Indonesian Stock Exchange (IDX Saham) Price Overview**: Optional live IDX quotes (`https://idx.xpp.wtf/`) with modes for Auto Rotate, Market Indices (`IHSG`, `LQ45`), Top Gainers, Top Losers, or Custom Watchlist (`BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`), complete with expandable 24h high/low and volume on tap.
-  - **Auto-Rotating IDX Categories with Staggered Wave Transition**: In Auto Rotate mode, the IDX view smoothly cycles through Market Indices, Top Gainers, Top Losers, and Watchlist. Each transition features a staggered wave animation where stock rows slide 1 by 1 to the left, accompanied by dynamic descriptive headers (`IDX SAHAM | Top Gainers`, `IDX SAHAM | Market Indices`, etc.) that can also be tapped to manually advance to the next category immediately.
-  - **Nouns DAO Governance & Candidates Feed**: Optional live Nouns DAO governance proposals and candidate proposals powered by `https://xpp.wtf/nouns/` with Ethereum RPC fallback. Displays pure minimalist text rows (`#1002  Title  Status` for proposals, `Draft  Title  Candidate` for candidates) with color-coded status badges (`Active` in bold green, `Executed` in muted grey, `Defeated` in subtle red). Tapping any proposal reveals live voting statistics (`For`, `Against`, `Quorum`) and a direct `Vote ↗` link opening `https://nouns.wtf/vote/{id}` in your browser; tapping any candidate displays proposer address (`By: 0x...`) and a direct link opening `https://nouns.wtf/candidates/{proposer}-{slug}`.
-  - **Auto-Rotating Nouns Proposals & Candidates**: When set to Auto Rotate mode, the Nouns section automatically alternates between Proposals and Candidates every 7 seconds (or manually via header tap), with a dynamic title indicator (`NOUNS DAO ⌐◨-◨ | Proposals` or `NOUNS DAO ⌐◨-◨ | Candidates`). You can also lock the view to Proposals only or Candidates only.
-  - **Configurable Items to Display**: Easily configure how many proposals or candidates appear on the Home screen (2 to 6 items, default 3) to suit screen size.
-  - **Separated Market & Community Views (Maximize Screen Space)**: Option to display Crypto, IDX Saham, and Nouns DAO simultaneously on the Home screen to maximize the generous middle screen area, with your choice of layout: **Stacked vertically** or **Multi-column** (Side by side).
-  - **Auto-Rotating Carousel (Auto-Advance Slideshow)**: When separation is toggled off, the home center space smoothly alternates between active widgets (Crypto, IDX, Nouns DAO) with a configurable slide or crossfade transition, or manual tap switching via interactive tabs (`CRYPTO (USDT)` · `IDX SAHAM (IDR)` · `NOUNS DAO ⌐◨-◨`).
-  - **Stale-Data Indicator**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`) so you always know when data was last updated.
-  - **Manual Refresh by Swiping Down (Breathing & Typing ⌐◨-◨)**: Swipe down anywhere on the Home screen to trigger an instantaneous refresh across all active market and community data (Binance Crypto, IDX Saham, and Nouns DAO). When enabled in Settings, automatic background polling is turned off to eliminate battery and network overhead; feeds update strictly on demand when swiping down. When disabled, automatic background polling remains active (every 15s–60s). Features an organic pull interaction where the iconic `⌐◨-◨` glasses dynamically type out as your finger pulls down, accompanied by tactile haptic feedback. While data is being fetched, the glasses pulse with an organic breathing animation and character typing loop, finishing with an updated indicator and smooth spring retraction. Toggleable in Settings under Gestures.
-  - Pinned apps (4–8 items) in large (`28 sp`) light-weight text, left-aligned for ergonomic one-handed thumb reach.
-  - Quick action dialog on long-press to rename, unpin, or open system app settings.
-  - Long-press background opens Settings.
-- **App Drawer**:
-  - Swipe up from Home to open instant search.
-  - Zero icon loading: uses direct `PackageManager` labels for sub-millisecond load times and minimal RAM usage.
-  - Real-time search filter with optional **Auto-launch** on single match.
-  - **Recent Apps**: Displays your most recently used apps in a clean, scrollable horizontal row of pills at the top (or anchored above the bottom search bar for instant one-handed reach). Updates automatically on launch and hides seamlessly when searching.
-  - **Inline Minimalist Calculator**: Type arithmetic expressions directly into the search bar (e.g. `125 * 8`, `45000 / 12`, `(15 + 5) * 4`, `25% * 80`) to calculate instantly. Shows a clean `= <result>` banner above apps with one-tap copy to clipboard and tactile haptic feedback.
-  - Search matches both original system names and custom labels.
-  - **Deep App Shortcuts (Android 7.1+)**: Long-pressing any app on Home or Drawer asynchronously queries dynamic and manifest shortcuts via native `LauncherApps.getShortcuts()` (e.g. Chrome's "New Tab", messaging shortcuts). Displayed as clean AMOLED text rows above standard options.
-  - **Bottom Search Bar Option**: Choose whether the search input bar (and live USD/IDR ticker) is anchored at the **Top** or **Bottom** of the drawer for optimal one-handed reachability on modern tall screens.
-  - **Live USD/IDR Rate**: Real-time USD to Indonesian Rupiah exchange rate inside the drawer with one-tap tactile refresh and stale-data indicators. Toggleable in Settings.
-  - **Alphabetical Fast-Scroll Index**: Vertical `A–Z` + `#` index scrubber with tactile haptic feedback.
-  - **Matching App Highlighting**: When scrubbing the alphabet index, matching apps are highlighted in crisp bold typography and full opacity, while non-matching apps and icons gracefully dim to muted grey so the drawer does not appear all white.
-  - **Customizable Position**: Option to place the index on either the **Left** or **Right** edge.
-  - **Niagara-Style Fluid Wave Animation**: When scrubbing the alphabet index, apps smoothly curve and wave towards your thumb with organic spring physics at 120 FPS.
-  - **Animation Toggle**: Option to disable the wave animation for a completely static, zero-motion text list.
-  - Long-press menu on any app: Rename, Pin to Home, Hide, App Info, Uninstall.
-- **Hidden Apps**:
-  - Hide distracting apps from the drawer list.
-  - Hidden apps only appear if searched for by name or in Settings -> Hidden Apps.
-- **Offline Settings Backup & Restore (JSON)**:
-  - Export and import pinned apps, hidden apps, custom app labels, and launcher preferences as an offline JSON file.
-  - Uses Android's native Storage Access Framework (`CreateDocument` and `OpenDocument`) with zero network transmission, perfectly fitting our offline and zero-telemetry architecture.
-- **Gestures**:
-  - **Swipe up**: Open drawer
-  - **Swipe down on Home**: Configurable in Settings: **Open notification shade** (default, pulls down notifications from anywhere on Home), **Manual refresh** (market and Nouns data with breathing/typing `⌐◨-◨` indicator; automatic background polling is paused when selected), **Open drawer**, or **Disabled**
-  - **Swipe down in Drawer**: Close drawer
-  - **Swipe left / right**: Launch user-assigned quick apps
-  - **Double-tap**: Screen lock
-  - **Long-press**: Open Settings
-- **Crypto Price Integration (Binance Public API)**:
-  - Small header ticker in the top-right corner of the drawer (tap to cycle coins).
-  - Color-coded daily percentage change: **Green** (`#00E676`) for positive, **Red** (`#FF5252`) for negative.
-  - **Custom Coin List & Arbitrary Pairs**: Track any Binance symbols or full pairs (e.g. `BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`, `ETHBIDR`).
-  - **Quote Currency Toggle**: Select quick presets (`USDT`, `USDC`, `EUR`, `BIDR` for IDR, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`) or input any custom quote currency.
-  - **Rate-Limit Handling with Exponential Backoff**: Automatically backs off exponentially on HTTP 429 rate limits or network errors (up to 240s).
-  - **Mobile Data & Battery Saver Awareness**: Automatically stretches poll intervals from 15s to 60s on cellular data or battery saver mode (90s if both) to preserve battery life and data.
-  - **Optional Live WebSocket on Home**: Stream live real-time Binance ticks directly on the Home screen via a native RFC 6455 WebSocket client. Immediately closed when the screen turns off or when leaving Home.
-  - DataStore caching for instant offline viewing with stale-data age markers.
+- **Accent- & Case-Insensitive Alphabetical Sorting**: Unicode NFD normalization strips combining marks so `Écran` and `Über` sort under `E` and `U`. Numbers and symbols (`1Password`, `7-Zip`, `@voice`) are cleanly grouped under `#` at the end.
+- **Bottom Search Bar Option**: Anchor the search input bar (and live USD/IDR ticker) at the **Top** or **Bottom** of the drawer for optimal one-handed reachability on modern tall displays.
+- **Live USD/IDR Rate**: Real-time USD to Indonesian Rupiah exchange rate inside the drawer with one-tap tactile refresh and stale-data indicators. Toggleable in Settings.
+- **Alphabetical Fast-Scroll Index**: Vertical `A–Z` + `#` index scrubber on either the **Left** or **Right** edge with tactile haptic ticks as you scrub.
+- **Matching App Highlighting & Non-Matching Dimming**: When scrubbing the alphabet index, matching apps are highlighted in bold typography and accent color, while non-matching apps and icons gracefully dim to muted grey (`0.28` alpha) to keep the list clean and readable.
+- **Niagara-Style Fluid Wave Animation**: When scrubbing the alphabet index, apps smoothly curve and wave towards your thumb with organic spring physics at 120 FPS. Toggleable in Settings for a completely static list.
+- **App Context Menu**: Long-press any app to access deep shortcuts, Rename, Pin/Unpin, Hide/Unhide, App Info, and Uninstall.
+
+### 6. Home Screen Essentials
+- **Pinned App Management**: Pin up to 8 apps (0–8 freely configurable) in large (`28 sp`) light-weight typography positioned in the lower-left area for ergonomic thumb reach.
+- **Dedicated Up/Down Reordering**: Reorder pinned shortcuts directly in Settings -> Pinned Apps with dedicated up (`↑`) and down (`↓`) controls without unpinning and re-pinning.
+- **Clean Uninstall Pruning**: Automatically drops uninstalled apps from pinned shortcuts and DataStore, leaving zero dead entries.
+- **Clock & Date Customization**: Choose between System Default (respects Android's 24-hour setting), 24-hour (`HH:mm`), 12-hour with AM/PM (`h:mm a`), or 12-hour without AM/PM (`h:mm`). Includes optional live seconds (`:ss`) and selectable date format presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or custom `SimpleDateFormat` patterns. Tapping the clock launches the system alarm/clock app.
+- **Custom Corner Text (Bottom Right)**: Display custom text (such as your username, handle, or motivational quote) in the bottom-right corner of the Home screen, styled in muted secondary tone. Configurable in Settings (default: `xppaicyber`) or toggled off completely.
+- **Closeable Passive Learning Notes (Top Right)**: Minimalist floating card at the top-right corner of the Home screen featuring the ethos of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology. Easily dismissed via a subtle `x` button and restored anytime from Settings.
+- **Currency Format**: Real-time market prices clearly specify currency format across tickers, headers, and ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`). Configurable in Settings (Suffix, Prefix, or None).
+
+### 7. Live Market & Community Feeds
+- **Live Binance Crypto Market Overview**: Real-time tickers, current prices, 24-hour daily percentage change, text sparklines (` ▂▃▄▅▆▇█`), and expandable 24h high/low (`H: 78,068 · L: 77,262`). Supports custom watchlists (`BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`, `ETHBIDR`) and quote currencies (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`).
+- **Indonesian Stock Exchange (IDX Saham)**: Live IDX quotes (`https://idx.xpp.wtf/`) with modes for Auto Rotate, Market Indices (`IHSG`, `LQ45`), Top Gainers, Top Losers, or Custom Watchlist (`BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`), complete with expandable 24h high/low and volume on tap.
+- **Auto-Rotating IDX Categories with Staggered Wave Transition**: In Auto Rotate mode, the IDX view smoothly cycles through categories every 6 seconds. Each transition features a staggered wave animation where stock rows slide 1 by 1 to the left with dynamic descriptive headers.
+- **Nouns DAO Governance & Candidates Feed**: Live Nouns DAO governance proposals and candidate proposals powered by `https://xpp.wtf/nouns/` with Ethereum RPC fallback. Displays pure text rows (`#1002 Title Status`) with color-coded status badges, live voting quorum statistics (`For`, `Against`, `Quorum`), and direct browser voting links (`Vote ↗`).
+- **Separated Views vs. Auto-Rotating Carousel**: Choose whether Crypto, IDX Saham, and Nouns DAO display simultaneously (Stacked vertically or Multi-column side by side) to maximize screen space, or rotate within a single center carousel with customizable slide/crossfade transitions.
+- **Manual Pull-to-Refresh (Breathing & Typing ⌐◨-◨)**: Swipe down anywhere on Home to trigger an instantaneous refresh across all active market feeds. Features an organic pull interaction where the iconic `⌐◨-◨` glasses dynamically type out as your finger pulls down, accompanied by tactile haptic feedback. While data is being fetched, the glasses pulse with an organic breathing animation and character typing loop. When enabled, automatic background polling is paused to conserve battery and bandwidth.
+- **Stale-Data Indicators & Network Awareness**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`). Automatically stretches poll intervals on cellular data or battery saver mode, with exponential backoff on HTTP 429 rate limits.
+- **Optional Live WebSocket on Home**: Stream live real-time Binance ticks directly on Home via native RFC 6455 WebSocket client, cleanly closed when leaving Home or locking the screen.
+
+### 8. Gestures & Customization
+- **Swipe Up**: Open App Drawer.
+- **Swipe Down on Home**: Fully configurable in Settings:
+  - **Open notification shade** (default): Pulls down the system notification shade from anywhere on Home.
+  - **Manual refresh**: Refreshes market and Nouns data with breathing/typing `⌐◨-◨` glasses (pauses background polling).
+  - **Open App Drawer**: Opens instant search.
+  - **Disabled**: Prevents swipe-down action.
+- **Swipe Down in Drawer**: Close App Drawer.
+- **Swipe Left / Right**: Launch user-assigned quick apps.
+- **Double-Tap**: Screen lock.
+- **Long-Press Background**: Open Settings.
+- **Minimalist App Icons & Monochrome Filter**: Display subtle icons beside apps in Home and Drawer, apply an AMOLED monochrome/grayscale filter, or disable icons entirely for pure text mode.
+- **Custom App Renaming**: Assign custom aliases to any app (e.g. "Chrome" -> "web", "Spotify" -> "music") with one-tap reset.
+- **Hidden Apps**: Hide distracting apps from the drawer; access them via search or Settings -> Hidden Apps.
+- **Offline Settings Backup & Restore (JSON)**: Export and import pinned apps, hidden apps, custom labels, and preferences as an offline JSON file via Android Storage Access Framework (`CreateDocument` / `OpenDocument`). 100% on-device and private.
 
 ---
 
 ## Tech Stack & Architecture
 
-- **Language**: Kotlin 1.9.24
-- **UI Toolkit**: Jetpack Compose (Material3)
-- **Minimum SDK**: 26 (Android 8.0 Oreo)
-- **Target SDK**: 34 (Android 14)
-- **Architecture**: Single Activity (`MainActivity`) + `MainViewModel` (MVI / MVVM pattern)
-- **Storage**: Jetpack DataStore Preferences
-- **Document Management**: Android Storage Access Framework (SAF) for offline JSON backup/restore
-- **Networking**: Native `HttpURLConnection` and custom zero-dependency RFC 6455 `BinanceWebSocketClient` (zero bulky external libraries)
-- **Footprint**: **~1.08 MB** optimized release APK with R8 minification and resource shrinking
+| Layer | Component | Details |
+|---|---|---|
+| **Language** | Kotlin 1.9.24 | Coroutines, Flow, StateFlow, immutable data models |
+| **UI Toolkit** | Jetpack Compose (Material3) | Compose BOM `2024.04.01`, hardware-accelerated 120 FPS rendering |
+| **Android SDK** | Min SDK 26 · Target SDK 34 · Compile SDK 34 | Android 8.0 (Oreo) through Android 14+ |
+| **Architecture** | Single Activity + MVI / MVVM | `MainActivity` coordinating `MainViewModel`, immutable StateFlows |
+| **Compositing** | Hardware Alpha Compositing | `PixelFormat.TRANSLUCENT` (RGBA_8888), `windowIsTranslucent`, static root scrim layer, `AnimatedContent` transitions |
+| **Haptics** | `LauncherHaptic` Utility | 4 configurable intensity levels (`Standard`, `Subtle`, `Firm`, `Off`) |
+| **Calculator** | `MathEvaluator` Engine | Zero-dependency recursive descent parser for arithmetic expressions |
+| **Shortcuts** | Android `LauncherApps` API | Deep app shortcuts querying (dynamic, manifest, pinned) for Android 7.1+ |
+| **Storage & Persistence** | Jetpack DataStore Preferences | Asynchronous, thread-safe disk persistence for settings and cached data |
+| **Document Access** | Android Storage Access Framework (SAF) | Permissionless, offline JSON backup and restore (`CreateDocument` / `OpenDocument`) |
+| **Networking** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external network libraries; `org.json` parser; WebSocket client |
+| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.11 MB** release APK (1,164,866 bytes) |
 
 ---
 
@@ -102,45 +121,76 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 nounishlauncher/
 ├── app/
 │   ├── build.gradle.kts                         # Android build config, Compose BOM, R8 shrinking
-│   ├── proguard-rules.pro                       # R8 optimization rules
-│   └── src/main/
-│       ├── AndroidManifest.xml                  # HOME launcher declaration, network permissions
-│       ├── java/com/nounish/launcher/
-│       │   ├── MainActivity.kt                  # SingleTask launcher activity, SAF backup/restore, screen transitions
-│       │   ├── MainViewModel.kt                 # StateFlow coordination (apps, search, settings, crypto, labels)
-│       │   ├── model/
-│       │   │   ├── AppItem.kt                   # App label, customLabel, displayLabel, packageName
-│       │   │   └── PassiveNote.kt               # Passive learning notes model and Nounish/crypto definitions
-│       │   ├── data/
-│       │   │   ├── AppRepository.kt             # PackageManager loader (labels only, no icons)
-│       │   │   ├── SettingsStore.kt             # Jetpack DataStore wrapper, JSON backup/restore serialization
-│       │   │   ├── PriceRepository.kt           # Binance 24hr ticker, klines sparkline, rate-limit backoff
-│       │   │   ├── IdxRepository.kt             # IDX stock quotes, indices, top gainers/losers, number formatting
-│       │   │   ├── NounsRepository.kt           # Nouns DAO proposals & candidates loader (zero-dependency)
-│       │   │   ├── BinanceWebSocketClient.kt    # Native RFC 6455 WebSocket client for live Home stream
-│       │   │   └── NetworkHelper.kt             # Metered network and battery saver detection
-│       │   ├── ui/
-│       │   │   ├── HomeScreen.kt                # Clock, date, market overview, text sparklines, pinned apps
-│       │   │   ├── DrawerScreen.kt              # Search bar, left/right alphabet scrubber, Niagara wave list
-│       │   │   ├── SettingsScreen.kt            # Settings, coins & quote dialogs, WebSocket toggle, backup/restore
-│       │   │   ├── GestureModifier.kt           # Gesture detection for swipes, taps, and long-presses
-│       │   │   └── theme/
-│       │   │       ├── Color.kt                 # AMOLED pitch black, light theme, crypto green/red
-│       │   │       ├── Type.kt                  # Typography scale (28sp home, 18sp drawer, 14sp ticker)
-│       │   │       └── Theme.kt                 # Dynamic Compose theme provider
-│       │   └── service/
-│       │       ├── LockScreenService.kt         # Screen lock action
-│       │       └── PackageChangeReceiver.kt    # BroadcastReceiver for app install/uninstall updates
-│       └── res/
-│           ├── drawable/                        # Vector assets for launcher icon
-│           ├── mipmap-anydpi-v26/               # Adaptive launcher icons
-│           ├── values/                          # Strings and window themes (#000000 background)
-│           └── values-v28/                      # Display cutout support
+│   ├── proguard-rules.pro                       # R8 optimization and keep rules
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml              # HOME launcher declaration, permissions, <queries>
+│       │   ├── java/com/nounish/launcher/
+│       │   │   ├── MainActivity.kt              # SingleTask activity, SAF backup/restore, screen transitions
+│       │   │   ├── MainViewModel.kt             # StateFlow coordination (apps, search, settings, crypto, labels)
+│       │   │   ├── model/
+│       │   │   │   ├── AppItem.kt               # App item model (labels, composite keys, user handles)
+│       │   │   │   ├── AppShortcut.kt           # Deep shortcut model (dynamic, manifest, pinned)
+│       │   │   │   └── PassiveNote.kt           # Passive learning notes model and Nounish definitions
+│       │   │   ├── data/
+│       │   │   │   ├── AppRepository.kt         # PackageManager & LauncherApps loader, deep shortcuts
+│       │   │   │   ├── SettingsStore.kt         # Jetpack DataStore wrapper, JSON backup/restore serialization
+│       │   │   │   ├── PriceRepository.kt       # Binance 24hr ticker, sparklines, rate-limit backoff
+│       │   │   │   ├── IdxRepository.kt         # IDX stock quotes, indices, top gainers/losers, formatting
+│       │   │   │   ├── NounsRepository.kt       # Nouns DAO governance proposals & candidates loader
+│       │   │   │   ├── BinanceWebSocketClient.kt# Native RFC 6455 WebSocket client for live Home stream
+│       │   │   │   ├── IconCache.kt             # LRU memory cache for app icons
+│       │   │   │   └── NetworkHelper.kt         # Metered network and battery saver detection
+│       │   │   ├── ui/
+│       │   │   │   ├── HomeScreen.kt            # Clock, date, market overview, text sparklines, pinned apps
+│       │   │   │   ├── DrawerScreen.kt          # Search bar, recent apps, calculator row, Niagara wave index
+│       │   │   │   ├── SettingsScreen.kt        # Settings hub, accent dialog, wallpaper, haptic level, SAF
+│       │   │   │   ├── GestureModifier.kt       # Gesture detection for swipes, taps, and long-presses
+│       │   │   │   └── theme/
+│       │   │   │       ├── Color.kt             # AMOLED pitch black, accent colors (Red, Amber, Mint, Slate, Lavender)
+│       │   │   │       ├── Type.kt              # Typography scale (28sp home, 18sp drawer, 14sp ticker)
+│       │   │   │       └── Theme.kt             # Dynamic Compose theme provider and static scrim background
+│       │   │   ├── util/
+│       │   │   │   ├── LauncherHaptic.kt        # Multi-level haptic feedback dispatcher (Standard, Subtle, Firm, Off)
+│       │   │   │   └── MathEvaluator.kt         # Zero-dependency arithmetic tokenizer & recursive descent evaluator
+│       │   │   └── service/
+│       │   │       ├── LockScreenService.kt     # Screen lock accessibility action
+│       │   │       ├── NotificationHelper.kt    # Notification shade expansion via StatusBarManager reflection
+│       │   │       └── PackageChangeReceiver.kt # BroadcastReceiver for app install/uninstall updates
+│       │   └── res/
+│       │       ├── drawable/                    # Vector assets for launcher icon
+│       │       ├── mipmap-anydpi-v26/           # Adaptive launcher icons
+│       │       ├── values/                      # Strings and window themes (windowIsTranslucent, transparent)
+│       │       └── values-v28/                  # Display cutout support and window themes
+│       └── test/java/com/nounish/launcher/
+│           ├── AestheticsAndHapticsTest.kt      # Accent color mappings, default settings, haptic null-safety
+│           ├── AppShortcutTest.kt               # Deep shortcuts rank sorting, label fallbacks, filtering
+│           ├── MathEvaluatorTest.kt             # Arithmetic operations, precedence, decimals, safety checks
+│           ├── RecentAppsAndWallpaperTest.kt    # Recent apps LRU history, wallpaper dim level coercion
+│           └── SwipeDownActionTest.kt           # Swipe down gesture actions mapping and defaults
 ├── build.gradle.kts                             # Root Gradle build script
 ├── settings.gradle.kts                          # Module inclusion & repository management
 ├── gradle.properties                            # JVM memory allocation & AndroidX settings
 ├── PLAY_STORE_COMPLIANCE_GUIDE.md               # Google Play Store compliance, package visibility & publishing guide
 └── PROJECT_OVERVIEW.md                          # In-depth architectural & technical documentation
+```
+
+---
+
+## Unit Test Suites
+
+The project features a dedicated suite of unit tests verifying core logic, math evaluation, deep shortcuts, haptics, and aesthetics:
+
+1. **`MathEvaluatorTest`**: Validates the zero-dependency recursive descent parser across arithmetic operations (`+`, `-`, `*`, `/`, `^`, `%`), operator precedence, parentheses, decimals, postfix percentages, division-by-zero safety, modulo-by-zero safety, and app search query discrimination.
+2. **`AppShortcutTest`**: Tests Android 7.1+ deep shortcut data models, short/long label fallback resolution, enabled status filtering, rank sorting, and shortcut list capping.
+3. **`AestheticsAndHapticsTest`**: Verifies signature accent color key-to-color mappings across Dark and Light themes, default aesthetic preferences, and null-safe haptic dispatcher execution across all 4 levels (`Standard`, `Subtle`, `Firm`, `Off`).
+4. **`RecentAppsAndWallpaperTest`**: Verifies recent apps history LRU deduplication, capacity capping (up to 5 items), and wallpaper dark scrim level coercion (`0.2f` to `0.98f`).
+5. **`SwipeDownActionTest`**: Verifies swipe-down gesture action mappings (`notifications`, `refresh`, `drawer`, `none`) and default actions.
+
+Run all unit tests via Gradle:
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat test
 ```
 
 ---
@@ -156,14 +206,14 @@ nounishlauncher/
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleDebug
 ```
-Output: `app/build/outputs/apk/debug/app-debug.apk`
+Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 
 ### Build Optimized Release APK
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.08 MB**)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.11 MB** / 1,164,866 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell
@@ -185,9 +235,9 @@ git push origin v1.0.24
 
 ## Privacy & Permissions
 
-- **INTERNET**: Used solely for optional public market tickers (Binance public market data, IDX mirror, and Nouns DAO feeds). Completely inert when crypto, IDX, and Nouns features are toggled off.
-- **ACCESS_NETWORK_STATE**: Used strictly on-device to check for mobile data vs Wi-Fi to stretch polling intervals.
-- **EXPAND_STATUS_BAR**: Standard normal-level Android permission enabling the swipe-down gesture to expand the system notification shade.
-- **SET_WALLPAPER**: Standard normal-level Android permission enabling setting the system wallpaper when chosen via Gallery or the system wallpaper picker.
+- **`INTERNET`**: Used solely for optional public market tickers (Binance public market data, IDX mirror, and Nouns DAO feeds). Completely inert when crypto, IDX, and Nouns features are toggled off.
+- **`ACCESS_NETWORK_STATE`**: Used strictly on-device to check for mobile data vs Wi-Fi to stretch polling intervals.
+- **`EXPAND_STATUS_BAR`**: Standard normal-level Android permission enabling the swipe-down gesture to expand the system notification shade.
+- **`SET_WALLPAPER`**: Standard normal-level Android permission enabling setting the system wallpaper when chosen via Gallery or the system wallpaper picker.
 - **Package Visibility (`<queries>`)**: Uses Android 11+ `<queries>` matching `CATEGORY_LAUNCHER` and `LauncherApps` API. Does not request broad `QUERY_ALL_PACKAGES` permission, ensuring full compliance with Google Play Store policies.
 - **Zero tracking, zero analytics, zero external logging, zero telemetry.**
