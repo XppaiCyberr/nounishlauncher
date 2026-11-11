@@ -254,9 +254,10 @@ fun HomeScreen(
                 ?: DEFAULT_PASSIVE_NOTES.first()
         }
 
-        // Top section: Clock & Date on left, Closeable Passive Learning Note on right
-        val isNoteVisible = showNote && !isNoteDismissed
-        if (showClock || showDate || isNoteVisible) {
+        // Top section: Clock & Date on left, Nouns Auction (or Passive Note) on right
+        val isAuctionTopVisible = showNouns && nounsAuction != null
+        val isNoteVisible = showNote && !isNoteDismissed && !isAuctionTopVisible
+        if (showClock || showDate || isAuctionTopVisible || isNoteVisible) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -300,7 +301,12 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
-                if (isNoteVisible) {
+                if (isAuctionTopVisible && nounsAuction != null) {
+                    TopNounsAuctionCard(
+                        auction = nounsAuction,
+                        showImage = showNounsAuctionImage
+                    )
+                } else if (isNoteVisible) {
                     PassiveNoteCard(
                         note = currentNote,
                         onDismiss = onDismissNote,
@@ -340,15 +346,22 @@ fun HomeScreen(
 
         // Available Nouns sub-tabs and auto-rotation (Auction, Proposals, Candidates)
         val isNounsAutoRotate = nounsDisplayMode == "auto_rotate"
-        val availableNounsSubs = remember(nounsAuction, nounsProposals, nounsCandidates, nounsDisplayMode) {
+        val availableNounsSubs = remember(nounsAuction, nounsProposals, nounsCandidates, nounsDisplayMode, isAuctionTopVisible) {
             when (nounsDisplayMode) {
                 "auction" -> if (nounsAuction != null) listOf("auction") else emptyList()
                 "proposals" -> if (nounsProposals.isNotEmpty()) listOf("proposals") else emptyList()
                 "candidates" -> if (nounsCandidates.isNotEmpty()) listOf("candidates") else emptyList()
                 else -> buildList {
-                    if (nounsAuction != null) add("auction")
-                    if (nounsProposals.isNotEmpty()) add("proposals")
-                    if (nounsCandidates.isNotEmpty()) add("candidates")
+                    // When auction is already displayed in the top-right corner, prioritize governance feeds (proposals & candidates)
+                    // in the middle feed so the screen doesn't show redundant duplicate auctions.
+                    if (isAuctionTopVisible && (nounsProposals.isNotEmpty() || nounsCandidates.isNotEmpty())) {
+                        if (nounsProposals.isNotEmpty()) add("proposals")
+                        if (nounsCandidates.isNotEmpty()) add("candidates")
+                    } else {
+                        if (nounsAuction != null) add("auction")
+                        if (nounsProposals.isNotEmpty()) add("proposals")
+                        if (nounsCandidates.isNotEmpty()) add("candidates")
+                    }
                 }
             }
         }
@@ -411,15 +424,17 @@ fun HomeScreen(
 
         val nounsHeaderLabel = remember(activeNounsSub, isNounsAutoRotate, availableNounsSubs.size) {
             val subLabel = when (activeNounsSub) {
-                "auction" -> "Auction"
+                "auction" -> "Nouns Auction"
                 "candidates" -> "Candidates"
                 "proposals" -> "Proposals"
                 else -> ""
             }
-            if (subLabel.isNotEmpty() && (isNounsAutoRotate || availableNounsSubs.size > 1)) {
-                "NOUNS DAO ⌐◨-◨ | $subLabel"
+            if (subLabel == "Nouns Auction") {
+                "Nouns Auction"
+            } else if (subLabel.isNotEmpty() && (isNounsAutoRotate || availableNounsSubs.size > 1)) {
+                "NOUNS DAO | $subLabel"
             } else {
-                "NOUNS DAO ⌐◨-◨"
+                "NOUNS DAO"
             }
         }
 
@@ -1191,6 +1206,123 @@ private fun formatRangeWithCurrency(high: String, low: String, currency: String,
 }
 
 @Composable
+private fun TopNounsAuctionCard(
+    auction: NounsAuctionUi,
+    showImage: Boolean = true
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+    val context = LocalContext.current
+    var showBidderDetails by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .widthIn(min = 140.dp, max = 205.dp)
+            .background(
+                color = colors.surface.copy(alpha = 0.55f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .border(
+                width = 0.5.dp,
+                color = colors.textSecondary.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable {
+                showBidderDetails = !showBidderDetails
+            }
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = "Nouns Auction",
+            style = typography.clock.copy(fontSize = 11.5.sp),
+            fontWeight = FontWeight.Bold,
+            color = colors.accent,
+            letterSpacing = 0.5.sp
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (showImage) {
+                NounsAvatar(
+                    nounId = auction.nounId,
+                    size = 36.dp
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    text = "Noun #${auction.nounId}",
+                    style = typography.priceLabel,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textPrimary
+                )
+                Text(
+                    text = auction.amountFormatted,
+                    style = typography.priceLabel,
+                    color = if (auction.amountEth > 0.0) CryptoGreen else colors.textSecondary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        val timeColor = if (auction.settled || auction.timeLeftFormatted == "Auction ended") {
+            CryptoRed.copy(alpha = 0.85f)
+        } else {
+            colors.textSecondary.copy(alpha = 0.75f)
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = auction.timeLeftFormatted,
+                style = typography.clock.copy(fontSize = 10.sp),
+                color = timeColor
+            )
+
+            if (auction.isStale && auction.ageMarker.isNotEmpty()) {
+                Text(
+                    text = auction.ageMarker,
+                    style = typography.clock.copy(fontSize = 9.sp),
+                    color = colors.textSecondary.copy(alpha = 0.5f)
+                )
+            }
+        }
+
+        if (showBidderDetails) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Bidder: ${auction.bidderFormatted}",
+                style = typography.clock.copy(fontSize = 9.5.sp),
+                color = colors.textSecondary.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Bid on nouns.wtf ↗",
+                style = typography.clock.copy(fontSize = 9.5.sp),
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+                modifier = Modifier.clickable {
+                    try {
+                        val uri = Uri.parse("https://nouns.wtf")
+                        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                    } catch (_: Exception) {}
+                }
+            )
+        }
+    }
+}
+
+@Composable
 private fun PassiveNoteCard(
     note: PassiveNote,
     onDismiss: () -> Unit,
@@ -1338,42 +1470,54 @@ private fun NounsAuctionCard(
             if (showImage) {
                 NounsAvatar(
                     nounId = auction.nounId,
-                    size = if (compact) 26.dp else 30.dp
+                    size = if (compact) 28.dp else 34.dp
                 )
             }
 
-            Text(
-                text = "Noun #${auction.nounId}",
-                style = if (compact) typography.priceLabel else typography.drawerItem,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.textPrimary
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Noun #${auction.nounId}",
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textPrimary
+                    )
 
-            Text(
-                text = auction.amountFormatted,
-                style = if (compact) typography.priceLabel else typography.drawerItem,
-                color = if (auction.amountEth > 0.0) CryptoGreen else colors.textSecondary
-            )
+                    Text(
+                        text = auction.amountFormatted,
+                        style = if (compact) typography.priceLabel else typography.drawerItem,
+                        color = if (auction.amountEth > 0.0) CryptoGreen else colors.textSecondary
+                    )
+                }
 
-            val timeColor = if (auction.settled || auction.timeLeftFormatted == "Auction ended") {
-                CryptoRed.copy(alpha = 0.8f)
-            } else {
-                colors.textSecondary.copy(alpha = 0.7f)
-            }
+                val timeColor = if (auction.settled || auction.timeLeftFormatted == "Auction ended") {
+                    CryptoRed.copy(alpha = 0.8f)
+                } else {
+                    colors.textSecondary.copy(alpha = 0.7f)
+                }
 
-            Text(
-                text = auction.timeLeftFormatted,
-                style = typography.priceLabel,
-                fontWeight = if (!auction.settled && auction.timeLeftFormatted != "Auction ended") FontWeight.Medium else FontWeight.Normal,
-                color = timeColor
-            )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = auction.timeLeftFormatted,
+                        style = typography.clock.copy(fontSize = 10.sp),
+                        fontWeight = if (!auction.settled && auction.timeLeftFormatted != "Auction ended") FontWeight.Medium else FontWeight.Normal,
+                        color = timeColor
+                    )
 
-            if (auction.isStale && auction.ageMarker.isNotEmpty()) {
-                Text(
-                    text = auction.ageMarker,
-                    style = typography.priceLabel,
-                    color = colors.textSecondary.copy(alpha = 0.6f)
-                )
+                    if (auction.isStale && auction.ageMarker.isNotEmpty()) {
+                        Text(
+                            text = auction.ageMarker,
+                            style = typography.clock.copy(fontSize = 9.sp),
+                            color = colors.textSecondary.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             }
         }
 

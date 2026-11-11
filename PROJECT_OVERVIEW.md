@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.26` (versionCode `27`) · **Optimized Release APK**: `~1.12 MB` (1,173,310 bytes)
+**Current Version**: `v1.0.27` (versionCode `28`) · **Optimized Release APK**: `~1.12 MB` (1,174,749 bytes)
 
 ---
 
@@ -92,8 +92,14 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Custom Corner Text (Bottom Right)**:
   - Displays user-defined text (such as your username, handle, or motivational quote) in the bottom-right corner of the Home screen, styled in muted secondary tone.
   - Configurable in Settings (default: `xppaicyber`) or toggled off completely.
-- **Closeable Passive Learning Notes (Top Right)**:
-  - Minimalist floating card at the top-right corner of the Home screen for passive learning.
+- **Live Nouns Auction Card (Top Right Corner)**:
+  - Live daily Nouns auction is featured prominently at the top-right corner of the Home screen opposite the Clock & Date.
+  - Titled **`Nouns Auction`** in accent color (clean header, replacing previous Noggle title).
+  - Balanced vertical structure: displays the pixel-art Noun avatar (`https://noun.pics/{id}.png`) alongside Noun ID and current bid (`Noun #2070`, `8.50 ETH`), with the real-time `timeleft` countdown (`2h 14m left` or `Settled`) positioned directly below them.
+  - Interactive expansion: tap to reveal highest bidder address (`0x3a41...f91c`) and one-tap `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
+  - Smart de-duplication: When the top-right auction card is visible, the middle Nouns feed prioritizes governance Proposals and Candidates during auto-rotation, preventing duplicate auctions on screen.
+- **Closeable Passive Learning Notes (Top Right Fallback)**:
+  - Minimalist floating card at the top-right corner of the Home screen for passive learning when auction is off or unavailable.
   - Displays the definition of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology.
   - Title rendered in signature accent color. Dismissable via a subtle `x` button and easily restored anytime from Settings.
 - **Currency Format (Crypto USDT & IDX Saham IDR)**:

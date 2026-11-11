@@ -2,38 +2,35 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.26` (versionCode `27`) · **Release APK Footprint**: `~1.12 MB` (1,173,310 bytes)
+**Version**: `1.0.27` (versionCode `28`) · **Release APK Footprint**: `~1.12 MB` (1,174,749 bytes)
 
 ---
 
 ## Features
 
-### 1. Direct On-Chain Nouns Auction Feed & Pixel-Art Display (noun.pics)
+### 1. Direct On-Chain Nouns Auction Feed & Top-Right Display
+- **Dedicated Top-Right Corner Placement**: The live daily Nouns auction is featured prominently at the top right of the home screen opposite the Clock & Date, titled **`Nouns Auction`** in accent color (clean header, no Noggle).
+- **Ergonomic & Balanced Layout**: Arranged with the official pixel-art Noun avatar (`https://noun.pics/{id}.png`) alongside the Noun ID and highest bid (`Noun #2070`, `8.50 ETH`), with the real-time `timeleft` countdown (`2h 14m left` or `Settled`) placed directly below them.
 - **Canonical Ethereum Auction House Proxy**: Directly queries the official Nouns Auction House proxy contract [`0x830bd73e4184cef73443c15111a1df14e495c706`](https://etherscan.io/address/0x830bd73e4184cef73443c15111a1df14e495c706) via standard Ethereum JSON-RPC `eth_call`.
 - **Method Selector `0x7d9f6db5` (`auction()`)**: Calls the public `auction()` function and decodes all 6 returned ABI fields directly on-device (`nounId`, `amount`, `startTime`, `endTime`, `bidder`, `settled`).
 - **Completely Decentralized & Serverless**: Requires zero custom backend, no intermediaries, and no proprietary servers. Includes automatic multi-endpoint RPC fallback (Alchemy Ethereum Mainnet, Cloudflare Ethereum, PublicNode) for 100% uptime and resilience.
 - **Official Pixel-Art Noun Image Display (`https://noun.pics/{id}.png`)**:
   - Displays the authentic 64x64 pixel-art avatar for the active auction Noun fetched from `https://noun.pics/{nounId}.png` (e.g. `https://noun.pics/2070.png`).
   - Rendered with `FilterQuality.None` (nearest-neighbor) so every pixel is razor-sharp and punchy on AMOLED screens without blurry bilinear interpolation.
-  - Features an inline thumbnail in the auction row (`26.dp`/`30.dp`), expanding into a generous preview (`44.dp`/`52.dp`) when tapped.
+  - Features an inline thumbnail in the top-right card (`36.dp`) and auction row (`28.dp`/`34.dp`), expanding into a generous preview when tapped.
   - Fallback placeholder: Displays the iconic `⌐◨-◨` glasses in a rounded surface box while loading or when offline.
   - Zero Third-Party Bloat: Built with zero heavy image libraries (no Coil, Glide, or Picasso), maintaining the ultra-lightweight ~1.12 MB APK size.
   - Dual-Layer Caching: Cached in memory (`LruCache`) and on local disk storage (`context.cacheDir/noun_pics/`) for instantaneous zero-latency offline loading without burning mobile data.
   - Toggleable in Settings under **Nouns DAO -> Show Noun auction image** for users who prefer pure text mode.
-- **AMOLED Distraction-Free Presentation**: Renders the daily auction as a minimalist, battery-saving text row matching the launcher's typography:
-  `[🖼️] Noun #2070    8.50 ETH    2h 14m left`
+- **AMOLED Distraction-Free Presentation**:
   - Current Token ID: `Noun #<id>` in semi-bold primary tone.
   - Current Highest Bid: Formatted in ETH (e.g. `8.50 ETH`, or `0.00 ETH` if unbid).
-  - Dynamic Countdown: Real-time countdown timer (`2h 14m left`, `45m 12s left`, `28s left`, or `Settled` / `Auction ended`).
+  - Dynamic Countdown: Real-time countdown timer (`2h 14m left`, `45m 12s left`, `28s left`, or `Settled` / `Auction ended`) positioned directly below the image and bid.
   - Stale Indicator: Muted styling and age marker (`·5m ago`, `·1h ago`) when offline.
-- **Expandable Bidder & Direct Bidding**: Tap the auction row to view:
+- **Expandable Bidder & Direct Bidding**: Tap the top-right auction card or auction row to view:
   - `High Bidder: 0x3a41...f91c` (or `No bids` if unbid).
   - `Bid on nouns.wtf ↗`: Launches `https://nouns.wtf` directly in the system web browser.
-- **Flexible Nouns Display Modes**:
-  - `Auto Rotate (Auction, Proposals & Candidates)`: Smoothly rotates between current live Auction, active Proposals, and Candidates every 7 seconds, with manual tap-to-cycle header controls.
-  - `Auction only`: Focuses the Nouns feed exclusively on the daily live auction.
-  - `Proposals only`: Focuses exclusively on on-chain governance proposals.
-  - `Candidates only`: Tracks upcoming draft proposals.
+- **Smart Middle Feed De-duplication**: When the live auction is prominently displayed in the top-right corner, the middle Nouns feed intelligently prioritizes governance Proposals and Candidates during auto-rotation, preventing redundant duplicate auctions on screen.
 - **Offline DataStore Caching**: Caches full auction state in Jetpack DataStore preferences for zero-latency frame-1 presentation on launch.
 
 ### 2. Signature Nounish Aesthetics & Accent Colors
@@ -241,7 +238,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.11 MB** / 1,164,866 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.12 MB** / 1,174,749 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell
