@@ -69,6 +69,7 @@ import com.nounish.launcher.CoinTickerUi
 import com.nounish.launcher.IdxCategoryUi
 import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.IdxItemUi
+import com.nounish.launcher.data.NounsAuctionUi
 import com.nounish.launcher.data.NounsCandidateUi
 import com.nounish.launcher.data.NounsProposalUi
 import com.nounish.launcher.model.AppItem
@@ -103,6 +104,7 @@ fun HomeScreen(
     idxDisplayMode: String = "auto_rotate",
     idxAutoRotateIntervalSeconds: Int = 6,
     showNouns: Boolean = true,
+    nounsAuction: NounsAuctionUi? = null,
     nounsProposals: List<NounsProposalUi> = emptyList(),
     nounsCandidates: List<NounsCandidateUi> = emptyList(),
     nounsDisplayMode: String = "auto_rotate",
@@ -309,7 +311,7 @@ fun HomeScreen(
         // Market Section (middle area): Takes all available vertical space between Clock and Pinned Apps
         val hasCrypto = showCrypto && cryptoCoins.isNotEmpty()
         val hasIdx = showIdx && (idxCategories.isNotEmpty() || idxStocks.isNotEmpty())
-        val hasNouns = showNouns && (nounsProposals.isNotEmpty() || nounsCandidates.isNotEmpty())
+        val hasNouns = showNouns && (nounsAuction != null || nounsProposals.isNotEmpty() || nounsCandidates.isNotEmpty())
 
         val activeViews = remember(hasCrypto, hasIdx, hasNouns) {
             buildList {
@@ -334,27 +336,39 @@ fun HomeScreen(
             }
         }
 
-        // Auto-rotation timer between Nouns proposals and candidates
+        // Available Nouns sub-tabs and auto-rotation (Auction, Proposals, Candidates)
         val isNounsAutoRotate = nounsDisplayMode == "auto_rotate"
+        val availableNounsSubs = remember(nounsAuction, nounsProposals, nounsCandidates, nounsDisplayMode) {
+            when (nounsDisplayMode) {
+                "auction" -> if (nounsAuction != null) listOf("auction") else emptyList()
+                "proposals" -> if (nounsProposals.isNotEmpty()) listOf("proposals") else emptyList()
+                "candidates" -> if (nounsCandidates.isNotEmpty()) listOf("candidates") else emptyList()
+                else -> buildList {
+                    if (nounsAuction != null) add("auction")
+                    if (nounsProposals.isNotEmpty()) add("proposals")
+                    if (nounsCandidates.isNotEmpty()) add("candidates")
+                }
+            }
+        }
         var currentNounsSubIndex by remember { mutableIntStateOf(0) }
-        val hasBothNouns = nounsProposals.isNotEmpty() && nounsCandidates.isNotEmpty()
 
-        LaunchedEffect(isNounsAutoRotate, hasBothNouns) {
-            if (isNounsAutoRotate && hasBothNouns) {
+        LaunchedEffect(isNounsAutoRotate, availableNounsSubs.size) {
+            if (isNounsAutoRotate && availableNounsSubs.size > 1) {
                 while (true) {
                     delay(7000L)
-                    currentNounsSubIndex = (currentNounsSubIndex + 1) % 2
+                    currentNounsSubIndex = (currentNounsSubIndex + 1) % availableNounsSubs.size
                 }
             }
         }
 
-        val activeNounsSub = when {
-            nounsDisplayMode == "proposals" -> "proposals"
-            nounsDisplayMode == "candidates" -> "candidates"
-            !hasBothNouns && nounsCandidates.isNotEmpty() -> "candidates"
-            !hasBothNouns -> "proposals"
-            currentNounsSubIndex == 1 -> "candidates"
-            else -> "proposals"
+        val activeNounsSub = if (availableNounsSubs.isNotEmpty()) {
+            availableNounsSubs[currentNounsSubIndex.coerceIn(0, availableNounsSubs.size - 1)]
+        } else {
+            when (nounsDisplayMode) {
+                "auction" -> "auction"
+                "candidates" -> "candidates"
+                else -> "proposals"
+            }
         }
 
         val activeIdxCategory = remember(idxCategories, currentIdxCategoryIndex, idxDisplayMode, idxStocks) {
@@ -393,11 +407,17 @@ fun HomeScreen(
             }
         }
 
-        val nounsHeaderLabel = remember(activeNounsSub, isNounsAutoRotate, hasBothNouns) {
-            when {
-                activeNounsSub == "candidates" -> "NOUNS DAO ⌐◨-◨ | Candidates"
-                isNounsAutoRotate && hasBothNouns -> "NOUNS DAO ⌐◨-◨ | Proposals"
-                else -> "NOUNS DAO ⌐◨-◨"
+        val nounsHeaderLabel = remember(activeNounsSub, isNounsAutoRotate, availableNounsSubs.size) {
+            val subLabel = when (activeNounsSub) {
+                "auction" -> "Auction"
+                "candidates" -> "Candidates"
+                "proposals" -> "Proposals"
+                else -> ""
+            }
+            if (subLabel.isNotEmpty() && (isNounsAutoRotate || availableNounsSubs.size > 1)) {
+                "NOUNS DAO ⌐◨-◨ | $subLabel"
+            } else {
+                "NOUNS DAO ⌐◨-◨"
             }
         }
 
@@ -506,14 +526,15 @@ fun HomeScreen(
                                             color = colors.textSecondary.copy(alpha = 0.45f),
                                             letterSpacing = 1.sp,
                                             modifier = Modifier
-                                                .clickable(enabled = isNounsAutoRotate && hasBothNouns) {
-                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % 2
+                                                .clickable(enabled = isNounsAutoRotate && availableNounsSubs.size > 1) {
+                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % availableNounsSubs.size
                                                 }
                                                 .padding(bottom = 2.dp)
                                         )
                                     }
                                     NounsSectionContent(
                                         activeNounsSub = activeNounsSub,
+                                        auction = nounsAuction,
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
@@ -597,14 +618,15 @@ fun HomeScreen(
                                             color = colors.textSecondary.copy(alpha = 0.45f),
                                             letterSpacing = 1.sp,
                                             modifier = Modifier
-                                                .clickable(enabled = isNounsAutoRotate && hasBothNouns) {
-                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % 2
+                                                .clickable(enabled = isNounsAutoRotate && availableNounsSubs.size > 1) {
+                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % availableNounsSubs.size
                                                 }
                                                 .padding(bottom = 2.dp)
                                         )
                                     }
                                     NounsSectionContent(
                                         activeNounsSub = activeNounsSub,
+                                        auction = nounsAuction,
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
@@ -646,8 +668,8 @@ fun HomeScreen(
                                         color = if (isSelected) colors.accent else colors.textSecondary.copy(alpha = 0.35f),
                                         modifier = Modifier
                                             .clickable {
-                                                if (isSelected && viewKey == "nouns" && isNounsAutoRotate && hasBothNouns) {
-                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % 2
+                                                if (isSelected && viewKey == "nouns" && isNounsAutoRotate && availableNounsSubs.size > 1) {
+                                                    currentNounsSubIndex = (currentNounsSubIndex + 1) % availableNounsSubs.size
                                                 } else {
                                                     currentViewIndex = i
                                                 }
@@ -693,6 +715,7 @@ fun HomeScreen(
                                 "nouns" -> {
                                     NounsSectionContent(
                                         activeNounsSub = activeNounsSub,
+                                        auction = nounsAuction,
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
@@ -1235,6 +1258,7 @@ private fun PassiveNoteCard(
 @Composable
 private fun NounsSectionContent(
     activeNounsSub: String,
+    auction: NounsAuctionUi?,
     proposals: List<NounsProposalUi>,
     candidates: List<NounsCandidateUi>,
     maxCount: Int,
@@ -1248,18 +1272,124 @@ private fun NounsSectionContent(
         },
         label = "nounsSubContentTransition"
     ) { sub ->
-        if (sub == "candidates") {
-            NounsCandidateList(
-                candidates = candidates,
-                maxCount = maxCount,
-                compact = compact
+        when (sub) {
+            "auction" -> {
+                if (auction != null) {
+                    NounsAuctionCard(
+                        auction = auction,
+                        compact = compact
+                    )
+                } else {
+                    NounsProposalList(
+                        proposals = proposals,
+                        maxCount = maxCount,
+                        compact = compact
+                    )
+                }
+            }
+            "candidates" -> {
+                NounsCandidateList(
+                    candidates = candidates,
+                    maxCount = maxCount,
+                    compact = compact
+                )
+            }
+            else -> {
+                NounsProposalList(
+                    proposals = proposals,
+                    maxCount = maxCount,
+                    compact = compact
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NounsAuctionCard(
+    auction: NounsAuctionUi,
+    compact: Boolean = false
+) {
+    val colors = LauncherTheme.colors
+    val typography = LauncherTheme.typography
+    val context = LocalContext.current
+    var showDetails by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .clickable { showDetails = !showDetails }
+            .graphicsLayer {
+                alpha = if (auction.isStale) 0.55f else 1.0f
+            }
+            .padding(vertical = 1.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
+        ) {
+            Text(
+                text = "Noun #${auction.nounId}",
+                style = if (compact) typography.priceLabel else typography.drawerItem,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.textPrimary
             )
-        } else {
-            NounsProposalList(
-                proposals = proposals,
-                maxCount = maxCount,
-                compact = compact
+
+            Text(
+                text = auction.amountFormatted,
+                style = if (compact) typography.priceLabel else typography.drawerItem,
+                color = if (auction.amountEth > 0.0) CryptoGreen else colors.textSecondary
             )
+
+            val timeColor = if (auction.settled || auction.timeLeftFormatted == "Auction ended") {
+                CryptoRed.copy(alpha = 0.8f)
+            } else {
+                colors.textSecondary.copy(alpha = 0.7f)
+            }
+
+            Text(
+                text = auction.timeLeftFormatted,
+                style = typography.priceLabel,
+                fontWeight = if (!auction.settled && auction.timeLeftFormatted != "Auction ended") FontWeight.Medium else FontWeight.Normal,
+                color = timeColor
+            )
+
+            if (auction.isStale && auction.ageMarker.isNotEmpty()) {
+                Text(
+                    text = auction.ageMarker,
+                    style = typography.priceLabel,
+                    color = colors.textSecondary.copy(alpha = 0.6f)
+                )
+            }
+        }
+
+        if (showDetails) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 2.dp)
+            ) {
+                Text(
+                    text = "High Bidder: ${auction.bidderFormatted}",
+                    style = typography.clock,
+                    color = colors.textSecondary.copy(alpha = 0.6f)
+                )
+
+                Text(
+                    text = "Bid on nouns.wtf ↗",
+                    style = typography.clock,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textPrimary,
+                    modifier = Modifier.clickable {
+                        try {
+                            val uri = Uri.parse("https://nouns.wtf")
+                            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {}
+                    }
+                )
+            }
         }
     }
 }

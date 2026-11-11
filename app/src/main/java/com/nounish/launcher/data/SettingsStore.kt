@@ -62,6 +62,17 @@ data class CachedNounsCandidate(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class CachedNounsAuction(
+    val nounId: Int,
+    val amountWei: String,
+    val amountEth: Double,
+    val startTime: Long,
+    val endTime: Long,
+    val bidder: String,
+    val settled: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 data class LauncherSettings(
     val pinnedApps: List<String> = emptyList(),
     val pinnedAppLabels: Map<String, String> = emptyMap(),
@@ -130,7 +141,9 @@ data class LauncherSettings(
     val cachedNounsProposals: List<CachedNounsProposal> = emptyList(),
     val cachedNounsTimestamp: Long = 0L,
     val cachedNounsCandidates: List<CachedNounsCandidate> = emptyList(),
-    val cachedNounsCandidatesTimestamp: Long = 0L
+    val cachedNounsCandidatesTimestamp: Long = 0L,
+    val cachedNounsAuction: CachedNounsAuction? = null,
+    val cachedNounsAuctionTimestamp: Long = 0L
 )
 
 class SettingsStore(private val context: Context) {
@@ -204,6 +217,8 @@ class SettingsStore(private val context: Context) {
         private val KEY_CACHED_NOUNS_TIMESTAMP = longPreferencesKey("cached_nouns_timestamp")
         private val KEY_CACHED_NOUNS_CANDIDATES = stringPreferencesKey("cached_nouns_candidates_json")
         private val KEY_CACHED_NOUNS_CANDIDATES_TIMESTAMP = longPreferencesKey("cached_nouns_candidates_timestamp")
+        private val KEY_CACHED_NOUNS_AUCTION = stringPreferencesKey("cached_nouns_auction_json")
+        private val KEY_CACHED_NOUNS_AUCTION_TIMESTAMP = longPreferencesKey("cached_nouns_auction_timestamp")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -297,6 +312,8 @@ class SettingsStore(private val context: Context) {
         val cachedNounsTimestamp = prefs[KEY_CACHED_NOUNS_TIMESTAMP] ?: 0L
         val cachedNounsCandidates = parseNounsCandidatesJson(prefs[KEY_CACHED_NOUNS_CANDIDATES] ?: "")
         val cachedNounsCandidatesTimestamp = prefs[KEY_CACHED_NOUNS_CANDIDATES_TIMESTAMP] ?: 0L
+        val cachedNounsAuction = parseNounsAuctionJson(prefs[KEY_CACHED_NOUNS_AUCTION] ?: "")
+        val cachedNounsAuctionTimestamp = prefs[KEY_CACHED_NOUNS_AUCTION_TIMESTAMP] ?: 0L
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -366,7 +383,9 @@ class SettingsStore(private val context: Context) {
             cachedNounsProposals = cachedNounsProposals,
             cachedNounsTimestamp = cachedNounsTimestamp,
             cachedNounsCandidates = cachedNounsCandidates,
-            cachedNounsCandidatesTimestamp = cachedNounsCandidatesTimestamp
+            cachedNounsCandidatesTimestamp = cachedNounsCandidatesTimestamp,
+            cachedNounsAuction = cachedNounsAuction,
+            cachedNounsAuctionTimestamp = cachedNounsAuctionTimestamp
         )
     }
 
@@ -748,6 +767,28 @@ class SettingsStore(private val context: Context) {
         }
     }
 
+    suspend fun updateCachedNounsAuction(auction: CachedNounsAuction?, timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            if (auction != null) {
+                val obj = JSONObject().apply {
+                    put("nounId", auction.nounId)
+                    put("amountWei", auction.amountWei)
+                    put("amountEth", auction.amountEth)
+                    put("startTime", auction.startTime)
+                    put("endTime", auction.endTime)
+                    put("bidder", auction.bidder)
+                    put("settled", auction.settled)
+                    put("timestamp", auction.timestamp)
+                }
+                prefs[KEY_CACHED_NOUNS_AUCTION] = obj.toString()
+                prefs[KEY_CACHED_NOUNS_AUCTION_TIMESTAMP] = timestamp
+            } else {
+                prefs.remove(KEY_CACHED_NOUNS_AUCTION)
+                prefs.remove(KEY_CACHED_NOUNS_AUCTION_TIMESTAMP)
+            }
+        }
+    }
+
     suspend fun updateCachedPrices(prices: Map<String, CachedCoinPrice>) {
         context.dataStore.edit { prefs ->
             val encoded = prices.entries.joinToString(";") {
@@ -1123,6 +1164,25 @@ class SettingsStore(private val context: Context) {
             list
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    private fun parseNounsAuctionJson(raw: String): CachedNounsAuction? {
+        if (raw.isBlank()) return null
+        return try {
+            val obj = JSONObject(raw)
+            CachedNounsAuction(
+                nounId = obj.optInt("nounId", 0),
+                amountWei = obj.optString("amountWei", "0"),
+                amountEth = obj.optDouble("amountEth", 0.0),
+                startTime = obj.optLong("startTime", 0L),
+                endTime = obj.optLong("endTime", 0L),
+                bidder = obj.optString("bidder", ""),
+                settled = obj.optBoolean("settled", false),
+                timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+            )
+        } catch (_: Exception) {
+            null
         }
     }
 }

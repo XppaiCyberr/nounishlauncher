@@ -172,6 +172,7 @@ class MainActivity : ComponentActivity() {
             val homeIdxCategories by viewModel.homeIdxCategories.collectAsState()
             val homeNounsList by viewModel.homeNounsList.collectAsState()
             val homeNounsCandidatesList by viewModel.homeNounsCandidatesList.collectAsState()
+            val homeNounsAuction by viewModel.homeNounsAuction.collectAsState()
             val isRefreshingData by viewModel.isRefreshingData.collectAsState()
 
             var currentScreen by remember { currentScreenState }
@@ -253,6 +254,7 @@ class MainActivity : ComponentActivity() {
                                     idxDisplayMode = settings.idxDisplayMode,
                                     idxAutoRotateIntervalSeconds = settings.idxAutoRotateIntervalSeconds,
                                     showNouns = settings.showHomeNouns,
+                                    nounsAuction = homeNounsAuction,
                                     nounsProposals = homeNounsList,
                                     nounsCandidates = homeNounsCandidatesList,
                                     nounsDisplayMode = settings.nounsDisplayMode,

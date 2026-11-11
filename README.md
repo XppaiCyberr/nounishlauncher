@@ -2,13 +2,33 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.24` (versionCode `25`) · **Release APK Footprint**: `~1.11 MB` (1,164,866 bytes)
+**Version**: `1.0.25` (versionCode `26`) · **Release APK Footprint**: `~1.12 MB` (1,170,453 bytes)
 
 ---
 
 ## Features
 
-### 1. Signature Nounish Aesthetics & Accent Colors
+### 1. Direct On-Chain Nouns Auction Feed (Zero Backend Required)
+- **Canonical Ethereum Auction House Proxy**: Directly queries the official Nouns Auction House proxy contract [`0x830bd73e4184cef73443c15111a1df14e495c706`](https://etherscan.io/address/0x830bd73e4184cef73443c15111a1df14e495c706) via standard Ethereum JSON-RPC `eth_call`.
+- **Method Selector `0x7d9f6db5` (`auction()`)**: Calls the public `auction()` function and decodes all 6 returned ABI fields directly on-device (`nounId`, `amount`, `startTime`, `endTime`, `bidder`, `settled`).
+- **Completely Decentralized & Serverless**: Requires zero custom backend, no intermediaries, and no proprietary servers. Includes automatic multi-endpoint RPC fallback (Alchemy Ethereum Mainnet, Cloudflare Ethereum, PublicNode) for 100% uptime and resilience.
+- **AMOLED Distraction-Free Presentation**: Renders the daily auction as a minimalist, battery-saving text row matching the launcher's typography:
+  `Noun #2070    8.50 ETH    2h 14m left`
+  - Current Token ID: `Noun #<id>` in semi-bold primary tone.
+  - Current Highest Bid: Formatted in ETH (e.g. `8.50 ETH`, or `0.00 ETH` if unbid).
+  - Dynamic Countdown: Real-time countdown timer (`2h 14m left`, `45m 12s left`, `28s left`, or `Settled` / `Auction ended`).
+  - Stale Indicator: Muted styling and age marker (`·5m ago`, `·1h ago`) when offline.
+- **Expandable Bidder & Direct Bidding**: Tap the auction row to view:
+  - `High Bidder: 0x3a41...f91c` (or `No bids` if unbid).
+  - `Bid on nouns.wtf ↗`: Launches `https://nouns.wtf` directly in the system web browser.
+- **Flexible Nouns Display Modes**:
+  - `Auto Rotate (Auction, Proposals & Candidates)`: Smoothly rotates between current live Auction, active Proposals, and Candidates every 7 seconds, with manual tap-to-cycle header controls.
+  - `Auction only`: Focuses the Nouns feed exclusively on the daily live auction.
+  - `Proposals only`: Focuses exclusively on on-chain governance proposals.
+  - `Candidates only`: Tracks upcoming draft proposals.
+- **Offline DataStore Caching**: Caches full auction state in Jetpack DataStore preferences for zero-latency frame-1 presentation on launch.
+
+### 2. Signature Nounish Aesthetics & Accent Colors
 - **Signature Nounish Accent Color Palettes**: Choose from 6 curated palettes to personalize your experience while maintaining AMOLED elegance:
   - **Pure Monochrome**: Crisp white (`#FFFFFF`) on AMOLED Black / Deep graphite (`#121212`) in Light Theme.
   - **Nounish Red `⌐◨-◨`**: Iconic vibrant red (`#E53935`).
@@ -26,7 +46,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   7. **Settings Category Pills**: Active selector pill border, background tint, and label text in Settings.
   8. **Switch Toggles**: Checked switch track color across all settings toggles.
 
-### 2. Customizable Haptic Feedback Intensity
+### 3. Customizable Haptic Feedback Intensity
 - **4 Distinct Feedback Levels**: Fine-tune tactile feedback across the launcher:
   - **Standard**: Balanced tactile ticks for navigation and firm long-press triggers.
   - **Subtle (Light Tick)**: Gentle, understated micro-ticks across all interactions.
@@ -34,19 +54,19 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Off (Disabled)**: Completely silent, vibration-free operation.
 - **Universal Application**: Seamlessly integrated across pull-to-refresh resistance milestones, gesture triggers (swipe down, screen lock), alphabet index scrubbing (tick on each letter crossed), and one-tap clipboard copy actions.
 
-### 3. Wallpaper Change Support & AMOLED Dark Scrim
+### 4. Wallpaper Change Support & AMOLED Dark Scrim
 - **Wallpaper Change Options**: Update the system wallpaper directly from Settings without leaving the launcher:
   - **Gallery / Photos Picker**: Select any photo with native crop-and-set intent (`WallpaperManager.getCropAndSetWallpaperIntent`) and direct bitmap stream fallback.
   - **System Wallpaper & Style Picker**: Direct shortcut to Android's native wallpaper chooser (`Intent.ACTION_SET_WALLPAPER`).
 - **AMOLED Dark Scrim Overlay**: Pair device wallpaper with a customizable dark scrim overlay (adjustable from **50% to 95%**, default **80%**) to ensure typography remains crisp, legible, and AMOLED-friendly over any image.
 
-### 4. Window Hardware Alpha Compositing Architecture (Zero-Ghosting)
+### 5. Window Hardware Alpha Compositing Architecture (Zero-Ghosting)
 - **RGBA_8888 Translucent Window Surface**: Explicitly configured via `window.setFormat(PixelFormat.TRANSLUCENT)`, ensuring Android's SurfaceFlinger hardware compositor blends window pixels directly with the wallpaper layer without color-depth reduction or banding artifacts.
 - **Window Translucency & Wallpaper Flags**: Configured with `android:windowIsTranslucent = true` and `android:windowShowWallpaper = true` in window styles with transparent backgrounds, allowing hardware-accelerated wallpaper presentation.
 - **Static Root Scrim Layer**: The root `Surface` applies `LauncherTheme.colors.background` (using `Color.Black.copy(alpha = dimAlpha)` or `#000000`) as a single, static compositing layer. Child screens (Home, Drawer, Settings) render on transparent surfaces, eliminating double-scrim multiplication and preventing background darkening during transitions.
 - **`AnimatedContent` Sequential Transitions**: Screen transitions utilize `AnimatedContent` with `fadeIn(tween(120))` together with `fadeOut(tween(90))`. Screen composables are cleanly disposed upon exit rather than overlapping simultaneously, guaranteeing **zero ghosting, no lingering text afterimages**, and silky-smooth 120 FPS transitions.
 
-### 5. App Drawer, Search & Ergonomics
+### 6. App Drawer, Search & Ergonomics
 - **Recent Apps**: Displays your most recently used apps in a clean, scrollable horizontal row of pills at the top (or anchored above the bottom search bar for instant one-handed reach). Automatically tracks up to 5 launched apps with LRU deduplication and hides seamlessly when searching.
 - **Inline Minimalist Calculator**: Type arithmetic expressions directly into the search bar (`125 * 8`, `45000 / 12`, `(15 + 5) * 4`, `25% * 80`, `2^8`, `100 - 15%`) to calculate in real time. Displays a clean `= <result>` row in your chosen accent color with one-tap copy to clipboard, subtle "Copied" confirmation, tactile haptic feedback, and zero interference with normal app searching.
 - **Deep App Shortcuts (Android 7.1+)**: Long-pressing any app on Home or Drawer queries dynamic, manifest, and pinned shortcuts via native `LauncherApps.getShortcuts()` (e.g. Chrome's "New Tab", chat conversations). Displayed as clean AMOLED text rows above standard options for instant one-tap launch.
@@ -59,7 +79,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Niagara-Style Fluid Wave Animation**: When scrubbing the alphabet index, apps smoothly curve and wave towards your thumb with organic spring physics at 120 FPS. Toggleable in Settings for a completely static list.
 - **App Context Menu**: Long-press any app to access deep shortcuts, Rename, Pin/Unpin, Hide/Unhide, App Info, and Uninstall.
 
-### 6. Home Screen Essentials
+### 7. Home Screen Essentials
 - **Pinned App Management**: Pin up to 8 apps (0–8 freely configurable) in large (`28 sp`) light-weight typography positioned in the lower-left area for ergonomic thumb reach.
 - **Dedicated Up/Down Reordering**: Reorder pinned shortcuts directly in Settings -> Pinned Apps with dedicated up (`↑`) and down (`↓`) controls without unpinning and re-pinning.
 - **Clean Uninstall Pruning**: Automatically drops uninstalled apps from pinned shortcuts and DataStore, leaving zero dead entries.
@@ -68,7 +88,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Closeable Passive Learning Notes (Top Right)**: Minimalist floating card at the top-right corner of the Home screen featuring the ethos of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology. Easily dismissed via a subtle `x` button and restored anytime from Settings.
 - **Currency Format**: Real-time market prices clearly specify currency format across tickers, headers, and ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`). Configurable in Settings (Suffix, Prefix, or None).
 
-### 7. Live Market & Community Feeds
+### 8. Live Market & Community Feeds
 - **Live Binance Crypto Market Overview**: Real-time tickers, current prices, 24-hour daily percentage change, text sparklines (` ▂▃▄▅▆▇█`), and expandable 24h high/low (`H: 78,068 · L: 77,262`). Supports custom watchlists (`BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`, `ETHBIDR`) and quote currencies (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`).
 - **Indonesian Stock Exchange (IDX Saham)**: Live IDX quotes (`https://idx.xpp.wtf/`) with modes for Auto Rotate, Market Indices (`IHSG`, `LQ45`), Top Gainers, Top Losers, or Custom Watchlist (`BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`), complete with expandable 24h high/low and volume on tap.
 - **Auto-Rotating IDX Categories with Staggered Wave Transition**: In Auto Rotate mode, the IDX view smoothly cycles through categories every 6 seconds. Each transition features a staggered wave animation where stock rows slide 1 by 1 to the left with dynamic descriptive headers.
@@ -78,7 +98,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Stale-Data Indicators & Network Awareness**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`). Automatically stretches poll intervals on cellular data or battery saver mode, with exponential backoff on HTTP 429 rate limits.
 - **Optional Live WebSocket on Home**: Stream live real-time Binance ticks directly on Home via native RFC 6455 WebSocket client, cleanly closed when leaving Home or locking the screen.
 
-### 8. Gestures & Customization
+### 9. Gestures & Customization
 - **Swipe Up**: Open App Drawer.
 - **Swipe Down on Home**: Fully configurable in Settings:
   - **Open notification shade** (default): Pulls down the system notification shade from anywhere on Home.

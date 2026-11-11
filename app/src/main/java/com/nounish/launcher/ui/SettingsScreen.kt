@@ -677,9 +677,10 @@ fun SettingsScreen(
                                 if (settings.showHomeNouns) {
                                     item {
                                         val modeLabel = when (settings.nounsDisplayMode) {
+                                            "auction" -> "Auction only"
                                             "proposals" -> "Proposals only"
                                             "candidates" -> "Candidates only"
-                                            else -> "Auto Rotate (Proposals & Candidates)"
+                                            else -> "Auto Rotate (Auction, Proposals & Candidates)"
                                         }
                                         SettingsActionRow(
                                             title = "Nouns display mode",
@@ -696,7 +697,7 @@ fun SettingsScreen(
                                         )
                                     }
 
-                                    if (settings.nounsDisplayMode != "candidates") {
+                                    if (settings.nounsDisplayMode != "candidates" && settings.nounsDisplayMode != "auction") {
                                         item {
                                             SettingsActionRow(
                                                 title = "Proposal status filter",
@@ -1914,7 +1915,8 @@ fun SettingsScreen(
     // Nouns Display Mode Dialog
     if (showNounsDisplayModeDialog) {
         val modes = listOf(
-            "auto_rotate" to "Auto Rotate (Proposals & Candidates)",
+            "auto_rotate" to "Auto Rotate (Auction, Proposals & Candidates)",
+            "auction" to "Auction only",
             "proposals" to "Proposals only",
             "candidates" to "Candidates only"
         )
@@ -1929,7 +1931,7 @@ fun SettingsScreen(
                 )
             },
             text = {
-                LazyColumn(modifier = Modifier.height(180.dp)) {
+                LazyColumn(modifier = Modifier.height(230.dp)) {
                     items(modes) { (modeKey, modeTitle) ->
                         val isSelected = modeKey == settings.nounsDisplayMode
                         Text(

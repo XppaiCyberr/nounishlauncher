@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.24` (versionCode `25`) · **Optimized Release APK**: `~1.11 MB` (1,164,866 bytes)
+**Current Version**: `v1.0.25` (versionCode `26`) · **Optimized Release APK**: `~1.12 MB` (1,170,453 bytes)
 
 ---
 
@@ -51,16 +51,21 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Tap any stock row to expand clean 24-hour high, low, and traded share volume (`24h H: 10,250 · L: 10,000 · Vol: 78.4M`).
   - Full DataStore caching for instantaneous offline rendering with stale age markers (`·now`, `·5m`, `·1h`).
   - Toggleable in Settings under **Market Prices -> Show IDX stocks on home screen**.
-- **Nouns DAO Governance & Candidate Proposals (Center Space)**:
-  - Displays live Nouns DAO governance proposals and candidate proposals powered by `https://xpp.wtf/nouns/` with Ethereum RPC fallback.
+- **Nouns DAO Live Auction, Governance & Candidate Proposals (Center Space)**:
+  - **Live Daily Auction (Direct On-Chain RPC Query)**: Directly queries the canonical Nouns Auction House proxy contract [`0x830bd73e4184cef73443c15111a1df14e495c706`](https://etherscan.io/address/0x830bd73e4184cef73443c15111a1df14e495c706) via `eth_call` using selector `0x7d9f6db5` (`auction()`).
+    - Decodes current Token ID (`nounId`), highest bid in Wei converted to ETH (`amount`), auction start/end timestamps (`startTime`, `endTime`), current bidder address (`bidder`), and settlement state (`settled`).
+    - 100% decentralized and serverless with multi-endpoint RPC fallback (Alchemy, Cloudflare, PublicNode).
+    - AMOLED typography: `Noun #2070    8.50 ETH    2h 14m left`.
+    - Tap to expand: reveals `High Bidder: 0x3a41...f91c` and `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
+  - **Governance & Candidates Feed**: Live Nouns DAO governance proposals and candidate proposals powered by `https://xpp.wtf/nouns/` with Ethereum RPC fallback.
   - Minimalist AMOLED text-only presentation: `#1002  Proposal Title  Status`.
   - Color-coded status indicator: **Active** in bold green (`CryptoGreen`), **Executed** in muted grey, **Defeated/Canceled/Vetoed** in subtle red.
   - Interactive voting expansion: Tapping any proposal reveals live quorum and vote counts (`For: 215 · Against: 0 · Quorum: 136 · Vote ↗`).
   - Direct voting action: Tapping `Vote ↗` opens `https://nouns.wtf/vote/{id}` directly in the system web browser. Tapping a candidate proposal opens `https://nouns.wtf/candidates/{proposer}-{slug}`.
-  - Display modes: `Auto Rotate (Proposals & Candidates)`, `Proposals only`, or `Candidates only`.
+  - Display modes: `Auto Rotate (Auction, Proposals & Candidates)`, `Auction only`, `Proposals only`, or `Candidates only`.
   - Status filtering: Option to filter by `All`, `Active`, or `Executed` proposals via Settings.
   - Configurable display limit: Configure 2 to 6 items displayed simultaneously.
-  - Instant frame-1 local DataStore caching and resilient offline loading with stale markers.
+  - Instant frame-1 local DataStore caching and resilient offline loading with stale markers (`·5m ago`, `·1h ago`).
   - Toggleable in Settings under **Nouns DAO -> Show Nouns DAO feed**.
 - **Separated Market & Community Views (Maximize Middle Screen Space)**:
   - Option to display Crypto, IDX Saham, and Nouns DAO simultaneously on the Home screen to maximize the spacious middle area between the clock and pinned shortcuts.

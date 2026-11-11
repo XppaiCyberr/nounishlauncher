@@ -5,8 +5,38 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.math.BigDecimal
+import java.math.BigInteger
+import java.math.RoundingMode
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
+
+data class NounsAuction(
+    val nounId: Int,
+    val amountWei: String,
+    val amountEth: Double,
+    val startTime: Long,
+    val endTime: Long,
+    val bidder: String,
+    val settled: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class NounsAuctionUi(
+    val nounId: Int,
+    val amountWei: String,
+    val amountEth: Double,
+    val amountFormatted: String,
+    val startTime: Long,
+    val endTime: Long,
+    val bidder: String,
+    val bidderFormatted: String,
+    val settled: Boolean,
+    val timeLeftFormatted: String,
+    val isStale: Boolean = false,
+    val ageMarker: String = ""
+)
 
 data class NounsProposal(
     val id: Int,
@@ -344,5 +374,175 @@ class NounsRepository {
             result = (result shl 8) or (bytes[i].toInt() and 0xFF)
         }
         return result
+    }
+
+    suspend fun fetchCurrentAuction(): Result<NounsAuction> = withContext(Dispatchers.IO) {
+        val payload = JSONObject().apply {
+            put("jsonrpc", "2.0")
+            put("id", 1)
+            put("method", "eth_call")
+            val paramsObj = JSONObject().apply {
+                put("to", AUCTION_CONTRACT)
+                put("data", AUCTION_METHOD_DATA)
+            }
+            put("params", org.json.JSONArray(listOf(paramsObj, "latest")))
+        }.toString().toByteArray()
+
+        for (rpcUrl in RPC_ENDPOINTS) {
+            var conn: HttpURLConnection? = null
+            try {
+                conn = (URL(rpcUrl).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    connectTimeout = 6_000
+                    readTimeout = 6_000
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json")
+                    setRequestProperty("User-Agent", "NounishLauncher/1.0")
+                }
+                conn.outputStream.use { it.write(payload) }
+
+                if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                    val respJson = BufferedReader(InputStreamReader(conn.inputStream)).use { it.readText() }
+                    val root = JSONObject(respJson)
+                    val resultHex = root.optString("result", "")
+                    if (resultHex.isNotBlank() && !resultHex.startsWith("0xnull") && resultHex != "0x") {
+                        val auction = decodeAuction(resultHex)
+                        if (auction != null) {
+                            return@withContext Result.success(auction)
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                // Try next RPC endpoint in list
+            } finally {
+                conn?.disconnect()
+            }
+        }
+
+        Result.failure(RuntimeException("Failed to fetch Nouns auction from all RPC endpoints"))
+    }
+
+    companion object {
+        const val AUCTION_CONTRACT = "0x830bd73e4184cef73443c15111a1df14e495c706"
+        const val AUCTION_METHOD_DATA = "0x7d9f6db5"
+        val RPC_ENDPOINTS = listOf(
+            "https://eth-mainnet.g.alchemy.com/v2/K0Oex8ponc-8nl61tthZj",
+            "https://cloudflare-eth.com",
+            "https://ethereum.publicnode.com"
+        )
+
+        fun decodeAuction(hex: String, now: Long = System.currentTimeMillis()): NounsAuction? {
+            val cleanHex = hex.removePrefix("0x").trim()
+            if (cleanHex.length < 384) return null
+            return try {
+                val nounId = BigInteger(cleanHex.substring(0, 64), 16).toInt()
+                val amountBigInt = BigInteger(cleanHex.substring(64, 128), 16)
+                val amountEth = if (amountBigInt == BigInteger.ZERO) {
+                    0.0
+                } else {
+                    BigDecimal(amountBigInt)
+                        .divide(BigDecimal("1000000000000000000"), 4, RoundingMode.HALF_UP)
+                        .toDouble()
+                }
+                val startTime = BigInteger(cleanHex.substring(128, 192), 16).toLong()
+                val endTime = BigInteger(cleanHex.substring(192, 256), 16).toLong()
+                val bidderWord = cleanHex.substring(256, 320)
+                val bidder = "0x" + bidderWord.takeLast(40).lowercase(Locale.US)
+                val settled = BigInteger(cleanHex.substring(320, 384), 16).toInt() != 0
+
+                NounsAuction(
+                    nounId = nounId,
+                    amountWei = amountBigInt.toString(),
+                    amountEth = amountEth,
+                    startTime = startTime,
+                    endTime = endTime,
+                    bidder = bidder,
+                    settled = settled,
+                    timestamp = now
+                )
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        fun formatAmount(amountEth: Double): String {
+            return if (amountEth <= 0.0) {
+                "0.00 ETH"
+            } else {
+                String.format(Locale.US, "%.2f ETH", amountEth)
+            }
+        }
+
+        fun formatBidder(bidder: String): String {
+            if (bidder.isBlank() || bidder.equals("0x0000000000000000000000000000000000000000", ignoreCase = true)) {
+                return "No bids"
+            }
+            return if (bidder.length >= 10) {
+                "${bidder.take(6)}...${bidder.takeLast(4)}"
+            } else {
+                bidder
+            }
+        }
+
+        fun formatTimeLeft(endTimeSeconds: Long, settled: Boolean, nowMillis: Long = System.currentTimeMillis()): String {
+            if (settled) return "Settled"
+            val nowSeconds = nowMillis / 1000L
+            val diff = endTimeSeconds - nowSeconds
+            if (diff <= 0L) return "Auction ended"
+
+            val hours = diff / 3600L
+            val minutes = (diff % 3600L) / 60L
+            val seconds = diff % 60L
+
+            return when {
+                hours > 0L -> "${hours}h ${minutes}m left"
+                minutes > 0L -> "${minutes}m ${seconds}s left"
+                else -> "${seconds}s left"
+            }
+        }
+
+        fun toUiModel(
+            auction: CachedNounsAuction,
+            isStale: Boolean = false,
+            ageMarker: String = "",
+            nowMillis: Long = System.currentTimeMillis()
+        ): NounsAuctionUi {
+            return NounsAuctionUi(
+                nounId = auction.nounId,
+                amountWei = auction.amountWei,
+                amountEth = auction.amountEth,
+                amountFormatted = formatAmount(auction.amountEth),
+                startTime = auction.startTime,
+                endTime = auction.endTime,
+                bidder = auction.bidder,
+                bidderFormatted = formatBidder(auction.bidder),
+                settled = auction.settled,
+                timeLeftFormatted = formatTimeLeft(auction.endTime, auction.settled, nowMillis),
+                isStale = isStale,
+                ageMarker = ageMarker
+            )
+        }
+
+        fun toUiModel(
+            auction: NounsAuction,
+            isStale: Boolean = false,
+            ageMarker: String = "",
+            nowMillis: Long = System.currentTimeMillis()
+        ): NounsAuctionUi {
+            return NounsAuctionUi(
+                nounId = auction.nounId,
+                amountWei = auction.amountWei,
+                amountEth = auction.amountEth,
+                amountFormatted = formatAmount(auction.amountEth),
+                startTime = auction.startTime,
+                endTime = auction.endTime,
+                bidder = auction.bidder,
+                bidderFormatted = formatBidder(auction.bidder),
+                settled = auction.settled,
+                timeLeftFormatted = formatTimeLeft(auction.endTime, auction.settled, nowMillis),
+                isStale = isStale,
+                ageMarker = ageMarker
+            )
+        }
     }
 }

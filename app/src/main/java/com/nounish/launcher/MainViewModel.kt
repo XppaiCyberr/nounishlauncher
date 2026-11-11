@@ -8,6 +8,7 @@ import com.nounish.launcher.data.AppRepository
 import com.nounish.launcher.data.BinanceWebSocketClient
 import com.nounish.launcher.data.CachedCoinPrice
 import com.nounish.launcher.data.CachedIdxQuote
+import com.nounish.launcher.data.CachedNounsAuction
 import com.nounish.launcher.data.CachedNounsCandidate
 import com.nounish.launcher.data.CachedNounsProposal
 import com.nounish.launcher.data.CoinTicker
@@ -15,6 +16,7 @@ import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.data.IdxRepository
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.data.NetworkHelper
+import com.nounish.launcher.data.NounsAuctionUi
 import com.nounish.launcher.data.NounsCandidateUi
 import com.nounish.launcher.data.NounsProposalUi
 import com.nounish.launcher.data.NounsRepository
@@ -332,6 +334,15 @@ class MainViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val homeNounsAuction: StateFlow<NounsAuctionUi?> = settings.map { pref ->
+        val cached = pref.cachedNounsAuction ?: return@map null
+        val now = System.currentTimeMillis()
+        val timestamp = pref.cachedNounsAuctionTimestamp
+        val isStale = timestamp <= 0L || (now - timestamp) > 300_000L
+        val ageMarker = if (isStale && timestamp > 0L) PriceRepository.formatAgeMarker(timestamp) else ""
+        NounsRepository.toUiModel(cached, isStale, ageMarker, now)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     private val _isRefreshingData = MutableStateFlow(false)
     val isRefreshingData: StateFlow<Boolean> = _isRefreshingData.asStateFlow()
 
@@ -524,6 +535,7 @@ class MainViewModel(
             while (isActive) {
                 fetchUsdRate()
                 fetchIdxPrices()
+                fetchNounsAuction()
                 fetchNounsProposals()
                 fetchNounsCandidates()
                 delay(60_000L)
@@ -625,6 +637,7 @@ class MainViewModel(
 
         fetchUsdRate()
         fetchIdxPrices()
+        fetchNounsAuction()
         fetchNounsProposals()
         fetchNounsCandidates()
 
@@ -858,6 +871,29 @@ class MainViewModel(
         }
     }
 
+    private suspend fun fetchNounsAuction() {
+        val currentSettings = settings.value
+        if (!currentSettings.showHomeNouns) return
+        if (currentSettings.nounsDisplayMode == "proposals" || currentSettings.nounsDisplayMode == "candidates") return
+
+        val result = nounsRepository.fetchCurrentAuction()
+        val auction = result.getOrNull()
+        if (auction != null) {
+            val now = System.currentTimeMillis()
+            val cached = CachedNounsAuction(
+                nounId = auction.nounId,
+                amountWei = auction.amountWei,
+                amountEth = auction.amountEth,
+                startTime = auction.startTime,
+                endTime = auction.endTime,
+                bidder = auction.bidder,
+                settled = auction.settled,
+                timestamp = now
+            )
+            settingsStore.updateCachedNounsAuction(cached, now)
+        }
+    }
+
     private suspend fun fetchNounsProposals() {
         val currentSettings = settings.value
         if (!currentSettings.showHomeNouns) return
@@ -889,6 +925,7 @@ class MainViewModel(
 
     fun refreshNounsProposals() {
         viewModelScope.launch(Dispatchers.IO) {
+            fetchNounsAuction()
             fetchNounsProposals()
             fetchNounsCandidates()
         }
@@ -931,9 +968,10 @@ class MainViewModel(
                     launch { fetchIdxPrices() }
                 }
 
-                // 3. Fetch Nouns proposals & candidates (if showHomeNouns)
+                // 3. Fetch Nouns auction, proposals & candidates (if showHomeNouns)
                 if (currentSettings.showHomeNouns) {
                     launch {
+                        fetchNounsAuction()
                         fetchNounsProposals()
                         fetchNounsCandidates()
                     }
@@ -1401,6 +1439,7 @@ class MainViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowHomeNouns(show)
             if (show) {
+                fetchNounsAuction()
                 fetchNounsProposals()
                 fetchNounsCandidates()
             }
@@ -1417,6 +1456,8 @@ class MainViewModel(
     fun setNounsDisplayMode(mode: String) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setNounsDisplayMode(mode)
+            if (mode != "proposals" && mode != "candidates") fetchNounsAuction()
+            if (mode != "candidates") fetchNounsProposals()
             if (mode != "proposals") fetchNounsCandidates()
         }
     }
