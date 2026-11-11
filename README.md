@@ -177,8 +177,8 @@ For step-by-step Google Play publishing requirements, package visibility complia
 ### Automated CI / GitHub Releases
 A GitHub Actions workflow (`.github/workflows/release.yml`) automatically builds the signed, minified release APK and attaches it to GitHub Releases whenever a git tag is pushed:
 ```bash
-git tag v1.0.22
-git push origin v1.0.22
+git tag v1.0.23
+git push origin v1.0.23
 ```
 
 ---

@@ -180,7 +180,6 @@ fun DrawerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
             .statusBarsPadding()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
             .launcherGestures(

@@ -165,7 +165,6 @@ fun SettingsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
             .statusBarsPadding()
             .padding(horizontal = 16.dp)
     ) {

@@ -200,7 +200,6 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
             .statusBarsPadding()
             .launcherGestures(
                 onSwipeUp = onOpenDrawer,

@@ -2,6 +2,7 @@ package com.nounish.launcher
 
 import android.app.WallpaperManager
 import android.content.Intent
+import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.WindowManager
@@ -12,8 +13,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -30,6 +34,7 @@ import com.nounish.launcher.service.LockScreenService
 import com.nounish.launcher.ui.DrawerScreen
 import com.nounish.launcher.ui.HomeScreen
 import com.nounish.launcher.ui.SettingsScreen
+import com.nounish.launcher.ui.theme.LauncherTheme
 import com.nounish.launcher.ui.theme.NounishLauncherTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -140,6 +145,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        window.setFormat(PixelFormat.TRANSLUCENT)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
@@ -174,6 +180,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(settings.showWallpaper) {
                 if (settings.showWallpaper) {
                     window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+                    window.setFormat(PixelFormat.TRANSLUCENT)
                     window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
                 } else {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
@@ -208,7 +215,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = androidx.compose.ui.graphics.Color.Transparent
+                    color = LauncherTheme.colors.background
                 ) {
                     // Back button handling
                     BackHandler(enabled = currentScreen != Screen.Home) {
@@ -220,9 +227,12 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Fast fade animation under 150 ms
-                    Crossfade(
+                    AnimatedContent(
                         targetState = currentScreen,
-                        animationSpec = tween(durationMillis = 120),
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(durationMillis = 120)) togetherWith
+                                fadeOut(animationSpec = tween(durationMillis = 90))
+                        },
                         label = "ScreenTransition"
                     ) { screen ->
                         when (screen) {
