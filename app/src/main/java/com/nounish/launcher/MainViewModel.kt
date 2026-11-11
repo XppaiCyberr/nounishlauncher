@@ -1468,6 +1468,12 @@ class MainViewModel(
         }
     }
 
+    fun setShowNounsAuctionImage(show: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowNounsAuctionImage(show)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null

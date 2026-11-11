@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.25` (versionCode `26`) · **Optimized Release APK**: `~1.12 MB` (1,170,453 bytes)
+**Current Version**: `v1.0.26` (versionCode `27`) · **Optimized Release APK**: `~1.12 MB` (1,173,310 bytes)
 
 ---
 
@@ -55,8 +55,9 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Live Daily Auction (Direct On-Chain RPC Query)**: Directly queries the canonical Nouns Auction House proxy contract [`0x830bd73e4184cef73443c15111a1df14e495c706`](https://etherscan.io/address/0x830bd73e4184cef73443c15111a1df14e495c706) via `eth_call` using selector `0x7d9f6db5` (`auction()`).
     - Decodes current Token ID (`nounId`), highest bid in Wei converted to ETH (`amount`), auction start/end timestamps (`startTime`, `endTime`), current bidder address (`bidder`), and settlement state (`settled`).
     - 100% decentralized and serverless with multi-endpoint RPC fallback (Alchemy, Cloudflare, PublicNode).
-    - AMOLED typography: `Noun #2070    8.50 ETH    2h 14m left`.
-    - Tap to expand: reveals `High Bidder: 0x3a41...f91c` and `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
+    - **Pixel-Art Noun Image Display (`https://noun.pics/{id}.png`)**: Displays the authentic 64x64 pixel-art avatar for the active auction Noun from `https://noun.pics/{nounId}.png` rendered with `FilterQuality.None` for crisp AMOLED sharpness. Cached on disk and in memory with `⌐◨-◨` placeholder while loading or offline. Toggleable in Settings (**Show Noun auction image**).
+    - AMOLED typography: `[🖼️] Noun #2070    8.50 ETH    2h 14m left`.
+    - Tap to expand: reveals larger avatar preview (`44.dp`/`52.dp`), `High Bidder: 0x3a41...f91c`, and `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
   - **Governance & Candidates Feed**: Live Nouns DAO governance proposals and candidate proposals powered by `https://xpp.wtf/nouns/` with Ethereum RPC fallback.
   - Minimalist AMOLED text-only presentation: `#1002  Proposal Title  Status`.
   - Color-coded status indicator: **Active** in bold green (`CryptoGreen`), **Executed** in muted grey, **Defeated/Canceled/Vetoed** in subtle red.

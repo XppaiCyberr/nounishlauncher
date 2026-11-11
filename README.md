@@ -2,18 +2,26 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.25` (versionCode `26`) · **Release APK Footprint**: `~1.12 MB` (1,170,453 bytes)
+**Version**: `1.0.26` (versionCode `27`) · **Release APK Footprint**: `~1.12 MB` (1,173,310 bytes)
 
 ---
 
 ## Features
 
-### 1. Direct On-Chain Nouns Auction Feed (Zero Backend Required)
+### 1. Direct On-Chain Nouns Auction Feed & Pixel-Art Display (noun.pics)
 - **Canonical Ethereum Auction House Proxy**: Directly queries the official Nouns Auction House proxy contract [`0x830bd73e4184cef73443c15111a1df14e495c706`](https://etherscan.io/address/0x830bd73e4184cef73443c15111a1df14e495c706) via standard Ethereum JSON-RPC `eth_call`.
 - **Method Selector `0x7d9f6db5` (`auction()`)**: Calls the public `auction()` function and decodes all 6 returned ABI fields directly on-device (`nounId`, `amount`, `startTime`, `endTime`, `bidder`, `settled`).
 - **Completely Decentralized & Serverless**: Requires zero custom backend, no intermediaries, and no proprietary servers. Includes automatic multi-endpoint RPC fallback (Alchemy Ethereum Mainnet, Cloudflare Ethereum, PublicNode) for 100% uptime and resilience.
+- **Official Pixel-Art Noun Image Display (`https://noun.pics/{id}.png`)**:
+  - Displays the authentic 64x64 pixel-art avatar for the active auction Noun fetched from `https://noun.pics/{nounId}.png` (e.g. `https://noun.pics/2070.png`).
+  - Rendered with `FilterQuality.None` (nearest-neighbor) so every pixel is razor-sharp and punchy on AMOLED screens without blurry bilinear interpolation.
+  - Features an inline thumbnail in the auction row (`26.dp`/`30.dp`), expanding into a generous preview (`44.dp`/`52.dp`) when tapped.
+  - Fallback placeholder: Displays the iconic `⌐◨-◨` glasses in a rounded surface box while loading or when offline.
+  - Zero Third-Party Bloat: Built with zero heavy image libraries (no Coil, Glide, or Picasso), maintaining the ultra-lightweight ~1.12 MB APK size.
+  - Dual-Layer Caching: Cached in memory (`LruCache`) and on local disk storage (`context.cacheDir/noun_pics/`) for instantaneous zero-latency offline loading without burning mobile data.
+  - Toggleable in Settings under **Nouns DAO -> Show Noun auction image** for users who prefer pure text mode.
 - **AMOLED Distraction-Free Presentation**: Renders the daily auction as a minimalist, battery-saving text row matching the launcher's typography:
-  `Noun #2070    8.50 ETH    2h 14m left`
+  `[🖼️] Noun #2070    8.50 ETH    2h 14m left`
   - Current Token ID: `Noun #<id>` in semi-bold primary tone.
   - Current Highest Bid: Formatted in ETH (e.g. `8.50 ETH`, or `0.00 ETH` if unbid).
   - Dynamic Countdown: Real-time countdown timer (`2h 14m left`, `45m 12s left`, `28s left`, or `Settled` / `Auction ended`).

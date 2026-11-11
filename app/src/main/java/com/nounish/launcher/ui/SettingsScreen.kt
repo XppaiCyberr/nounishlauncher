@@ -93,6 +93,7 @@ fun SettingsScreen(
     onUpdateIdxSymbols: (List<String>) -> Unit = {},
     onUpdateIdxAutoRotateInterval: (Int) -> Unit = {},
     onToggleShowHomeNouns: (Boolean) -> Unit = {},
+    onToggleShowNounsAuctionImage: (Boolean) -> Unit = {},
     onUpdateNounsDisplayMode: (String) -> Unit = {},
     onUpdateNounsMaxDisplayCount: (Int) -> Unit = {},
     onUpdateNounsStatusFilter: (String) -> Unit = {},
@@ -675,6 +676,15 @@ fun SettingsScreen(
                                 }
 
                                 if (settings.showHomeNouns) {
+                                    item {
+                                        SettingsSwitchRow(
+                                            title = "Show Noun auction image",
+                                            subtitle = if (settings.showNounsAuctionImage) "Display pixel art avatar from noun.pics" else "Text only",
+                                            checked = settings.showNounsAuctionImage,
+                                            onCheckedChange = onToggleShowNounsAuctionImage
+                                        )
+                                    }
+
                                     item {
                                         val modeLabel = when (settings.nounsDisplayMode) {
                                             "auction" -> "Auction only"

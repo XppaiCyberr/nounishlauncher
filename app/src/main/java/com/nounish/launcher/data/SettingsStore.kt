@@ -143,7 +143,8 @@ data class LauncherSettings(
     val cachedNounsCandidates: List<CachedNounsCandidate> = emptyList(),
     val cachedNounsCandidatesTimestamp: Long = 0L,
     val cachedNounsAuction: CachedNounsAuction? = null,
-    val cachedNounsAuctionTimestamp: Long = 0L
+    val cachedNounsAuctionTimestamp: Long = 0L,
+    val showNounsAuctionImage: Boolean = true
 )
 
 class SettingsStore(private val context: Context) {
@@ -219,6 +220,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_CACHED_NOUNS_CANDIDATES_TIMESTAMP = longPreferencesKey("cached_nouns_candidates_timestamp")
         private val KEY_CACHED_NOUNS_AUCTION = stringPreferencesKey("cached_nouns_auction_json")
         private val KEY_CACHED_NOUNS_AUCTION_TIMESTAMP = longPreferencesKey("cached_nouns_auction_timestamp")
+        private val KEY_SHOW_NOUNS_AUCTION_IMAGE = booleanPreferencesKey("show_nouns_auction_image")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -314,6 +316,7 @@ class SettingsStore(private val context: Context) {
         val cachedNounsCandidatesTimestamp = prefs[KEY_CACHED_NOUNS_CANDIDATES_TIMESTAMP] ?: 0L
         val cachedNounsAuction = parseNounsAuctionJson(prefs[KEY_CACHED_NOUNS_AUCTION] ?: "")
         val cachedNounsAuctionTimestamp = prefs[KEY_CACHED_NOUNS_AUCTION_TIMESTAMP] ?: 0L
+        val showNounsAuctionImage = prefs[KEY_SHOW_NOUNS_AUCTION_IMAGE] ?: true
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -385,7 +388,8 @@ class SettingsStore(private val context: Context) {
             cachedNounsCandidates = cachedNounsCandidates,
             cachedNounsCandidatesTimestamp = cachedNounsCandidatesTimestamp,
             cachedNounsAuction = cachedNounsAuction,
-            cachedNounsAuctionTimestamp = cachedNounsAuctionTimestamp
+            cachedNounsAuctionTimestamp = cachedNounsAuctionTimestamp,
+            showNounsAuctionImage = showNounsAuctionImage
         )
     }
 
@@ -729,6 +733,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_NOUNS_MAX_DISPLAY_COUNT] = count }
     }
 
+    suspend fun setShowNounsAuctionImage(show: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_NOUNS_AUCTION_IMAGE] = show }
+    }
+
     suspend fun updateCachedNounsCandidates(candidates: List<CachedNounsCandidate>, timestamp: Long) {
         context.dataStore.edit { prefs ->
             val arr = JSONArray()
@@ -869,6 +877,7 @@ class SettingsStore(private val context: Context) {
         root.put("nounsStatusFilter", settings.nounsStatusFilter)
         root.put("nounsDisplayMode", settings.nounsDisplayMode)
         root.put("nounsMaxDisplayCount", settings.nounsMaxDisplayCount)
+        root.put("showNounsAuctionImage", settings.showNounsAuctionImage)
 
         return root.toString(2)
     }
@@ -982,6 +991,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("nounsStatusFilter")) prefs[KEY_NOUNS_STATUS_FILTER] = root.getString("nounsStatusFilter")
                 if (root.has("nounsDisplayMode")) prefs[KEY_NOUNS_DISPLAY_MODE] = root.getString("nounsDisplayMode")
                 if (root.has("nounsMaxDisplayCount")) prefs[KEY_NOUNS_MAX_DISPLAY_COUNT] = root.getInt("nounsMaxDisplayCount")
+                if (root.has("showNounsAuctionImage")) prefs[KEY_SHOW_NOUNS_AUCTION_IMAGE] = root.getBoolean("showNounsAuctionImage")
             }
             true
         } catch (_: Exception) {

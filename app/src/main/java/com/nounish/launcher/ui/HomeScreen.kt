@@ -70,6 +70,7 @@ import com.nounish.launcher.IdxCategoryUi
 import com.nounish.launcher.data.AppIcon
 import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.data.NounsAuctionUi
+import com.nounish.launcher.data.NounsAvatar
 import com.nounish.launcher.data.NounsCandidateUi
 import com.nounish.launcher.data.NounsProposalUi
 import com.nounish.launcher.model.AppItem
@@ -105,6 +106,7 @@ fun HomeScreen(
     idxAutoRotateIntervalSeconds: Int = 6,
     showNouns: Boolean = true,
     nounsAuction: NounsAuctionUi? = null,
+    showNounsAuctionImage: Boolean = true,
     nounsProposals: List<NounsProposalUi> = emptyList(),
     nounsCandidates: List<NounsCandidateUi> = emptyList(),
     nounsDisplayMode: String = "auto_rotate",
@@ -535,6 +537,7 @@ fun HomeScreen(
                                     NounsSectionContent(
                                         activeNounsSub = activeNounsSub,
                                         auction = nounsAuction,
+                                        showAuctionImage = showNounsAuctionImage,
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
@@ -627,6 +630,7 @@ fun HomeScreen(
                                     NounsSectionContent(
                                         activeNounsSub = activeNounsSub,
                                         auction = nounsAuction,
+                                        showAuctionImage = showNounsAuctionImage,
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
@@ -716,6 +720,7 @@ fun HomeScreen(
                                     NounsSectionContent(
                                         activeNounsSub = activeNounsSub,
                                         auction = nounsAuction,
+                                        showAuctionImage = showNounsAuctionImage,
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
@@ -1259,6 +1264,7 @@ private fun PassiveNoteCard(
 private fun NounsSectionContent(
     activeNounsSub: String,
     auction: NounsAuctionUi?,
+    showAuctionImage: Boolean = true,
     proposals: List<NounsProposalUi>,
     candidates: List<NounsCandidateUi>,
     maxCount: Int,
@@ -1277,6 +1283,7 @@ private fun NounsSectionContent(
                 if (auction != null) {
                     NounsAuctionCard(
                         auction = auction,
+                        showImage = showAuctionImage,
                         compact = compact
                     )
                 } else {
@@ -1308,6 +1315,7 @@ private fun NounsSectionContent(
 @Composable
 private fun NounsAuctionCard(
     auction: NounsAuctionUi,
+    showImage: Boolean = true,
     compact: Boolean = false
 ) {
     val colors = LauncherTheme.colors
@@ -1325,8 +1333,15 @@ private fun NounsAuctionCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp)
         ) {
+            if (showImage) {
+                NounsAvatar(
+                    nounId = auction.nounId,
+                    size = if (compact) 26.dp else 30.dp
+                )
+            }
+
             Text(
                 text = "Noun #${auction.nounId}",
                 style = if (compact) typography.priceLabel else typography.drawerItem,
@@ -1365,30 +1380,39 @@ private fun NounsAuctionCard(
         if (showDetails) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 2.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(top = 4.dp, start = if (showImage) (if (compact) 34.dp else 40.dp) else 0.dp)
             ) {
-                Text(
-                    text = "High Bidder: ${auction.bidderFormatted}",
-                    style = typography.clock,
-                    color = colors.textSecondary.copy(alpha = 0.6f)
-                )
+                if (showImage) {
+                    NounsAvatar(
+                        nounId = auction.nounId,
+                        size = if (compact) 44.dp else 52.dp
+                    )
+                }
 
-                Text(
-                    text = "Bid on nouns.wtf ↗",
-                    style = typography.clock,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textPrimary,
-                    modifier = Modifier.clickable {
-                        try {
-                            val uri = Uri.parse("https://nouns.wtf")
-                            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            context.startActivity(intent)
-                        } catch (_: Exception) {}
-                    }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "High Bidder: ${auction.bidderFormatted}",
+                        style = typography.clock,
+                        color = colors.textSecondary.copy(alpha = 0.6f)
+                    )
+
+                    Text(
+                        text = "Bid on nouns.wtf ↗",
+                        style = typography.clock,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textPrimary,
+                        modifier = Modifier.clickable {
+                            try {
+                                val uri = Uri.parse("https://nouns.wtf")
+                                val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    )
+                }
             }
         }
     }

@@ -3,6 +3,7 @@ package com.nounish.launcher
 import com.nounish.launcher.data.CachedNounsAuction
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.data.NounsAuction
+import com.nounish.launcher.data.NounsImageCache
 import com.nounish.launcher.data.NounsRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,6 +22,13 @@ class NounsAuctionTest {
         assertEquals(0L, settings.cachedNounsAuctionTimestamp)
         assertEquals("auto_rotate", settings.nounsDisplayMode)
         assertTrue(settings.showHomeNouns)
+        assertTrue(settings.showNounsAuctionImage)
+    }
+
+    @Test
+    fun testNounPicUrl() {
+        assertEquals("https://noun.pics/2070.png", NounsImageCache.getNounPicUrl(2070))
+        assertEquals("https://noun.pics/1.png", NounsImageCache.getNounPicUrl(1))
     }
 
     @Test
