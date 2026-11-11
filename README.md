@@ -31,6 +31,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - `High Bidder: 0x3a41...f91c` (or `No bids` if unbid).
   - `Bid on nouns.wtf ↗`: Launches `https://nouns.wtf` directly in the system web browser.
 - **Smart Middle Feed De-duplication**: When the live auction is prominently displayed in the top-right corner, the middle Nouns feed intelligently prioritizes governance Proposals and Candidates during auto-rotation, preventing redundant duplicate auctions on screen.
+- **On-Chain Write Transactions Specification**: Full EIP-1193 unsigned payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
 - **Offline DataStore Caching**: Caches full auction state in Jetpack DataStore preferences for zero-latency frame-1 presentation on launch.
 
 ### 2. Signature Nounish Aesthetics & Accent Colors

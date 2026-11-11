@@ -58,6 +58,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
     - **Pixel-Art Noun Image Display (`https://noun.pics/{id}.png`)**: Displays the authentic 64x64 pixel-art avatar for the active auction Noun from `https://noun.pics/{nounId}.png` rendered with `FilterQuality.None` for crisp AMOLED sharpness. Cached on disk and in memory with `⌐◨-◨` placeholder while loading or offline. Toggleable in Settings (**Show Noun auction image**).
     - AMOLED typography: `[🖼️] Noun #2070    8.50 ETH    2h 14m left`.
     - Tap to expand: reveals larger avatar preview (`44.dp`/`52.dp`), `High Bidder: 0x3a41...f91c`, and `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
+    - **On-Chain Write Transactions Specification**: Full EIP-1193 payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
   - **Governance & Candidates Feed**: Live Nouns DAO governance proposals and candidate proposals powered by `https://xpp.wtf/nouns/` with Ethereum RPC fallback.
   - Minimalist AMOLED text-only presentation: `#1002  Proposal Title  Status`.
   - Color-coded status indicator: **Active** in bold green (`CryptoGreen`), **Executed** in muted grey, **Defeated/Canceled/Vetoed** in subtle red.
