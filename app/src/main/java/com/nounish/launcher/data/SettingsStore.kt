@@ -144,7 +144,8 @@ data class LauncherSettings(
     val cachedNounsCandidatesTimestamp: Long = 0L,
     val cachedNounsAuction: CachedNounsAuction? = null,
     val cachedNounsAuctionTimestamp: Long = 0L,
-    val showNounsAuctionImage: Boolean = true
+    val showNounsAuctionImage: Boolean = true,
+    val topRightCard: String = "auction"
 )
 
 class SettingsStore(private val context: Context) {
@@ -221,6 +222,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_CACHED_NOUNS_AUCTION = stringPreferencesKey("cached_nouns_auction_json")
         private val KEY_CACHED_NOUNS_AUCTION_TIMESTAMP = longPreferencesKey("cached_nouns_auction_timestamp")
         private val KEY_SHOW_NOUNS_AUCTION_IMAGE = booleanPreferencesKey("show_nouns_auction_image")
+        private val KEY_TOP_RIGHT_CARD = stringPreferencesKey("top_right_card")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -317,6 +319,7 @@ class SettingsStore(private val context: Context) {
         val cachedNounsAuction = parseNounsAuctionJson(prefs[KEY_CACHED_NOUNS_AUCTION] ?: "")
         val cachedNounsAuctionTimestamp = prefs[KEY_CACHED_NOUNS_AUCTION_TIMESTAMP] ?: 0L
         val showNounsAuctionImage = prefs[KEY_SHOW_NOUNS_AUCTION_IMAGE] ?: true
+        val topRightCard = prefs[KEY_TOP_RIGHT_CARD] ?: "auction"
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -389,7 +392,8 @@ class SettingsStore(private val context: Context) {
             cachedNounsCandidatesTimestamp = cachedNounsCandidatesTimestamp,
             cachedNounsAuction = cachedNounsAuction,
             cachedNounsAuctionTimestamp = cachedNounsAuctionTimestamp,
-            showNounsAuctionImage = showNounsAuctionImage
+            showNounsAuctionImage = showNounsAuctionImage,
+            topRightCard = topRightCard
         )
     }
 
@@ -737,6 +741,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_SHOW_NOUNS_AUCTION_IMAGE] = show }
     }
 
+    suspend fun setTopRightCard(card: String) {
+        context.dataStore.edit { it[KEY_TOP_RIGHT_CARD] = card }
+    }
+
     suspend fun updateCachedNounsCandidates(candidates: List<CachedNounsCandidate>, timestamp: Long) {
         context.dataStore.edit { prefs ->
             val arr = JSONArray()
@@ -878,6 +886,7 @@ class SettingsStore(private val context: Context) {
         root.put("nounsDisplayMode", settings.nounsDisplayMode)
         root.put("nounsMaxDisplayCount", settings.nounsMaxDisplayCount)
         root.put("showNounsAuctionImage", settings.showNounsAuctionImage)
+        root.put("topRightCard", settings.topRightCard)
 
         return root.toString(2)
     }
@@ -992,6 +1001,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("nounsDisplayMode")) prefs[KEY_NOUNS_DISPLAY_MODE] = root.getString("nounsDisplayMode")
                 if (root.has("nounsMaxDisplayCount")) prefs[KEY_NOUNS_MAX_DISPLAY_COUNT] = root.getInt("nounsMaxDisplayCount")
                 if (root.has("showNounsAuctionImage")) prefs[KEY_SHOW_NOUNS_AUCTION_IMAGE] = root.getBoolean("showNounsAuctionImage")
+                if (root.has("topRightCard")) prefs[KEY_TOP_RIGHT_CARD] = root.getString("topRightCard")
             }
             true
         } catch (_: Exception) {

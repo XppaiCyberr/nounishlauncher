@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.27` (versionCode `28`) · **Optimized Release APK**: `~1.12 MB` (1,174,749 bytes)
+**Current Version**: `v1.0.29` (versionCode `30`) · **Optimized Release APK**: `~1.13 MB` (1,184,615 bytes)
 
 ---
 
@@ -55,16 +55,19 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Live Daily Auction (Direct On-Chain RPC Query)**: Directly queries the canonical Nouns Auction House proxy contract [`0x830bd73e4184cef73443c15111a1df14e495c706`](https://etherscan.io/address/0x830bd73e4184cef73443c15111a1df14e495c706) via `eth_call` using selector `0x7d9f6db5` (`auction()`).
     - Decodes current Token ID (`nounId`), highest bid in Wei converted to ETH (`amount`), auction start/end timestamps (`startTime`, `endTime`), current bidder address (`bidder`), and settlement state (`settled`).
     - 100% decentralized and serverless with multi-endpoint RPC fallback (Alchemy, Cloudflare, PublicNode).
+    - **On-Chain Reverse ENS Resolution**: Bidder addresses are resolved directly to reverse ENS names (e.g. `vitalik.eth`, `stripymofo.eth`) via Ethereum's canonical `ReverseRecords` contract [`0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C`](https://etherscan.io/address/0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C) using batch calls (`0xcbf8b66c`). Thread-safe in-memory caching ensures zero repeated network lookups.
+    - **Live Real-Time Countdown**: Countdown ticks second-by-second dynamically derived from the launcher clock (`currentTime.time`) without relying on frozen cached DataStore strings.
     - **Pixel-Art Noun Image Display (`https://noun.pics/{id}.png`)**: Displays the authentic 64x64 pixel-art avatar for the active auction Noun from `https://noun.pics/{nounId}.png` rendered with `FilterQuality.None` for crisp AMOLED sharpness. Cached on disk and in memory with `⌐◨-◨` placeholder while loading or offline. Toggleable in Settings (**Show Noun auction image**).
     - AMOLED typography: `[Avatar] Noun #2070    8.50 ETH    2h 14m left`.
-    - Tap to expand: reveals larger avatar preview (`44.dp`/`52.dp`), `High Bidder: 0x3a41...f91c`, and `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
+    - Tap to expand: reveals larger avatar preview (`44.dp`/`52.dp`), `High Bidder: vitalik.eth` (or `0x3a41...f91c`), and `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
     - **On-Chain Write Transactions Specification**: Full EIP-1193 payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
   - **Governance & Candidates Feed (100% On-Chain RPC)**: Live Nouns DAO governance proposals and candidate proposals queried directly from the Ethereum Mainnet DAO Proxy (`0x6f3E6272A167e8AcCb32072d08E0957F9c79223d`) and Candidate (`0xf790A5f59678dd733fb3De93493A91f472ca1365`) contracts via JSON-RPC batch calls—with zero intermediate API backend dependency.
   - Minimalist AMOLED text-only presentation: `#1002  Proposal Title  Status`.
   - Color-coded status indicator: **Active** in bold green (`CryptoGreen`), **Executed** in muted grey, **Defeated/Canceled/Vetoed** in subtle red.
-  - Interactive voting expansion: Tapping any proposal reveals live quorum and vote counts (`For: 215 · Against: 0 · Quorum: 136 · Vote ↗`).
+  - Interactive voting expansion: Tapping any proposal reveals proposer ENS name or shortened hex, live quorum and vote counts (`By: stripymofo.eth · For: 215 · Against: 0 · Quorum: 136 · Vote ↗`).
   - Direct voting action: Tapping `Vote ↗` opens `https://nouns.wtf/vote/{id}` directly in the system web browser. Tapping a candidate proposal opens `https://nouns.wtf/candidates/{proposer}-{slug}`.
-  - Display modes: `Auto Rotate (Auction, Proposals & Candidates)`, `Auction only`, `Proposals only`, or `Candidates only`.
+  - Parallelized RPC execution: Auction, proposals, and candidates fetch concurrently in coroutines, with synchronized `coroutineScope` management ensuring pull-to-refresh spinners remain active until all network jobs settle.
+  - Display modes: `Auto Rotate (Auction, Proposals & Candidates)`, `Auction only`, `Proposals only`, or `Candidates only`. Top-right auction card updates continuously even when middle display mode is set to proposals or candidates.
   - Status filtering: Option to filter by `All`, `Active`, or `Executed` proposals via Settings.
   - Configurable display limit: Configure 2 to 6 items displayed simultaneously.
   - Instant frame-1 local DataStore caching and resilient offline loading with stale markers (`·5m ago`, `·1h ago`).
@@ -97,12 +100,13 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Live daily Nouns auction is featured prominently at the top-right corner of the Home screen opposite the Clock & Date.
   - Titled **`Nouns Auction`** in accent color (clean header, replacing previous Noggle title).
   - Balanced vertical structure: displays the pixel-art Noun avatar (`https://noun.pics/{id}.png`) alongside Noun ID and current bid (`Noun #2070`, `8.50 ETH`), with the real-time `timeleft` countdown (`2h 14m left` or `Settled`) positioned directly below them.
-  - Interactive expansion: tap to reveal highest bidder address (`0x3a41...f91c`) and one-tap `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
-  - Smart de-duplication: When the top-right auction card is visible, the middle Nouns feed prioritizes governance Proposals and Candidates during auto-rotation, preventing duplicate auctions on screen.
-- **Closeable Passive Learning Notes (Top Right Fallback)**:
-  - Minimalist floating card at the top-right corner of the Home screen for passive learning when auction is off or unavailable.
+  - Interactive expansion: tap to reveal highest bidder (with on-chain reverse ENS name like `vitalik.eth` or shortened hex) and one-tap `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
+  - Toggle between Auction and Note: Switch with `Note ⇄` or `Auction ⇄`. Card preference persists across restarts in DataStore (`top_right_card`).
+  - Smart de-duplication: When the top-right auction card is visible, the middle Nouns feed prioritizes governance Proposals and Candidates during auto-rotation, preventing duplicate auctions on screen. Top-right auction updates continuously even when middle display mode is configured for Proposals only or Candidates only.
+- **Closeable Passive Learning Notes (Top Right)**:
+  - Minimalist floating card at the top-right corner of the Home screen for passive learning.
   - Displays the definition of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology.
-  - Title rendered in signature accent color. Dismissable via a subtle `x` button and easily restored anytime from Settings.
+  - Title rendered in signature accent color. Dismissable via a subtle `x` button, toggleable back to Auction with `Auction ⇄`, and easily restored anytime from Settings.
 - **Currency Format (Crypto USDT & IDX Saham IDR)**:
   - Real-time market prices clearly specify currency format across tickers, section headers, and 24h ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`).
   - Configurable in Settings (Suffix, Prefix, or None).

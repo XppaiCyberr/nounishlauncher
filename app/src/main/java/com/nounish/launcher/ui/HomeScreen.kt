@@ -73,6 +73,7 @@ import com.nounish.launcher.data.NounsAuctionUi
 import com.nounish.launcher.data.NounsAvatar
 import com.nounish.launcher.data.NounsCandidateUi
 import com.nounish.launcher.data.NounsProposalUi
+import com.nounish.launcher.data.NounsRepository
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.model.AppShortcut
 import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
@@ -126,6 +127,8 @@ fun HomeScreen(
     showNote: Boolean = true,
     isNoteDismissed: Boolean = false,
     noteIndex: Int = 0,
+    topRightCard: String = "auction",
+    onToggleTopRightCard: (String) -> Unit = {},
     onDismissNote: () -> Unit = {},
     onNextNote: () -> Unit = {},
     onAppClick: (AppItem) -> Unit,
@@ -257,10 +260,10 @@ fun HomeScreen(
         // Top section: Clock & Date on left, Nouns Auction (or Passive Note) on right
         val hasTopAuction = showNouns && nounsAuction != null
         val hasTopNote = showNote && !isNoteDismissed
-        var showNoteInsteadOfAuction by remember { mutableStateOf(false) }
+        val prefersNote = (topRightCard == "note")
 
-        val isAuctionTopVisible = hasTopAuction && (!hasTopNote || !showNoteInsteadOfAuction)
-        val isNoteVisible = hasTopNote && (!hasTopAuction || showNoteInsteadOfAuction)
+        val isAuctionTopVisible = hasTopAuction && (!hasTopNote || !prefersNote)
+        val isNoteVisible = hasTopNote && (!hasTopAuction || prefersNote)
         if (showClock || showDate || isAuctionTopVisible || isNoteVisible) {
             Row(
                 modifier = Modifier
@@ -309,8 +312,9 @@ fun HomeScreen(
                     TopNounsAuctionCard(
                         auction = nounsAuction,
                         showImage = showNounsAuctionImage,
+                        nowMillis = currentTime.time,
                         onSwitchToNote = if (hasTopNote) {
-                            { showNoteInsteadOfAuction = true }
+                            { onToggleTopRightCard("note") }
                         } else null
                     )
                 } else if (isNoteVisible) {
@@ -319,7 +323,7 @@ fun HomeScreen(
                         onDismiss = onDismissNote,
                         onClick = onNextNote,
                         onSwitchToAuction = if (hasTopAuction) {
-                            { showNoteInsteadOfAuction = false }
+                            { onToggleTopRightCard("auction") }
                         } else null
                     )
                 }
@@ -566,7 +570,8 @@ fun HomeScreen(
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
-                                        compact = true
+                                        compact = true,
+                                        nowMillis = currentTime.time
                                     )
                                 }
                             }
@@ -659,7 +664,8 @@ fun HomeScreen(
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
-                                        compact = false
+                                        compact = false,
+                                        nowMillis = currentTime.time
                                     )
                                 }
                             }
@@ -749,7 +755,8 @@ fun HomeScreen(
                                         proposals = nounsProposals,
                                         candidates = nounsCandidates,
                                         maxCount = nounsMaxDisplayCount,
-                                        compact = false
+                                        compact = false,
+                                        nowMillis = currentTime.time
                                     )
                                 }
                             }
@@ -1219,6 +1226,7 @@ private fun formatRangeWithCurrency(high: String, low: String, currency: String,
 private fun TopNounsAuctionCard(
     auction: NounsAuctionUi,
     showImage: Boolean = true,
+    nowMillis: Long = System.currentTimeMillis(),
     onSwitchToNote: (() -> Unit)? = null
 ) {
     val colors = LauncherTheme.colors
@@ -1297,7 +1305,11 @@ private fun TopNounsAuctionCard(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        val timeColor = if (auction.settled || auction.timeLeftFormatted == "Auction ended") {
+        val liveTimeLeft = remember(auction.endTime, auction.settled, nowMillis) {
+            NounsRepository.formatTimeLeft(auction.endTime, auction.settled, nowMillis)
+        }
+
+        val timeColor = if (auction.settled || liveTimeLeft == "Auction ended") {
             CryptoRed.copy(alpha = 0.85f)
         } else {
             colors.textSecondary.copy(alpha = 0.75f)
@@ -1308,7 +1320,7 @@ private fun TopNounsAuctionCard(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = auction.timeLeftFormatted,
+                text = liveTimeLeft,
                 style = typography.clock.copy(fontSize = 10.sp),
                 color = timeColor
             )
@@ -1444,7 +1456,8 @@ private fun NounsSectionContent(
     proposals: List<NounsProposalUi>,
     candidates: List<NounsCandidateUi>,
     maxCount: Int,
-    compact: Boolean
+    compact: Boolean,
+    nowMillis: Long = System.currentTimeMillis()
 ) {
     AnimatedContent(
         targetState = activeNounsSub,
@@ -1460,7 +1473,8 @@ private fun NounsSectionContent(
                     NounsAuctionCard(
                         auction = auction,
                         showImage = showAuctionImage,
-                        compact = compact
+                        compact = compact,
+                        nowMillis = nowMillis
                     )
                 } else {
                     NounsProposalList(
@@ -1492,7 +1506,8 @@ private fun NounsSectionContent(
 private fun NounsAuctionCard(
     auction: NounsAuctionUi,
     showImage: Boolean = true,
-    compact: Boolean = false
+    compact: Boolean = false,
+    nowMillis: Long = System.currentTimeMillis()
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
@@ -1537,7 +1552,11 @@ private fun NounsAuctionCard(
                     )
                 }
 
-                val timeColor = if (auction.settled || auction.timeLeftFormatted == "Auction ended") {
+                val liveTimeLeft = remember(auction.endTime, auction.settled, nowMillis) {
+                    NounsRepository.formatTimeLeft(auction.endTime, auction.settled, nowMillis)
+                }
+
+                val timeColor = if (auction.settled || liveTimeLeft == "Auction ended") {
                     CryptoRed.copy(alpha = 0.8f)
                 } else {
                     colors.textSecondary.copy(alpha = 0.7f)
@@ -1548,9 +1567,9 @@ private fun NounsAuctionCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = auction.timeLeftFormatted,
+                        text = liveTimeLeft,
                         style = typography.clock.copy(fontSize = 10.sp),
-                        fontWeight = if (!auction.settled && auction.timeLeftFormatted != "Auction ended") FontWeight.Medium else FontWeight.Normal,
+                        fontWeight = if (!auction.settled && liveTimeLeft != "Auction ended") FontWeight.Medium else FontWeight.Normal,
                         color = timeColor
                     )
 
@@ -1677,32 +1696,50 @@ private fun NounsProposalList(
                 }
 
                 if (showDetails) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    val shortProposer = if (prop.proposerFormatted.isNotBlank()) {
+                        prop.proposerFormatted
+                    } else if (prop.proposer.length >= 10) {
+                        "${prop.proposer.take(6)}...${prop.proposer.takeLast(4)}"
+                    } else prop.proposer
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                         modifier = Modifier.padding(top = 2.dp)
                     ) {
-                        Text(
-                            text = "For: ${prop.forVotes}  ·  Against: ${prop.againstVotes}  ·  Quorum: ${prop.quorum}",
-                            style = typography.clock,
-                            color = colors.textSecondary.copy(alpha = 0.6f)
-                        )
+                        if (shortProposer.isNotBlank()) {
+                            Text(
+                                text = "By: $shortProposer",
+                                style = typography.clock,
+                                color = colors.textSecondary.copy(alpha = 0.6f)
+                            )
+                        }
 
-                        Text(
-                            text = "Vote ↗",
-                            style = typography.clock,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.textPrimary,
-                            modifier = Modifier.clickable {
-                                try {
-                                    val uri = Uri.parse("https://nouns.wtf/vote/${prop.id}")
-                                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {}
-                            }
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "For: ${prop.forVotes}  ·  Against: ${prop.againstVotes}  ·  Quorum: ${prop.quorum}",
+                                style = typography.clock,
+                                color = colors.textSecondary.copy(alpha = 0.6f)
+                            )
+
+                            Text(
+                                text = "Vote ↗",
+                                style = typography.clock,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textPrimary,
+                                modifier = Modifier.clickable {
+                                    try {
+                                        val uri = Uri.parse("https://nouns.wtf/vote/${prop.id}")
+                                        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1777,7 +1814,9 @@ private fun NounsCandidateList(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.padding(top = 2.dp)
                     ) {
-                        val shortProposer = if (cand.proposer.length >= 10) {
+                        val shortProposer = if (cand.proposerFormatted.isNotBlank()) {
+                            cand.proposerFormatted
+                        } else if (cand.proposer.length >= 10) {
                             "${cand.proposer.take(6)}...${cand.proposer.takeLast(4)}"
                         } else cand.proposer
 

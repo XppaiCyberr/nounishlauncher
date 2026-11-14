@@ -57,6 +57,7 @@ data class NounsProposalUi(
     val statusLabel: String,
     val statusIndex: Int,
     val proposer: String,
+    val proposerFormatted: String = "",
     val forVotes: Int,
     val againstVotes: Int,
     val abstainVotes: Int = 0,
@@ -77,6 +78,7 @@ data class NounsCandidateUi(
     val slug: String,
     val title: String,
     val proposer: String,
+    val proposerFormatted: String = "",
     val statusLabel: String = "Candidate",
     val isStale: Boolean = false,
     val ageMarker: String = ""
@@ -510,15 +512,89 @@ class NounsRepository {
         Result.failure(RuntimeException("Failed to fetch Nouns auction from all RPC endpoints"))
     }
 
+    suspend fun resolveEnsNames(addresses: List<String>): Map<String, String> = withContext(Dispatchers.IO) {
+        val result = mutableMapOf<String, String>()
+        val cleanAddresses = addresses.map { it.lowercase(Locale.US).trim() }.filter { it.isNotBlank() }.distinct()
+        if (cleanAddresses.isEmpty()) return@withContext result
+
+        val uncached = mutableListOf<String>()
+        for (addr in cleanAddresses) {
+            if (addr == "0x0000000000000000000000000000000000000000" || addr.length != 42) {
+                result[addr] = ""
+                ensCache[addr] = ""
+            } else {
+                val cached = ensCache[addr]
+                if (cached != null) {
+                    result[addr] = cached
+                } else {
+                    uncached.add(addr)
+                }
+            }
+        }
+
+        if (uncached.isEmpty()) {
+            return@withContext result
+        }
+
+        // Call ReverseRecords getNames(address[])
+        val offsetHex = "0000000000000000000000000000000000000000000000000000000000000020"
+        val countHex = uncached.size.toString(16).padStart(64, '0')
+        val addrsHex = StringBuilder()
+        for (addr in uncached) {
+            addrsHex.append(addr.removePrefix("0x").padStart(64, '0'))
+        }
+        val calldata = ENS_GET_NAMES_SELECTOR + offsetHex + countHex + addrsHex.toString()
+
+        val payload = JSONObject().apply {
+            put("jsonrpc", "2.0")
+            put("id", 1)
+            put("method", "eth_call")
+            val callObj = JSONObject().apply {
+                put("to", REVERSE_RECORDS_CONTRACT)
+                put("data", calldata)
+            }
+            put("params", org.json.JSONArray(listOf(callObj, "latest")))
+        }.toString()
+
+        for (rpcUrl in RPC_ENDPOINTS) {
+            val respStr = postJsonRpc(rpcUrl, payload, timeoutMs = 5_000) ?: continue
+            try {
+                val root = JSONObject(respStr)
+                val resultHex = root.optString("result", "")
+                if (resultHex.isNotBlank() && !resultHex.startsWith("0xnull") && resultHex != "0x") {
+                    val decodedNames = decodeEnsNames(resultHex)
+                    for (i in uncached.indices) {
+                        val addr = uncached[i]
+                        val name = decodedNames.getOrNull(i) ?: ""
+                        ensCache[addr] = name
+                        result[addr] = name
+                    }
+                    return@withContext result
+                }
+            } catch (_: Exception) {
+                // Try next RPC
+            }
+        }
+
+        for (addr in uncached) {
+            if (!result.containsKey(addr)) {
+                result[addr] = ""
+            }
+        }
+        result
+    }
+
     companion object {
         const val DAO_PROXY_CONTRACT = "0x6f3E6272A167e8AcCb32072d08E0957F9c79223d"
         const val CANDIDATE_CONTRACT = "0xf790A5f59678dd733fb3De93493A91f472ca1365"
         const val AUCTION_CONTRACT = "0x830bd73e4184cef73443c15111a1df14e495c706"
+        const val REVERSE_RECORDS_CONTRACT = "0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C"
         const val PROPOSAL_COUNT_SELECTOR = "0xda35c664"
         const val PROPOSALS_SELECTOR = "0x013cf08b"
         const val PROPOSAL_STATE_SELECTOR = "0x3e4f49e6"
         const val AUCTION_METHOD_DATA = "0x7d9f6db5"
         const val PROPOSAL_CREATED_TOPIC = "0x7d84a6263ae0d98d3329bd7b46bb4e8d6f98cd35a7adb45c274c8b7fd5ebd5e0"
+        const val ENS_GET_NAMES_SELECTOR = "0xcbf8b66c"
 
         val STATE_LABELS = mapOf(
             0 to "Pending",
@@ -541,6 +617,62 @@ class NounsRepository {
         )
 
         private val proposalTitleCache = java.util.concurrent.ConcurrentHashMap<Int, String>()
+        private val ensCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+        fun getCachedEns(address: String): String? {
+            val clean = address.lowercase(Locale.US).trim()
+            val name = ensCache[clean]
+            return if (!name.isNullOrBlank()) name else null
+        }
+
+        fun cacheEnsName(address: String, ensName: String) {
+            val clean = address.lowercase(Locale.US).trim()
+            ensCache[clean] = ensName
+        }
+
+        fun decodeEnsNames(hex: String): List<String> {
+            val clean = hex.removePrefix("0x").trim()
+            if (clean.length < 128) return emptyList()
+            val slots = clean.chunked(64)
+            if (slots.size < 2) return emptyList()
+            return try {
+                val count = BigInteger(slots[1], 16).toInt()
+                val names = ArrayList<String>(count)
+                for (i in 0 until count) {
+                    if (2 + i >= slots.size) break
+                    val offset = BigInteger(slots[2 + i], 16).toInt()
+                    val lenSlot = 2 + (offset / 32)
+                    if (lenSlot >= slots.size) {
+                        names.add("")
+                        continue
+                    }
+                    val strLen = BigInteger(slots[lenSlot], 16).toInt()
+                    if (strLen <= 0) {
+                        names.add("")
+                        continue
+                    }
+                    val numDataSlots = (strLen + 31) / 32
+                    val sb = StringBuilder()
+                    for (s in 1..numDataSlots) {
+                        if (lenSlot + s < slots.size) {
+                            sb.append(slots[lenSlot + s])
+                        }
+                    }
+                    val dataHex = sb.toString()
+                    val byteLen = strLen.coerceAtMost(dataHex.length / 2)
+                    val bytes = ByteArray(byteLen)
+                    var b = 0
+                    while (b < byteLen) {
+                        bytes[b] = ((Character.digit(dataHex[b * 2], 16) shl 4) + Character.digit(dataHex[b * 2 + 1], 16)).toByte()
+                        b++
+                    }
+                    names.add(String(bytes, Charsets.UTF_8))
+                }
+                names
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
 
         fun cacheProposalTitle(id: Int, title: String) {
             if (id > 0 && title.isNotBlank() && title != "Proposal #$id") {
@@ -658,14 +790,31 @@ class NounsRepository {
             }
         }
 
-        fun formatBidder(bidder: String): String {
+        fun formatBidder(bidder: String, ensName: String? = null): String {
             if (bidder.isBlank() || bidder.equals("0x0000000000000000000000000000000000000000", ignoreCase = true)) {
                 return "No bids"
+            }
+            if (!ensName.isNullOrBlank()) {
+                return ensName
             }
             return if (bidder.length >= 10) {
                 "${bidder.take(6)}...${bidder.takeLast(4)}"
             } else {
                 bidder
+            }
+        }
+
+        fun formatAddress(address: String, ensName: String? = null): String {
+            if (address.isBlank() || address.equals("0x0000000000000000000000000000000000000000", ignoreCase = true)) {
+                return ""
+            }
+            if (!ensName.isNullOrBlank()) {
+                return ensName
+            }
+            return if (address.length >= 10) {
+                "${address.take(6)}...${address.takeLast(4)}"
+            } else {
+                address
             }
         }
 
@@ -690,8 +839,10 @@ class NounsRepository {
             auction: CachedNounsAuction,
             isStale: Boolean = false,
             ageMarker: String = "",
-            nowMillis: Long = System.currentTimeMillis()
+            nowMillis: Long = System.currentTimeMillis(),
+            ensName: String? = null
         ): NounsAuctionUi {
+            val resolvedEns = ensName ?: getCachedEns(auction.bidder)
             return NounsAuctionUi(
                 nounId = auction.nounId,
                 amountWei = auction.amountWei,
@@ -700,7 +851,7 @@ class NounsRepository {
                 startTime = auction.startTime,
                 endTime = auction.endTime,
                 bidder = auction.bidder,
-                bidderFormatted = formatBidder(auction.bidder),
+                bidderFormatted = formatBidder(auction.bidder, resolvedEns),
                 settled = auction.settled,
                 timeLeftFormatted = formatTimeLeft(auction.endTime, auction.settled, nowMillis),
                 isStale = isStale,
@@ -712,8 +863,10 @@ class NounsRepository {
             auction: NounsAuction,
             isStale: Boolean = false,
             ageMarker: String = "",
-            nowMillis: Long = System.currentTimeMillis()
+            nowMillis: Long = System.currentTimeMillis(),
+            ensName: String? = null
         ): NounsAuctionUi {
+            val resolvedEns = ensName ?: getCachedEns(auction.bidder)
             return NounsAuctionUi(
                 nounId = auction.nounId,
                 amountWei = auction.amountWei,
@@ -722,7 +875,7 @@ class NounsRepository {
                 startTime = auction.startTime,
                 endTime = auction.endTime,
                 bidder = auction.bidder,
-                bidderFormatted = formatBidder(auction.bidder),
+                bidderFormatted = formatBidder(auction.bidder, resolvedEns),
                 settled = auction.settled,
                 timeLeftFormatted = formatTimeLeft(auction.endTime, auction.settled, nowMillis),
                 isStale = isStale,

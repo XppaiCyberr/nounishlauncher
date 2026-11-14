@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.27` (versionCode `28`) · **Release APK Footprint**: `~1.12 MB` (1,174,749 bytes)
+**Version**: `1.0.29` (versionCode `30`) · **Release APK Footprint**: `~1.13 MB` (1,184,615 bytes)
 
 ---
 
@@ -25,12 +25,18 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **AMOLED Distraction-Free Presentation**:
   - Current Token ID: `Noun #<id>` in semi-bold primary tone.
   - Current Highest Bid: Formatted in ETH (e.g. `8.50 ETH`, or `0.00 ETH` if unbid).
-  - Dynamic Countdown: Real-time countdown timer (`2h 14m left`, `45m 12s left`, `28s left`, or `Settled` / `Auction ended`) positioned directly below the image and bid.
+  - Dynamic Live Countdown: Real-time countdown timer (`2h 14m left`, `45m 12s left`, `28s left`, or `Settled` / `Auction ended`) updating second-by-second directly derived from the launcher clock without relying on frozen cached strings.
   - Stale Indicator: Muted styling and age marker (`·5m ago`, `·1h ago`) when offline.
-- **Expandable Bidder & Direct Bidding**: Tap the top-right auction card or auction row to view:
-  - `High Bidder: 0x3a41...f91c` (or `No bids` if unbid).
-  - `Bid on nouns.wtf ↗`: Launches `https://nouns.wtf` directly in the system web browser.
-- **Smart Middle Feed De-duplication**: When the live auction is prominently displayed in the top-right corner, the middle Nouns feed intelligently prioritizes governance Proposals and Candidates during auto-rotation, preventing redundant duplicate auctions on screen.
+- **On-Chain Reverse ENS Resolution & Expandable Bidder**:
+  - Resolves bidder addresses to human-readable ENS names (e.g. `vitalik.eth`, `stripymofo.eth`) directly on-chain via the canonical `ReverseRecords` contract (`0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C`) using batch `getNames(address[])` eth_call queries.
+  - Fallback display: Displays shortened hexadecimal address (`0x3a41...f91c`) or `No bids` if unbid.
+  - Cached in-memory with thread-safe `ConcurrentHashMap` for instant rendering and zero repeated queries.
+  - Tap the top-right auction card or auction row to view the resolved bidder and launch `https://nouns.wtf` directly in the system web browser (`Bid on nouns.wtf ↗`).
+- **Persistent Top-Right Card Preference**:
+  - Seamlessly toggle between **Nouns Auction** and **Passive Learning Note** with `Note ⇄` / `Auction ⇄`.
+  - State persists across device reboots and launcher restarts in Jetpack DataStore preferences (`top_right_card`).
+- **Smart Middle Feed De-duplication**: When the live auction is prominently displayed in the top-right corner, the middle Nouns feed intelligently prioritizes governance Proposals and Candidates during auto-rotation, preventing redundant duplicate auctions on screen. Top-right auction updates remain active even when the middle feed is configured for Proposals only or Candidates only.
+- **Parallelized On-Chain RPC Queries**: Queries for Auction, Proposals, and Candidates execute concurrently in parallel coroutines, with synchronized `coroutineScope` management ensuring pull-to-refresh indicators remain active until network calls settle.
 - **On-Chain Write Transactions Specification**: Full EIP-1193 unsigned payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
 - **Offline DataStore Caching**: Caches full auction state in Jetpack DataStore preferences for zero-latency frame-1 presentation on launch.
 
@@ -98,7 +104,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Live Binance Crypto Market Overview**: Real-time tickers, current prices, 24-hour daily percentage change, text sparklines (` ▂▃▄▅▆▇█`), and expandable 24h high/low (`H: 78,068 · L: 77,262`). Supports custom watchlists (`BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`, `ETHBIDR`) and quote currencies (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`).
 - **Indonesian Stock Exchange (IDX Saham)**: Live IDX quotes (`https://idx.xpp.wtf/`) with modes for Auto Rotate, Market Indices (`IHSG`, `LQ45`), Top Gainers, Top Losers, or Custom Watchlist (`BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`), complete with expandable 24h high/low and volume on tap.
 - **Auto-Rotating IDX Categories with Staggered Wave Transition**: In Auto Rotate mode, the IDX view smoothly cycles through categories every 6 seconds. Each transition features a staggered wave animation where stock rows slide 1 by 1 to the left with dynamic descriptive headers.
-- **Nouns DAO Governance & Candidates Feed (100% On-Chain RPC)**: Live Nouns DAO governance proposals and candidate proposals queried directly from the Ethereum Mainnet DAO Proxy (`0x6f3E6272A167e8AcCb32072d08E0957F9c79223d`) and Candidate (`0xf790A5f59678dd733fb3De93493A91f472ca1365`) contracts via JSON-RPC batch calls—with zero intermediate backend API dependency. Displays pure text rows (`#1002 Title Status`) with color-coded status badges, live voting quorum statistics (`For`, `Against`, `Quorum`), and direct browser voting links (`Vote ↗`).
+- **Nouns DAO Governance & Candidates Feed (100% On-Chain RPC)**: Live Nouns DAO governance proposals and candidate proposals queried directly from the Ethereum Mainnet DAO Proxy (`0x6f3E6272A167e8AcCb32072d08E0957F9c79223d`) and Candidate (`0xf790A5f59678dd733fb3De93493A91f472ca1365`) contracts via JSON-RPC batch calls—with zero intermediate backend API dependency. Displays pure text rows (`#1002 Title Status`) with color-coded status badges, proposer addresses resolved to reverse ENS names (e.g. `stripymofo.eth`), live voting quorum statistics (`For`, `Against`, `Quorum`), and direct browser voting links (`Vote ↗`).
 - **Separated Views vs. Auto-Rotating Carousel**: Choose whether Crypto, IDX Saham, and Nouns DAO display simultaneously (Stacked vertically or Multi-column side by side) to maximize screen space, or rotate within a single center carousel with customizable slide/crossfade transitions.
 - **Manual Pull-to-Refresh (Breathing & Typing ⌐◨-◨)**: Swipe down anywhere on Home to trigger an instantaneous refresh across all active market feeds. Features an organic pull interaction where the iconic `⌐◨-◨` glasses dynamically type out as your finger pulls down, accompanied by tactile haptic feedback. While data is being fetched, the glasses pulse with an organic breathing animation and character typing loop. When enabled, automatic background polling is paused to conserve battery and bandwidth.
 - **Stale-Data Indicators & Network Awareness**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`). Automatically stretches poll intervals on cellular data or battery saver mode, with exponential backoff on HTTP 429 rate limits.

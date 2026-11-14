@@ -28,6 +28,7 @@ import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.service.PackageChangeReceiver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -285,8 +286,9 @@ class MainViewModel(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val nounsRepository = NounsRepository()
+    private val _ensResolvedTrigger = MutableStateFlow(0L)
 
-    val homeNounsList: StateFlow<List<NounsProposalUi>> = settings.map { pref ->
+    val homeNounsList: StateFlow<List<NounsProposalUi>> = combine(settings, _ensResolvedTrigger) { pref, _ ->
         val now = System.currentTimeMillis()
         val cached = pref.cachedNounsProposals
         val timestamp = pref.cachedNounsTimestamp
@@ -300,12 +302,15 @@ class MainViewModel(
         }
 
         filtered.map { p ->
+            val ens = NounsRepository.getCachedEns(p.proposer)
+            val proposerFormatted = NounsRepository.formatAddress(p.proposer, ens)
             NounsProposalUi(
                 id = p.id,
                 title = p.title,
                 statusLabel = p.statusLabel,
                 statusIndex = p.statusIndex,
                 proposer = p.proposer,
+                proposerFormatted = proposerFormatted,
                 forVotes = p.forVotes,
                 againstVotes = p.againstVotes,
                 abstainVotes = p.abstainVotes,
@@ -316,7 +321,7 @@ class MainViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val homeNounsCandidatesList: StateFlow<List<NounsCandidateUi>> = settings.map { pref ->
+    val homeNounsCandidatesList: StateFlow<List<NounsCandidateUi>> = combine(settings, _ensResolvedTrigger) { pref, _ ->
         val now = System.currentTimeMillis()
         val cached = pref.cachedNounsCandidates
         val timestamp = pref.cachedNounsCandidatesTimestamp
@@ -324,18 +329,21 @@ class MainViewModel(
         val ageMarker = if (isStale && timestamp > 0L) PriceRepository.formatAgeMarker(timestamp) else ""
 
         cached.map { c ->
+            val ens = NounsRepository.getCachedEns(c.proposer)
+            val proposerFormatted = NounsRepository.formatAddress(c.proposer, ens)
             NounsCandidateUi(
                 slug = c.slug,
                 title = c.title,
                 proposer = c.proposer,
+                proposerFormatted = proposerFormatted,
                 isStale = isStale,
                 ageMarker = ageMarker
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val homeNounsAuction: StateFlow<NounsAuctionUi?> = settings.map { pref ->
-        val cached = pref.cachedNounsAuction ?: return@map null
+    val homeNounsAuction: StateFlow<NounsAuctionUi?> = combine(settings, _ensResolvedTrigger) { pref, _ ->
+        val cached = pref.cachedNounsAuction ?: return@combine null
         val now = System.currentTimeMillis()
         val timestamp = pref.cachedNounsAuctionTimestamp
         val isStale = timestamp <= 0L || (now - timestamp) > 300_000L
@@ -400,6 +408,21 @@ class MainViewModel(
                     if (changed) {
                         settingsStore.updatePinnedAppLabels(newLabels)
                     }
+                }
+            }
+        }
+
+        // Asynchronously resolve ENS names for cached Nouns auction bidder and proposers
+        viewModelScope.launch(Dispatchers.IO) {
+            val pref = settings.value
+            val addresses = mutableListOf<String>()
+            pref.cachedNounsAuction?.let { if (it.bidder.isNotBlank()) addresses.add(it.bidder) }
+            pref.cachedNounsProposals.forEach { if (it.proposer.isNotBlank()) addresses.add(it.proposer) }
+            pref.cachedNounsCandidates.forEach { if (it.proposer.isNotBlank()) addresses.add(it.proposer) }
+            if (addresses.isNotEmpty()) {
+                val resolved = nounsRepository.resolveEnsNames(addresses)
+                if (resolved.values.any { it.isNotBlank() }) {
+                    _ensResolvedTrigger.value = System.currentTimeMillis()
                 }
             }
         }
@@ -535,9 +558,11 @@ class MainViewModel(
             while (isActive) {
                 fetchUsdRate()
                 fetchIdxPrices()
-                fetchNounsAuction()
-                fetchNounsProposals()
-                fetchNounsCandidates()
+                coroutineScope {
+                    launch { fetchNounsAuction() }
+                    launch { fetchNounsProposals() }
+                    launch { fetchNounsCandidates() }
+                }
                 delay(60_000L)
             }
         }
@@ -637,9 +662,11 @@ class MainViewModel(
 
         fetchUsdRate()
         fetchIdxPrices()
-        fetchNounsAuction()
-        fetchNounsProposals()
-        fetchNounsCandidates()
+        coroutineScope {
+            launch { fetchNounsAuction() }
+            launch { fetchNounsProposals() }
+            launch { fetchNounsCandidates() }
+        }
 
         if (currentSettings.cryptoSymbols.isEmpty()) return
 
@@ -874,12 +901,12 @@ class MainViewModel(
     private suspend fun fetchNounsAuction() {
         val currentSettings = settings.value
         if (!currentSettings.showHomeNouns) return
-        if (currentSettings.nounsDisplayMode == "proposals" || currentSettings.nounsDisplayMode == "candidates") return
 
         val result = nounsRepository.fetchCurrentAuction()
         val auction = result.getOrNull()
         if (auction != null) {
             val now = System.currentTimeMillis()
+            nounsRepository.resolveEnsNames(listOf(auction.bidder))
             val cached = CachedNounsAuction(
                 nounId = auction.nounId,
                 amountWei = auction.amountWei,
@@ -891,6 +918,7 @@ class MainViewModel(
                 timestamp = now
             )
             settingsStore.updateCachedNounsAuction(cached, now)
+            _ensResolvedTrigger.value = now
         }
     }
 
@@ -909,6 +937,7 @@ class MainViewModel(
         val proposals = result.getOrNull()
         if (!proposals.isNullOrEmpty()) {
             val now = System.currentTimeMillis()
+            nounsRepository.resolveEnsNames(proposals.map { it.proposer })
             val cachedList = proposals.map { p ->
                 CachedNounsProposal(
                     id = p.id,
@@ -924,14 +953,17 @@ class MainViewModel(
                 )
             }
             settingsStore.updateCachedNounsProposals(cachedList, now)
+            _ensResolvedTrigger.value = now
         }
     }
 
     fun refreshNounsProposals() {
         viewModelScope.launch(Dispatchers.IO) {
-            fetchNounsAuction()
-            fetchNounsProposals()
-            fetchNounsCandidates()
+            coroutineScope {
+                launch { fetchNounsAuction() }
+                launch { fetchNounsProposals() }
+                launch { fetchNounsCandidates() }
+            }
         }
     }
 
@@ -944,6 +976,7 @@ class MainViewModel(
         val candidates = result.getOrNull()
         if (!candidates.isNullOrEmpty()) {
             val now = System.currentTimeMillis()
+            nounsRepository.resolveEnsNames(candidates.map { it.proposer })
             val cachedList = candidates.map { c ->
                 CachedNounsCandidate(
                     slug = c.slug,
@@ -953,6 +986,7 @@ class MainViewModel(
                 )
             }
             settingsStore.updateCachedNounsCandidates(cachedList, now)
+            _ensResolvedTrigger.value = now
         }
     }
 
@@ -962,68 +996,68 @@ class MainViewModel(
             _isRefreshingData.value = true
             val startTime = System.currentTimeMillis()
             try {
-                val currentSettings = settings.value
+                coroutineScope {
+                    val currentSettings = settings.value
 
-                // 1. Fetch USD rate
-                launch { fetchUsdRate() }
+                    // 1. Fetch USD rate
+                    launch { fetchUsdRate() }
 
-                // 2. Fetch IDX prices (if showHomeIdx)
-                if (currentSettings.showHomeIdx) {
-                    launch { fetchIdxPrices() }
-                }
-
-                // 3. Fetch Nouns auction, proposals & candidates (if showHomeNouns)
-                if (currentSettings.showHomeNouns) {
-                    launch {
-                        fetchNounsAuction()
-                        fetchNounsProposals()
-                        fetchNounsCandidates()
+                    // 2. Fetch IDX prices (if showHomeIdx)
+                    if (currentSettings.showHomeIdx) {
+                        launch { fetchIdxPrices() }
                     }
-                }
 
-                // 4. Fetch Binance Crypto prices & sparklines (if cryptoPriceEnabled)
-                if (currentSettings.cryptoPriceEnabled && currentSettings.cryptoSymbols.isNotEmpty()) {
-                    launch {
-                        val cachedSparks = currentSettings.cachedCryptoPrices.mapValues { it.value.sparkline }
-                        val result = priceRepository.fetchPrices(
-                            symbols = currentSettings.cryptoSymbols,
-                            quoteCurrency = currentSettings.cryptoQuoteCurrency,
-                            cachedSparklines = cachedSparks,
-                            fetchSparklines = true
-                        )
-                        result.onSuccess { newPrices ->
-                            consecutiveFailures = 0
-                            val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
-                            newPrices.forEach { (sym, ticker) ->
-                                updatedCache[sym] = CachedCoinPrice(
-                                    price = ticker.price,
-                                    changeText = ticker.formattedChange,
-                                    changePercent = ticker.changePercent,
-                                    highPrice = ticker.highPrice,
-                                    lowPrice = ticker.lowPrice,
-                                    timestamp = ticker.timestamp,
-                                    sparkline = ticker.sparkline
+                    // 3. Fetch Nouns auction, proposals & candidates concurrently (if showHomeNouns)
+                    if (currentSettings.showHomeNouns) {
+                        launch { fetchNounsAuction() }
+                        launch { fetchNounsProposals() }
+                        launch { fetchNounsCandidates() }
+                    }
+
+                    // 4. Fetch Binance Crypto prices & sparklines (if cryptoPriceEnabled)
+                    if (currentSettings.cryptoPriceEnabled && currentSettings.cryptoSymbols.isNotEmpty()) {
+                        launch {
+                            val cachedSparks = currentSettings.cachedCryptoPrices.mapValues { it.value.sparkline }
+                            val result = priceRepository.fetchPrices(
+                                symbols = currentSettings.cryptoSymbols,
+                                quoteCurrency = currentSettings.cryptoQuoteCurrency,
+                                cachedSparklines = cachedSparks,
+                                fetchSparklines = true
+                            )
+                            result.onSuccess { newPrices ->
+                                consecutiveFailures = 0
+                                val updatedCache = currentSettings.cachedCryptoPrices.toMutableMap()
+                                newPrices.forEach { (sym, ticker) ->
+                                    updatedCache[sym] = CachedCoinPrice(
+                                        price = ticker.price,
+                                        changeText = ticker.formattedChange,
+                                        changePercent = ticker.changePercent,
+                                        highPrice = ticker.highPrice,
+                                        lowPrice = ticker.lowPrice,
+                                        timestamp = ticker.timestamp,
+                                        sparkline = ticker.sparkline
+                                    )
+                                }
+                                settingsStore.updateCachedPrices(updatedCache)
+
+                                val symbols = currentSettings.cryptoSymbols
+                                val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
+                                val currentSymbol = (symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC").trim().uppercase(Locale.US)
+                                val ticker = newPrices[currentSymbol] ?: updatedCache[currentSymbol]?.let {
+                                    CoinTicker(it.price, it.changePercent, it.changeText, it.highPrice, it.lowPrice, it.timestamp, it.sparkline)
+                                }
+
+                                _priceState.value = PriceUiState(
+                                    coinSymbol = currentSymbol,
+                                    priceText = ticker?.price ?: "--",
+                                    changeText = ticker?.formattedChange ?: "",
+                                    changePercent = ticker?.changePercent ?: 0.0,
+                                    isStale = false,
+                                    ageMarker = "",
+                                    isLoading = false,
+                                    sparkline = ticker?.sparkline ?: ""
                                 )
                             }
-                            settingsStore.updateCachedPrices(updatedCache)
-
-                            val symbols = currentSettings.cryptoSymbols
-                            val index = currentSettings.currentCryptoIndex.coerceIn(0, (symbols.size - 1).coerceAtLeast(0))
-                            val currentSymbol = (symbols.getOrNull(index) ?: symbols.firstOrNull() ?: "BTC").trim().uppercase(Locale.US)
-                            val ticker = newPrices[currentSymbol] ?: updatedCache[currentSymbol]?.let {
-                                CoinTicker(it.price, it.changePercent, it.changeText, it.highPrice, it.lowPrice, it.timestamp, it.sparkline)
-                            }
-
-                            _priceState.value = PriceUiState(
-                                coinSymbol = currentSymbol,
-                                priceText = ticker?.price ?: "--",
-                                changeText = ticker?.formattedChange ?: "",
-                                changePercent = ticker?.changePercent ?: 0.0,
-                                isStale = false,
-                                ageMarker = "",
-                                isLoading = false,
-                                sparkline = ticker?.sparkline ?: ""
-                            )
                         }
                     }
                 }
@@ -1443,9 +1477,11 @@ class MainViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowHomeNouns(show)
             if (show) {
-                fetchNounsAuction()
-                fetchNounsProposals()
-                fetchNounsCandidates()
+                coroutineScope {
+                    launch { fetchNounsAuction() }
+                    launch { fetchNounsProposals() }
+                    launch { fetchNounsCandidates() }
+                }
             }
         }
     }
@@ -1460,7 +1496,7 @@ class MainViewModel(
     fun setNounsDisplayMode(mode: String) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setNounsDisplayMode(mode)
-            if (mode != "proposals" && mode != "candidates") fetchNounsAuction()
+            fetchNounsAuction()
             if (mode != "candidates") fetchNounsProposals()
             if (mode != "proposals") fetchNounsCandidates()
         }
@@ -1475,6 +1511,12 @@ class MainViewModel(
     fun setShowNounsAuctionImage(show: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowNounsAuctionImage(show)
+        }
+    }
+
+    fun setTopRightCard(card: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setTopRightCard(card)
         }
     }
 

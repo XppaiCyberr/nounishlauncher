@@ -275,6 +275,8 @@ class MainActivity : ComponentActivity() {
                                     showNote = settings.showHomeScreenNote,
                                     isNoteDismissed = settings.homeScreenNoteDismissed,
                                     noteIndex = settings.homeScreenNoteIndex,
+                                    topRightCard = settings.topRightCard,
+                                    onToggleTopRightCard = { viewModel.setTopRightCard(it) },
                                     onDismissNote = { viewModel.dismissHomeScreenNote() },
                                     onNextNote = { viewModel.nextHomeScreenNote(DEFAULT_PASSIVE_NOTES.size) },
                                     onAppClick = { app ->

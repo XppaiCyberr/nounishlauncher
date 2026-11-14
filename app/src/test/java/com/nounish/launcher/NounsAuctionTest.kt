@@ -21,6 +21,7 @@ class NounsAuctionTest {
         assertNull(settings.cachedNounsAuction)
         assertEquals(0L, settings.cachedNounsAuctionTimestamp)
         assertEquals("auto_rotate", settings.nounsDisplayMode)
+        assertEquals("auction", settings.topRightCard)
         assertTrue(settings.showHomeNouns)
         assertTrue(settings.showNounsAuctionImage)
     }
@@ -186,5 +187,53 @@ class NounsAuctionTest {
         val md = "\n# Migrate Remaining V1 Treasury to V2\n\nBody text here"
         assertEquals("Migrate Remaining V1 Treasury to V2", NounsRepository.extractProposalTitle(md, 1002))
         assertEquals("Proposal #999", NounsRepository.extractProposalTitle("", 999))
+    }
+
+    @Test
+    fun testDecodeEnsNames() {
+        val hexStr = "0x" + (
+            "0000000000000000000000000000000000000000000000000000000000000020" +
+            "0000000000000000000000000000000000000000000000000000000000000003" +
+            "0000000000000000000000000000000000000000000000000000000000000060" +
+            "00000000000000000000000000000000000000000000000000000000000000a0" +
+            "00000000000000000000000000000000000000000000000000000000000000c0" +
+            "000000000000000000000000000000000000000000000000000000000000000b" +
+            "766974616c696b2e657468000000000000000000000000000000000000000000" +
+            "0000000000000000000000000000000000000000000000000000000000000000" +
+            "000000000000000000000000000000000000000000000000000000000000000e" +
+            "7374726970796d6f666f2e657468000000000000000000000000000000000000"
+        )
+        val decoded = NounsRepository.decodeEnsNames(hexStr)
+        assertEquals(3, decoded.size)
+        assertEquals("vitalik.eth", decoded[0])
+        assertEquals("", decoded[1])
+        assertEquals("stripymofo.eth", decoded[2])
+    }
+
+    @Test
+    fun testFormatBidderAndAddressWithEns() {
+        assertEquals("vitalik.eth", NounsRepository.formatBidder("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "vitalik.eth"))
+        assertEquals("0xd8da...6045", NounsRepository.formatBidder("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", null))
+        assertEquals("No bids", NounsRepository.formatBidder("0x0000000000000000000000000000000000000000", "vitalik.eth"))
+
+        assertEquals("stripymofo.eth", NounsRepository.formatAddress("0xc7ccec521eed20fcddff8f95424816ac421c7d87", "stripymofo.eth"))
+        assertEquals("0xc7cc...7d87", NounsRepository.formatAddress("0xc7ccec521eed20fcddff8f95424816ac421c7d87", null))
+        assertEquals("", NounsRepository.formatAddress("0x0000000000000000000000000000000000000000", "stripymofo.eth"))
+    }
+
+    @Test
+    fun testLiveAuctionCountdownDynamicTicks() {
+        val endTimeSeconds = 1790000000L
+        val t0Millis = 1790000000L * 1000L - 65_000L // 65 seconds left
+        assertEquals("1m 5s left", NounsRepository.formatTimeLeft(endTimeSeconds, settled = false, nowMillis = t0Millis))
+
+        val t5sLater = t0Millis + 5_000L // 60 seconds left
+        assertEquals("1m 0s left", NounsRepository.formatTimeLeft(endTimeSeconds, settled = false, nowMillis = t5sLater))
+
+        val t10sLater = t0Millis + 10_000L // 55 seconds left
+        assertEquals("55s left", NounsRepository.formatTimeLeft(endTimeSeconds, settled = false, nowMillis = t10sLater))
+
+        val tEnded = t0Millis + 70_000L // past end time
+        assertEquals("Auction ended", NounsRepository.formatTimeLeft(endTimeSeconds, settled = false, nowMillis = tEnded))
     }
 }
