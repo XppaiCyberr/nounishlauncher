@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.31` (versionCode `32`) · **Optimized Release APK**: `~1.13 MB` (1,186,292 bytes)
+**Current Version**: `v1.0.32` (versionCode `33`) · **Optimized Release APK**: `~1.13 MB` (1,187,509 bytes)
 
 ---
 
@@ -20,7 +20,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 2. **AMOLED Monochrome & Signature Nounish Accent Colors**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. Includes 6 curated Nounish accent palettes (Pure Monochrome, Nounish Red `⌐◨-◨`, Warm Amber, AMOLED Mint Green, Muted Slate, Soft Lavender) with targeted tinting, an optional light theme, monospace mode, and fine-grained font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%).
 3. **Calm & Distraction-Free**: No notification badges, algorithmic feeds, unread counters, or telemetry traps.
 4. **Privacy-Focused & Offline by Default**: Zero analytics, telemetry, or tracking. Network operations are strictly confined to user-enabled public market tickers (Binance public market data, IDX mirror, and Nouns DAO feeds), with zero background services.
-5. **Instantaneous & Lightweight**: App cold starts in under 300 ms with an optimized release APK footprint of only **~1.11 MB** (1,164,866 bytes). Pinned shortcuts render on frame 1 from DataStore without waiting for `PackageManager`.
+5. **Instantaneous & Lightweight**: App cold starts in under 300 ms with an optimized release APK footprint of only **~1.13 MB** (1,187,509 bytes). Pinned shortcuts render on frame 1 from DataStore without waiting for `PackageManager`.
 6. **Robust Process-Death Safety**: Full state restoration for active screen, drawer search, scroll offset, and settings across Android system process kills.
 7. **Strict Background Discipline**: App lists are cached in memory and refreshed exclusively on package broadcast events. All network polling and WebSocket connections terminate immediately on `onPause()` or when navigating away from Home.
 8. **Window Hardware Alpha Compositing Architecture (Zero-Ghosting)**: Translucent RGBA_8888 window surface composited directly by SurfaceFlinger against the system wallpaper, paired with a single static root scrim layer and sequential `AnimatedContent` transitions that prevent afterimage ghosting.
@@ -93,8 +93,10 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Configurable slideshow rotation interval (3s to 15s, default 7s).
   - Manual interactive tabs: Tap `CRYPTO (USDT)`, `IDX SAHAM (IDR)`, or `NOUNS DAO ⌐◨-◨` to switch immediately and pause/resume smoothly. Selected tab is highlighted in your chosen accent color.
   - Toggleable in Settings under **Market Layout -> Auto-rotate market carousel**.
-- **Pinned App Shortcuts & Reordering**:
+- **Pinned App Shortcuts & Split Bottom Layout**:
   - Up to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach, with zero minimum limit (unpin down to 0 apps freely).
+  - **Content-Bounded Click Targets**: Pinned shortcuts are bounded strictly to their icon and text label instead of consuming the full horizontal width of the screen. Tapping empty space on the right side of the screen never triggers an unintended app launch.
+  - **Split Bottom Section**: The bottom layout cleanly splits between the left-aligned pinned app list and the right-aligned corner area (housing the Passive Learning Note or Corner Text).
   - **Dedicated Up/Down Reordering**: In Settings -> Pinned Apps, dedicated up (`↑`) and down (`↓`) controls allow direct reordering of shortcuts without unpinning and re-pinning.
   - **Maximum 8 Limit**: Cleanly enforces a maximum of 8 pinned apps. Attempting to pin a 9th app warns: "Maximum 8 pinned apps reached. Unpin an app first."
   - Large (`28 sp`), light-weight typography with generous vertical spacing.
@@ -115,10 +117,12 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Interactive expansion: tap to reveal highest bidder (with on-chain reverse ENS name like `vitalik.eth` or shortened hex) and one-tap `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
   - Toggle between Auction and Note: Switch with `Note ⇄` or `Auction ⇄`. State persists across restarts in DataStore (`top_right_card`, `nouns_auction_position`).
   - Smart de-duplication: When the live auction is displayed in the top header, the middle Nouns feed prioritizes governance Proposals and Candidates during auto-rotation, preventing duplicate auctions on screen. Auction updates continuously even when middle display mode is configured for Proposals only or Candidates only.
-- **Closeable Passive Learning Notes (Top Right)**:
-  - Minimalist floating card at the top-right corner of the Home screen for passive learning.
+- **Closeable Passive Learning Notes (Top Right or Bottom Right)**:
+  - Minimalist card on the Home screen for passive learning.
   - Displays the definition of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology.
-  - Title rendered in signature accent color. Dismissable via a subtle `x` button, toggleable back to Auction with `Auction ⇄`, and easily restored anytime from Settings.
+  - **Configurable Position**: Choose between `Top right (Default)` or `Bottom right` via Settings -> General -> Passive note position. When placed at the bottom right, it sits side-by-side with the pinned apps in a balanced split layout.
+  - **Non-Overlapping Controls**: Title text uses single-line truncation with ellipsis, and control buttons (`switch` and `x`) are placed in an isolated action row, eliminating overlap with card body and attribution text.
+  - Title rendered in signature accent color. Dismissable via a subtle `x` button, toggleable back to Auction with `Auction <->`, and easily restored anytime from Settings.
 - **Currency Format (Crypto USDT & IDX Saham IDR)**:
   - Real-time market prices clearly specify currency format across tickers, section headers, and 24h ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`).
   - Configurable in Settings (Suffix, Prefix, or None).
@@ -350,7 +354,7 @@ The outgoing screen fades out rapidly (90 ms) and is cleanly disposed from the c
 | **Backup / Restore** | Android SAF (`CreateDocument` / `OpenDocument`) | Permissionless, offline JSON export and import |
 | **Network Engine** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external networking libraries; parses JSON with `org.json` |
 | **Code Shrinking** | R8 Full Mode | Minified bytecode and resource shrinking |
-| **Release Footprint** | **~1.11 MB** (1,164,866 bytes) | Ultra-lightweight signed release APK |
+| **Release Footprint** | **~1.13 MB** (1,187,509 bytes) | Ultra-lightweight signed release APK |
 | **Release Signing** | Custom Keystore (v1 + v2 + v3 + v4) | Passes Google Play Protect and security audits |
 
 ---
@@ -406,6 +410,7 @@ nounishlauncher/
 │           ├── AestheticsAndHapticsTest.kt      # Accent color mappings, default settings, haptic null-safety
 │           ├── AppShortcutTest.kt               # Deep shortcuts rank sorting, label fallbacks, filtering
 │           ├── MathEvaluatorTest.kt             # Arithmetic operations, precedence, decimals, safety checks
+│           ├── NounsAuctionTest.kt              # Nouns auction ABI decoding, ENS resolution, countdown, card position
 │           ├── RecentAppsAndWallpaperTest.kt    # Recent apps LRU history, wallpaper dim level coercion
 │           └── SwipeDownActionTest.kt           # Swipe down gesture actions mapping and defaults
 ├── build.gradle.kts                             # Root Gradle build script
@@ -427,7 +432,8 @@ Accessible by long-pressing any empty area on the Home screen. The Settings expe
 - `Show clock & time format`: Toggle time display in top-left corner, 12h/24h format, and seconds display.
 - `Show date & date format`: Toggle date display below the clock and configure date pattern.
 - `Corner text`: Toggle custom text display in the bottom-right corner and edit the string (default: `xppaicyber`).
-- `Passive learning note`: Toggle passive learning card in top-right corner (features Nounish `⌐◨-◨` ethos, crypto slang, closeable with `x`, tap to cycle next tip).
+- `Passive learning note`: Toggle passive learning card (features Nounish `⌐◨-◨` ethos, crypto slang, closeable with `x`, tap to cycle next tip).
+- `Passive note position`: Select placement between `Top right (Default)` and `Bottom right`. When bottom-right is chosen, it sits side-by-side with pinned shortcuts in a split bottom section.
 - `Gestures`:
   - `Swipe down action`: Configure downward swipe action on Home: Open notification shade (default), Refresh market & Nouns data (pull-down with ⌐◨-◨ indicator; pauses background polling), Open app drawer, or Disabled.
   - `Swipe left app`: Assign an app to launch on left swipe.
@@ -514,6 +520,12 @@ The codebase includes an extensive suite of unit tests validating core algorithm
 5. **`SwipeDownActionTest`**:
    - Swipe-down gesture mappings (`notifications`, `refresh`, `drawer`, `none`).
    - Default action fallback verification.
+6. **`NounsAuctionTest`**:
+   - Nouns Auction House contract query selector (`0x7d9f6db5`) and 6-tuple ABI decoding (`nounId`, `amount`, `startTime`, `endTime`, `bidder`, `settled`).
+   - Real-time dynamic countdown calculation and edge-case formatting (`Settled`, `<1m`, `Xh Ym`).
+   - Canonical Ethereum reverse ENS lookup logic and batch resolution format.
+   - Auction widget placement (`Top right (Default)` vs `Below clock`) and passive learning note position settings (`Top right` vs `Bottom right`).
+   - Smart de-duplication preventing duplicate auctions in middle carousel.
 
 Run unit tests via Gradle:
 ```powershell
@@ -546,7 +558,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 
 ### Outputs
-- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.11 MB** / 1,164,866 bytes)
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,187,509 bytes)
 - **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 - **Release App Bundle**: `app/build/outputs/bundle/release/app-release.aab`
 

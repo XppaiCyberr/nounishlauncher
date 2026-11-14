@@ -1464,6 +1464,12 @@ class MainViewModel(
         }
     }
 
+    fun setHomeScreenNotePosition(position: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setHomeScreenNotePosition(position)
+        }
+    }
+
     fun nextHomeScreenNote(totalNotes: Int) {
         if (totalNotes <= 0) return
         viewModelScope.launch(Dispatchers.IO) {

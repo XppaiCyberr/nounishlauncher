@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.31` (versionCode `32`) · **Release APK Footprint**: `~1.13 MB` (1,186,292 bytes)
+**Version**: `1.0.32` (versionCode `33`) · **Release APK Footprint**: `~1.13 MB` (1,187,509 bytes)
 
 ---
 
@@ -103,12 +103,12 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **App Context Menu**: Long-press any app to access deep shortcuts, Rename, Pin/Unpin, Hide/Unhide, App Info, and Uninstall.
 
 ### 7. Home Screen Essentials
-- **Pinned App Management**: Pin up to 8 apps (0–8 freely configurable) in large (`28 sp`) light-weight typography positioned in the lower-left area for ergonomic thumb reach.
+- **Pinned App Management & Split Bottom Layout**: Pin up to 8 apps (0–8 freely configurable) in large (`28 sp`) light-weight typography positioned in the lower-left area for ergonomic thumb reach. Click targets strictly wrap the app icon and label so tapping the empty right side never launches an app.
 - **Dedicated Up/Down Reordering**: Reorder pinned shortcuts directly in Settings -> Pinned Apps with dedicated up (`↑`) and down (`↓`) controls without unpinning and re-pinning.
 - **Clean Uninstall Pruning**: Automatically drops uninstalled apps from pinned shortcuts and DataStore, leaving zero dead entries.
 - **Clock & Date Customization**: Choose between System Default (respects Android's 24-hour setting), 24-hour (`HH:mm`), 12-hour with AM/PM (`h:mm a`), or 12-hour without AM/PM (`h:mm`). Includes optional live seconds (`:ss`) and selectable date format presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or custom `SimpleDateFormat` patterns. Tapping the clock launches the system alarm/clock app.
 - **Custom Corner Text (Bottom Right)**: Display custom text (such as your username, handle, or motivational quote) in the bottom-right corner of the Home screen, styled in muted secondary tone. Configurable in Settings (default: `xppaicyber`) or toggled off completely.
-- **Closeable Passive Learning Notes (Top Right)**: Minimalist floating card at the top-right corner of the Home screen featuring the ethos of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology. Easily dismissed via a subtle `x` button and restored anytime from Settings.
+- **Closeable Passive Learning Notes (Top Right or Bottom Right)**: Minimalist card featuring the ethos of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology. Easily dismissed via a subtle `x` button and restored anytime from Settings. Includes configurable placement (`Top right (Default)` or `Bottom right` split alongside pinned apps) and non-overlapping action controls.
 - **Currency Format**: Real-time market prices clearly specify currency format across tickers, headers, and ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`). Configurable in Settings (Suffix, Prefix, or None).
 
 ### 8. Live Market & Community Feeds
@@ -154,7 +154,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 | **Storage & Persistence** | Jetpack DataStore Preferences | Asynchronous, thread-safe disk persistence for settings and cached data |
 | **Document Access** | Android Storage Access Framework (SAF) | Permissionless, offline JSON backup and restore (`CreateDocument` / `OpenDocument`) |
 | **Networking** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external network libraries; `org.json` parser; WebSocket client |
-| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.11 MB** release APK (1,164,866 bytes) |
+| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.13 MB** release APK (1,187,509 bytes) |
 
 ---
 
@@ -209,6 +209,7 @@ nounishlauncher/
 │           ├── AestheticsAndHapticsTest.kt      # Accent color mappings, default settings, haptic null-safety
 │           ├── AppShortcutTest.kt               # Deep shortcuts rank sorting, label fallbacks, filtering
 │           ├── MathEvaluatorTest.kt             # Arithmetic operations, precedence, decimals, safety checks
+│           ├── NounsAuctionTest.kt              # Nouns auction ABI decoding, ENS resolution, countdown, card position
 │           ├── RecentAppsAndWallpaperTest.kt    # Recent apps LRU history, wallpaper dim level coercion
 │           └── SwipeDownActionTest.kt           # Swipe down gesture actions mapping and defaults
 ├── build.gradle.kts                             # Root Gradle build script
@@ -229,6 +230,7 @@ The project features a dedicated suite of unit tests verifying core logic, math 
 3. **`AestheticsAndHapticsTest`**: Verifies signature accent color key-to-color mappings across Dark and Light themes, default aesthetic preferences, and null-safe haptic dispatcher execution across all 4 levels (`Standard`, `Subtle`, `Firm`, `Off`).
 4. **`RecentAppsAndWallpaperTest`**: Verifies recent apps history LRU deduplication, capacity capping (up to 5 items), and wallpaper dark scrim level coercion (`0.2f` to `0.98f`).
 5. **`SwipeDownActionTest`**: Verifies swipe-down gesture action mappings (`notifications`, `refresh`, `drawer`, `none`) and default actions.
+6. **`NounsAuctionTest`**: Validates on-chain Nouns auction ABI decoding, ENS reverse lookup batching, real-time countdown formatting, card placement settings, and middle feed de-duplication.
 
 Run all unit tests via Gradle:
 ```powershell
@@ -256,7 +258,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.12 MB** / 1,174,749 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,187,509 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

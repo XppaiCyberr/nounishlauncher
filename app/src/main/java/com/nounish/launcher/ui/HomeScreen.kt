@@ -127,6 +127,7 @@ fun HomeScreen(
     marketCurrencyFormat: String = "suffix",
     cryptoCurrency: String = "USDT",
     showNote: Boolean = true,
+    homeScreenNotePosition: String = "top_right",
     isNoteDismissed: Boolean = false,
     noteIndex: Int = 0,
     topRightCard: String = "auction",
@@ -261,7 +262,7 @@ fun HomeScreen(
 
         // Top section: Clock & Date on left, Nouns Auction (or Passive Note)
         val hasTopAuction = showNouns && nounsAuction != null
-        val hasTopNote = showNote && !isNoteDismissed
+        val hasTopNote = showNote && !isNoteDismissed && (homeScreenNotePosition == "top_right")
         val isAuctionBelowClock = (nounsAuctionPosition == "below_clock")
 
         val prefersNote = (topRightCard == "note")
@@ -790,66 +791,88 @@ fun HomeScreen(
             }
         }
 
-        // Pinned shortcuts positioned in bottom area for optimal one-hand reach
+        // Pinned shortcuts and bottom-right widgets (Passive Note / Corner Text)
         val fontScale = getFontScale(fontSize)
         val iconSize = (24 * fontScale).coerceIn(16f, 32f).dp
 
-        Column(
+        val isNoteBottomVisible = showNote && !isNoteDismissed && (homeScreenNotePosition == "bottom_right")
+        val hasCornerText = showCornerText && cornerText.isNotBlank()
+        val hasBottomRight = isNoteBottomVisible || hasCornerText
+
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = if (showCornerText && cornerText.isNotBlank()) 12.dp else 48.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(bottom = if (hasBottomRight) 16.dp else 48.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
         ) {
-            if (pinnedApps.isEmpty()) {
-                Text(
-                    text = "Swipe up for all apps\nLong-press an app to pin here",
-                    style = typography.drawerItem,
-                    color = colors.textSecondary
-                )
-            } else {
-                pinnedApps.take(8).forEach { app ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = { onAppClick(app) },
-                                onLongClick = { selectedAppForDialog = app }
+            // Left Column: Pinned shortcuts (bounded width so tapping right side does not trigger apps)
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (pinnedApps.isEmpty()) {
+                    Text(
+                        text = "Swipe up for all apps\nLong-press an app to pin here",
+                        style = typography.drawerItem,
+                        color = colors.textSecondary
+                    )
+                } else {
+                    pinnedApps.take(8).forEach { app ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .combinedClickable(
+                                    onClick = { onAppClick(app) },
+                                    onLongClick = { selectedAppForDialog = app }
+                                )
+                                .padding(vertical = 2.dp)
+                        ) {
+                            if (showAppIcons) {
+                                AppIcon(
+                                    item = app,
+                                    modifier = Modifier.size(iconSize),
+                                    isMonochrome = monochromeIcons
+                                )
+                                Spacer(modifier = Modifier.width(14.dp))
+                            }
+                            Text(
+                                text = app.displayLabel,
+                                style = typography.homeShortcut,
+                                color = colors.textPrimary
                             )
-                    ) {
-                        if (showAppIcons) {
-                            AppIcon(
-                                item = app,
-                                modifier = Modifier.size(iconSize),
-                                isMonochrome = monochromeIcons
-                            )
-                            Spacer(modifier = Modifier.width(14.dp))
                         }
-                        Text(
-                            text = app.displayLabel,
-                            style = typography.homeShortcut,
-                            color = colors.textPrimary
-                        )
                     }
                 }
             }
-        }
 
-        // Custom corner text (bottom right)
-        if (showCornerText && cornerText.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp)
-            ) {
-                Text(
-                    text = cornerText,
-                    style = typography.clock,
-                    color = colors.textSecondary.copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .clickable { onOpenSettings() }
-                )
+            // Right Column: Passive Note (when positioned bottom_right) and Corner Text
+            if (hasBottomRight) {
+                Column(
+                    modifier = Modifier.widthIn(max = 205.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (isNoteBottomVisible) {
+                        PassiveNoteCard(
+                            note = currentNote,
+                            onDismiss = onDismissNote,
+                            onClick = onNextNote,
+                            onSwitchToAuction = null
+                        )
+                    }
+
+                    if (hasCornerText) {
+                        Text(
+                            text = cornerText,
+                            style = typography.clock,
+                            color = colors.textSecondary.copy(alpha = 0.5f),
+                            modifier = Modifier.clickable { onOpenSettings() }
+                        )
+                    }
+                }
             }
         }
     }
@@ -1391,62 +1414,74 @@ private fun PassiveNoteCard(
         horizontalAlignment = Alignment.End
     ) {
         Row(
-            modifier = Modifier.height(lineHeightDp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(lineHeightDp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = note.title,
                 style = typography.clock,
                 fontWeight = FontWeight.Bold,
                 color = colors.accent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false)
             )
-            if (onSwitchToAuction != null) {
-                Spacer(modifier = Modifier.width(6.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (onSwitchToAuction != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable { onSwitchToAuction() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "⇄",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary.copy(alpha = 0.6f)
+                        )
+                    }
+                }
                 Box(
                     modifier = Modifier
-                        .size(16.dp)
-                        .clickable { onSwitchToAuction() },
+                        .size(20.dp)
+                        .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "⇄",
-                        fontSize = 11.sp,
+                        text = "✕",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
                         color = colors.textSecondary.copy(alpha = 0.6f)
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(16.dp)
-                    .clickable { onDismiss() },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "✕",
-                    fontSize = 11.sp,
-                    color = colors.textSecondary.copy(alpha = 0.6f)
-                )
-            }
         }
+
+        Spacer(modifier = Modifier.height(2.dp))
 
         Text(
             text = note.body,
             style = typography.clock,
             color = colors.textSecondary.copy(alpha = 0.7f),
-            maxLines = 2
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
         )
 
         if (note.attribution.isNotEmpty()) {
             Text(
                 text = note.attribution,
-                style = typography.clock.copy(fontSize = 11.sp),
+                style = typography.clock.copy(fontSize = 10.sp),
                 color = colors.textSecondary.copy(alpha = 0.5f),
                 modifier = Modifier
                     .align(Alignment.End)
-                    .padding(top = 1.dp)
+                    .padding(top = 2.dp)
             )
         }
     }

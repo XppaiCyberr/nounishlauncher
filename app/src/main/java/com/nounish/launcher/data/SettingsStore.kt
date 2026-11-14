@@ -146,7 +146,8 @@ data class LauncherSettings(
     val cachedNounsAuctionTimestamp: Long = 0L,
     val showNounsAuctionImage: Boolean = true,
     val topRightCard: String = "auction",
-    val nounsAuctionPosition: String = "top_right" // "top_right", "below_clock"
+    val nounsAuctionPosition: String = "top_right", // "top_right", "below_clock"
+    val homeScreenNotePosition: String = "top_right" // "top_right", "bottom_right"
 )
 
 class SettingsStore(private val context: Context) {
@@ -225,6 +226,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_SHOW_NOUNS_AUCTION_IMAGE = booleanPreferencesKey("show_nouns_auction_image")
         private val KEY_TOP_RIGHT_CARD = stringPreferencesKey("top_right_card")
         private val KEY_NOUNS_AUCTION_POSITION = stringPreferencesKey("nouns_auction_position")
+        private val KEY_HOME_SCREEN_NOTE_POSITION = stringPreferencesKey("home_screen_note_position")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -323,6 +325,7 @@ class SettingsStore(private val context: Context) {
         val showNounsAuctionImage = prefs[KEY_SHOW_NOUNS_AUCTION_IMAGE] ?: true
         val topRightCard = prefs[KEY_TOP_RIGHT_CARD] ?: "auction"
         val nounsAuctionPosition = prefs[KEY_NOUNS_AUCTION_POSITION] ?: "top_right"
+        val homeScreenNotePosition = prefs[KEY_HOME_SCREEN_NOTE_POSITION] ?: "top_right"
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -397,7 +400,8 @@ class SettingsStore(private val context: Context) {
             cachedNounsAuctionTimestamp = cachedNounsAuctionTimestamp,
             showNounsAuctionImage = showNounsAuctionImage,
             topRightCard = topRightCard,
-            nounsAuctionPosition = nounsAuctionPosition
+            nounsAuctionPosition = nounsAuctionPosition,
+            homeScreenNotePosition = homeScreenNotePosition
         )
     }
 
@@ -725,6 +729,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_HOME_NOTE_INDEX] = index }
     }
 
+    suspend fun setHomeScreenNotePosition(position: String) {
+        context.dataStore.edit { it[KEY_HOME_SCREEN_NOTE_POSITION] = position }
+    }
+
     suspend fun setShowHomeNouns(show: Boolean) {
         context.dataStore.edit { it[KEY_SHOW_HOME_NOUNS] = show }
     }
@@ -896,6 +904,7 @@ class SettingsStore(private val context: Context) {
         root.put("showNounsAuctionImage", settings.showNounsAuctionImage)
         root.put("topRightCard", settings.topRightCard)
         root.put("nounsAuctionPosition", settings.nounsAuctionPosition)
+        root.put("homeScreenNotePosition", settings.homeScreenNotePosition)
 
         return root.toString(2)
     }
@@ -1012,6 +1021,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("showNounsAuctionImage")) prefs[KEY_SHOW_NOUNS_AUCTION_IMAGE] = root.getBoolean("showNounsAuctionImage")
                 if (root.has("topRightCard")) prefs[KEY_TOP_RIGHT_CARD] = root.getString("topRightCard")
                 if (root.has("nounsAuctionPosition")) prefs[KEY_NOUNS_AUCTION_POSITION] = root.getString("nounsAuctionPosition")
+                if (root.has("homeScreenNotePosition")) prefs[KEY_HOME_SCREEN_NOTE_POSITION] = root.getString("homeScreenNotePosition")
             }
             true
         } catch (_: Exception) {

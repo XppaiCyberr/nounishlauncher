@@ -81,6 +81,7 @@ fun SettingsScreen(
     onToggleShowCornerText: (Boolean) -> Unit = {},
     onUpdateCornerText: (String) -> Unit = {},
     onToggleShowHomeScreenNote: (Boolean) -> Unit = {},
+    onUpdateHomeScreenNotePosition: (String) -> Unit = {},
     onToggleAutoLaunch: (Boolean) -> Unit,
     onSelectSwipeLeftApp: (String?) -> Unit,
     onSelectSwipeRightApp: (String?) -> Unit,
@@ -163,6 +164,7 @@ fun SettingsScreen(
     var showNounsDisplayModeDialog by remember { mutableStateOf(false) }
     var showNounsMaxCountDialog by remember { mutableStateOf(false) }
     var showNounsAuctionPositionDialog by remember { mutableStateOf(false) }
+    var showNotePositionDialog by remember { mutableStateOf(false) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
         allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
@@ -437,6 +439,7 @@ fun SettingsScreen(
                                     val noteSubtitle = when {
                                         !settings.showHomeScreenNote -> "Disabled"
                                         settings.homeScreenNoteDismissed -> "Dismissed from home (tap to restore)"
+                                        settings.homeScreenNotePosition == "bottom_right" -> "Showing passive learning notes on bottom-right"
                                         else -> "Showing passive learning notes on top-right"
                                     }
                                     SettingsSwitchRow(
@@ -447,6 +450,20 @@ fun SettingsScreen(
                                             onToggleShowHomeScreenNote(checked)
                                         }
                                     )
+                                }
+
+                                if (settings.showHomeScreenNote && !settings.homeScreenNoteDismissed) {
+                                    item {
+                                        val posLabel = when (settings.homeScreenNotePosition) {
+                                            "bottom_right" -> "Bottom right"
+                                            else -> "Top right (Default)"
+                                        }
+                                        SettingsActionRow(
+                                            title = "Passive note position",
+                                            subtitle = posLabel,
+                                            onClick = { showNotePositionDialog = true }
+                                        )
+                                    }
                                 }
 
                                 item { SettingsSectionHeader(title = "Gestures") }
@@ -2024,6 +2041,52 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showNounsAuctionPositionDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Passive Note Position Dialog
+    if (showNotePositionDialog) {
+        val positions = listOf(
+            "top_right" to "Top right (Default)",
+            "bottom_right" to "Bottom right"
+        )
+        AlertDialog(
+            onDismissRequest = { showNotePositionDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Passive Note Position",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                LazyColumn(modifier = Modifier.height(130.dp)) {
+                    items(positions) { (posKey, label) ->
+                        val isSelected = posKey == settings.homeScreenNotePosition
+                        Text(
+                            text = label,
+                            style = typography.settingsItem.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            ),
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateHomeScreenNotePosition(posKey)
+                                    showNotePositionDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showNotePositionDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }
