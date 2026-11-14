@@ -87,8 +87,8 @@ data class LauncherSettings(
     val autoLaunchSingleMatch: Boolean = false,
     val swipeLeftPackage: String? = null,
     val swipeRightPackage: String? = null,
-    val swipeDownAction: String = "notifications", // "notifications", "refresh", "drawer", "none"
-    val swipeDownToRefresh: Boolean = false,
+    val swipeDownAction: String = "refresh", // "refresh", "notifications", "drawer", "none"
+    val swipeDownToRefresh: Boolean = true,
     val doubleTapLock: Boolean = false,
     val showRecentApps: Boolean = true,
     val recentApps: List<String> = emptyList(),
@@ -253,8 +253,8 @@ class SettingsStore(private val context: Context) {
         val legacySwipeDownToRefresh = prefs[KEY_SWIPE_DOWN_TO_REFRESH]
         val swipeDownAction = when {
             savedSwipeDownAction != null -> savedSwipeDownAction
-            legacySwipeDownToRefresh == true -> "refresh"
-            else -> "notifications"
+            legacySwipeDownToRefresh != null -> if (legacySwipeDownToRefresh) "refresh" else "notifications"
+            else -> "refresh"
         }
         val swipeDownToRefresh = (swipeDownAction == "refresh")
         val doubleTap = prefs[KEY_DOUBLE_TAP_LOCK] ?: false

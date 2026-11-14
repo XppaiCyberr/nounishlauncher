@@ -142,7 +142,7 @@ fun HomeScreen(
     onSwipeRight: () -> Unit,
     onDoubleTap: () -> Unit,
     isRefreshing: Boolean = false,
-    swipeDownAction: String = "notifications",
+    swipeDownAction: String = "refresh",
     hapticFeedbackLevel: String = "standard",
     onManualRefresh: () -> Unit = {}
 ) {

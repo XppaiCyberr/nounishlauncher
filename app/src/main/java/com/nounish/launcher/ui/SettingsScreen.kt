@@ -469,11 +469,11 @@ fun SettingsScreen(
 
                                 item {
                                     val swipeDownSubtitle = when (settings.swipeDownAction) {
+                                        "refresh" -> "Refresh market & Nouns data (Default, automatic polling off)"
                                         "notifications" -> "Open notification shade"
-                                        "refresh" -> "Refresh market & Nouns data (automatic polling off)"
                                         "drawer" -> "Open app drawer"
                                         "none" -> "Disabled"
-                                        else -> "Open notification shade"
+                                        else -> "Refresh market & Nouns data (Default, automatic polling off)"
                                     }
                                     SettingsActionRow(
                                         title = "Swipe down action",
@@ -1077,8 +1077,8 @@ fun SettingsScreen(
     // Swipe Down Action Dialog
     if (showSwipeDownDialog) {
         val actions = listOf(
+            "refresh" to "Refresh market & Nouns data (Default)",
             "notifications" to "Open notification shade",
-            "refresh" to "Refresh market & Nouns data",
             "drawer" to "Open app drawer",
             "none" to "Disabled"
         )

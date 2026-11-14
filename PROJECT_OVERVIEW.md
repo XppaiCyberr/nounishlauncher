@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.33` (versionCode `34`) · **Optimized Release APK**: `~1.13 MB` (1,184,497 bytes)
+**Current Version**: `v1.0.34` (versionCode `35`) · **Optimized Release APK**: `~1.13 MB` (1,185,609 bytes)
 
 ---
 
@@ -20,7 +20,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 2. **AMOLED Monochrome & Signature Nounish Accent Colors**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. Includes 6 curated Nounish accent palettes (Pure Monochrome, Nounish Red `⌐◨-◨`, Warm Amber, AMOLED Mint Green, Muted Slate, Soft Lavender) with targeted tinting, an optional light theme, monospace mode, and fine-grained font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%).
 3. **Calm & Distraction-Free**: No notification badges, algorithmic feeds, unread counters, or telemetry traps.
 4. **Privacy-Focused & Offline by Default**: Zero analytics, telemetry, or tracking. Network operations are strictly confined to user-enabled public market tickers (Binance public market data, IDX mirror, and Nouns DAO feeds), with zero background services.
-5. **Instantaneous & Lightweight**: App cold starts in under 300 ms with an optimized release APK footprint of only **~1.13 MB** (1,184,497 bytes). Pinned shortcuts render on frame 1 from DataStore without waiting for `PackageManager`.
+5. **Instantaneous & Lightweight**: App cold starts in under 300 ms with an optimized release APK footprint of only **~1.13 MB** (1,185,609 bytes). Pinned shortcuts render on frame 1 from DataStore without waiting for `PackageManager`.
 6. **Robust Process-Death Safety**: Full state restoration for active screen, drawer search, scroll offset, and settings across Android system process kills.
 7. **Strict Background Discipline**: App lists are cached in memory and refreshed exclusively on package broadcast events. All network polling and WebSocket connections terminate immediately on `onPause()` or when navigating away from Home.
 8. **Window Hardware Alpha Compositing Architecture (Zero-Ghosting)**: Translucent RGBA_8888 window surface composited directly by SurfaceFlinger against the system wallpaper, paired with a single static root scrim layer and sequential `AnimatedContent` transitions that prevent afterimage ghosting.
@@ -205,8 +205,8 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 ### 5. Gestures
 - **Swipe Up**: Open App Drawer.
 - **Swipe Down on Home**: Fully configurable action:
-  - **Open Notification Shade** (default): Pulls down the system notification shade from anywhere on the screen for effortless one-handed ergonomics.
-  - **Refresh Market & Nouns Data**: Manually refresh market and Nouns data (Binance Crypto, IDX, Nouns DAO) with animated `⌐◨-◨` pull, breathing pulse, and character typing indicator. When selected, automatic background polling is paused.
+  - **Refresh Market & Nouns Data** (default): Manually refresh market and Nouns data (Binance Crypto, IDX, Nouns DAO) with animated `⌐◨-◨` pull, breathing pulse, and character typing indicator. When selected, automatic background polling is paused.
+  - **Open Notification Shade**: Pulls down the system notification shade from anywhere on the screen for effortless one-handed ergonomics.
   - **Open App Drawer**: Opens the search and app drawer on downward swipe.
   - **Disabled**: Turns off downward swipe on Home.
 - **Swipe Down in Drawer**: Close App Drawer.
@@ -353,7 +353,7 @@ The outgoing screen fades out rapidly (90 ms) and is cleanly disposed from the c
 | **Backup / Restore** | Android SAF (`CreateDocument` / `OpenDocument`) | Permissionless, offline JSON export and import |
 | **Network Engine** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external networking libraries; parses JSON with `org.json` |
 | **Code Shrinking** | R8 Full Mode | Minified bytecode and resource shrinking |
-| **Release Footprint** | **~1.13 MB** (1,184,497 bytes) | Ultra-lightweight signed release APK |
+| **Release Footprint** | **~1.13 MB** (1,185,609 bytes) | Ultra-lightweight signed release APK |
 | **Release Signing** | Custom Keystore (v1 + v2 + v3 + v4) | Passes Google Play Protect and security audits |
 
 ---
@@ -434,7 +434,7 @@ Accessible by long-pressing any empty area on the Home screen. The Settings expe
 - `Passive learning note`: Toggle passive learning card (features Nounish `⌐◨-◨` ethos, crypto slang, tap to cycle next tip).
 - `Passive note position`: Select placement between `Top right (Default)` and `Bottom right`. When bottom-right is chosen, it sits side-by-side with pinned shortcuts in a split bottom section.
 - `Gestures`:
-  - `Swipe down action`: Configure downward swipe action on Home: Open notification shade (default), Refresh market & Nouns data (pull-down with ⌐◨-◨ indicator; pauses background polling), Open app drawer, or Disabled.
+  - `Swipe down action`: Configure downward swipe action on Home: Refresh market & Nouns data (default, pull-down with ⌐◨-◨ indicator; pauses background polling), Open notification shade, Open app drawer, or Disabled.
   - `Swipe left app`: Assign an app to launch on left swipe.
   - `Swipe right app`: Assign an app to launch on right swipe.
   - `Double tap to lock screen`: Toggle double-tap screen lock.
@@ -557,7 +557,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 
 ### Outputs
-- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,184,497 bytes)
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,185,609 bytes)
 - **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 - **Release App Bundle**: `app/build/outputs/bundle/release/app-release.aab`
 

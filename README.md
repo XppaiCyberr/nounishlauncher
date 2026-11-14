@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.33` (versionCode `34`) · **Release APK Footprint**: `~1.13 MB` (1,184,497 bytes)
+**Version**: `1.0.34` (versionCode `35`) · **Release APK Footprint**: `~1.13 MB` (1,185,609 bytes)
 
 ---
 
@@ -121,8 +121,8 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 ### 9. Gestures & Customization
 - **Swipe Up**: Open App Drawer.
 - **Swipe Down on Home**: Fully configurable in Settings:
-  - **Open notification shade** (default): Pulls down the system notification shade from anywhere on Home.
-  - **Manual refresh**: Refreshes market and Nouns data with breathing/typing `⌐◨-◨` glasses (pauses background polling).
+  - **Manual refresh** (default): Refreshes market and Nouns data with breathing/typing `⌐◨-◨` glasses (pauses background polling).
+  - **Open notification shade**: Pulls down the system notification shade from anywhere on Home.
   - **Open App Drawer**: Opens instant search.
   - **Disabled**: Prevents swipe-down action.
 - **Swipe Down in Drawer**: Close App Drawer.
@@ -151,7 +151,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 | **Storage & Persistence** | Jetpack DataStore Preferences | Asynchronous, thread-safe disk persistence for settings and cached data |
 | **Document Access** | Android Storage Access Framework (SAF) | Permissionless, offline JSON backup and restore (`CreateDocument` / `OpenDocument`) |
 | **Networking** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external network libraries; `org.json` parser; WebSocket client |
-| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.13 MB** release APK (1,184,497 bytes) |
+| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.13 MB** release APK (1,185,609 bytes) |
 
 ---
 
@@ -255,7 +255,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,184,497 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,185,609 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

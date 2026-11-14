@@ -9,20 +9,20 @@ import org.junit.Test
 class SwipeDownActionTest {
 
     @Test
-    fun testDefaultSwipeDownActionIsNotifications() {
+    fun testDefaultSwipeDownActionIsRefresh() {
         val settings = LauncherSettings()
-        assertEquals("notifications", settings.swipeDownAction)
-        assertFalse(settings.swipeDownToRefresh)
+        assertEquals("refresh", settings.swipeDownAction)
+        assertTrue(settings.swipeDownToRefresh)
     }
 
     @Test
     fun testSwipeDownActionRefreshSyncsWithSwipeDownToRefresh() {
         val settings = LauncherSettings(
-            swipeDownAction = "refresh",
-            swipeDownToRefresh = true
+            swipeDownAction = "notifications",
+            swipeDownToRefresh = false
         )
-        assertEquals("refresh", settings.swipeDownAction)
-        assertTrue(settings.swipeDownToRefresh)
+        assertEquals("notifications", settings.swipeDownAction)
+        assertFalse(settings.swipeDownToRefresh)
     }
 
     @Test
@@ -30,13 +30,13 @@ class SwipeDownActionTest {
         fun resolveAction(savedAction: String?, legacyRefresh: Boolean?): String {
             return when {
                 savedAction != null -> savedAction
-                legacyRefresh == true -> "refresh"
-                else -> "notifications"
+                legacyRefresh != null -> if (legacyRefresh) "refresh" else "notifications"
+                else -> "refresh"
             }
         }
 
-        // Fresh install: neither saved -> defaults to notifications
-        assertEquals("notifications", resolveAction(null, null))
+        // Fresh install: neither saved -> defaults to refresh
+        assertEquals("refresh", resolveAction(null, null))
 
         // Legacy user with swipeDownToRefresh = true -> maps to refresh
         assertEquals("refresh", resolveAction(null, true))
