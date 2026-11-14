@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -1256,6 +1257,9 @@ private fun IntegratedNounsAuction(
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val lineHeightDp = with(density) { typography.clock.lineHeight.toDp() }
+    val avatarSizeDp = with(density) { typography.clock.fontSize.toDp().coerceAtLeast(14.dp) }
     var showBidderDetails by remember { mutableStateOf(false) }
 
     val liveTimeLeft = remember(auction.endTime, auction.settled, nowMillis) {
@@ -1269,21 +1273,20 @@ private fun IntegratedNounsAuction(
     }
 
     Column(
-        modifier = Modifier
-            .clickable {
-                showBidderDetails = !showBidderDetails
-            }
-            .padding(vertical = 1.dp),
+        modifier = Modifier.clickable {
+            showBidderDetails = !showBidderDetails
+        },
         horizontalAlignment = alignment
     ) {
         Row(
+            modifier = Modifier.height(lineHeightDp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = if (alignment == Alignment.End) Arrangement.End else Arrangement.Start
         ) {
             if (showImage && alignment == Alignment.Start) {
                 NounsAvatar(
                     nounId = auction.nounId,
-                    size = 18.dp,
+                    size = avatarSizeDp,
                     showBorder = false
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -1299,25 +1302,30 @@ private fun IntegratedNounsAuction(
                 Spacer(modifier = Modifier.width(6.dp))
                 NounsAvatar(
                     nounId = auction.nounId,
-                    size = 18.dp,
+                    size = avatarSizeDp,
                     showBorder = false
                 )
             }
 
             if (onSwitchToNote != null) {
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "⇄",
-                    style = typography.clock,
-                    color = colors.textSecondary.copy(alpha = 0.6f),
+                Box(
                     modifier = Modifier
-                        .clickable { onSwitchToNote() }
-                        .padding(horizontal = 2.dp)
-                )
+                        .size(16.dp)
+                        .clickable { onSwitchToNote() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "⇄",
+                        fontSize = 11.sp,
+                        color = colors.textSecondary.copy(alpha = 0.6f)
+                    )
+                }
             }
         }
 
         Row(
+            modifier = Modifier.height(lineHeightDp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = if (alignment == Alignment.End) Arrangement.End else Arrangement.Start
         ) {
@@ -1373,15 +1381,17 @@ private fun PassiveNoteCard(
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
+    val density = LocalDensity.current
+    val lineHeightDp = with(density) { typography.clock.lineHeight.toDp() }
 
     Column(
         modifier = Modifier
             .widthIn(max = 205.dp)
-            .clickable { onClick() }
-            .padding(vertical = 1.dp),
+            .clickable { onClick() },
         horizontalAlignment = Alignment.End
     ) {
         Row(
+            modifier = Modifier.height(lineHeightDp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.End
         ) {
@@ -1394,19 +1404,23 @@ private fun PassiveNoteCard(
             )
             if (onSwitchToAuction != null) {
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "⇄",
-                    style = typography.clock,
-                    color = colors.textSecondary.copy(alpha = 0.6f),
+                Box(
                     modifier = Modifier
-                        .clickable { onSwitchToAuction() }
-                        .padding(horizontal = 2.dp)
-                )
+                        .size(16.dp)
+                        .clickable { onSwitchToAuction() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "⇄",
+                        fontSize = 11.sp,
+                        color = colors.textSecondary.copy(alpha = 0.6f)
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(4.dp))
             Box(
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(16.dp)
                     .clickable { onDismiss() },
                 contentAlignment = Alignment.Center
             ) {

@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.30` (versionCode `31`) · **Optimized Release APK**: `~1.13 MB` (1,184,615 bytes)
+**Current Version**: `v1.0.31` (versionCode `32`) · **Optimized Release APK**: `~1.13 MB` (1,186,292 bytes)
 
 ---
 
