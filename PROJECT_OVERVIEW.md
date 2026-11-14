@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.29` (versionCode `30`) · **Optimized Release APK**: `~1.13 MB` (1,184,615 bytes)
+**Current Version**: `v1.0.30` (versionCode `31`) · **Optimized Release APK**: `~1.13 MB` (1,184,615 bytes)
 
 ---
 
@@ -104,13 +104,17 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Custom Corner Text (Bottom Right)**:
   - Displays user-defined text (such as your username, handle, or motivational quote) in the bottom-right corner of the Home screen, styled in muted secondary tone.
   - Configurable in Settings (default: `xppaicyber`) or toggled off completely.
-- **Live Nouns Auction Card (Top Right Corner)**:
-  - Live daily Nouns auction is featured prominently at the top-right corner of the Home screen opposite the Clock & Date.
-  - Titled **`Nouns Auction`** in accent color (clean header, replacing previous Noggle title).
-  - Balanced vertical structure: displays the pixel-art Noun avatar (`https://noun.pics/{id}.png`) alongside Noun ID and current bid (`Noun #2070`, `8.50 ETH`), with the real-time `timeleft` countdown (`2h 14m left` or `Settled`) positioned directly below them.
+- **Integrated Live Nouns Auction Widget**:
+  - Seamlessly integrated with the screen typography, matching the exact font size and line height of the Clock & Date (`typography.clock`, `14 sp`).
+  - Cardless and minimal: no background box, borders, or container padding, rendering cleanly directly on AMOLED black.
+  - **Position Option**:
+    - **Below Clock**: Stacks directly beneath Time and Date on the left side of the screen (`Noun #<id> · <amount>` and live countdown), grouping header information together.
+    - **Top Right (Default)**: Positioned opposite the Clock & Date in the top-right corner.
+    - Selectable in Settings under **Nouns DAO -> Auction widget position**.
+  - Displays inline 18.dp pixel-art avatar (`https://noun.pics/{id}.png`), token ID, and highest bid (`Noun #2070 · 8.50 ETH`), with real-time countdown timer (`2h 14m left` or `Settled`) ticking second-by-second directly derived from the launcher clock.
   - Interactive expansion: tap to reveal highest bidder (with on-chain reverse ENS name like `vitalik.eth` or shortened hex) and one-tap `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
-  - Toggle between Auction and Note: Switch with `Note ⇄` or `Auction ⇄`. Card preference persists across restarts in DataStore (`top_right_card`).
-  - Smart de-duplication: When the top-right auction card is visible, the middle Nouns feed prioritizes governance Proposals and Candidates during auto-rotation, preventing duplicate auctions on screen. Top-right auction updates continuously even when middle display mode is configured for Proposals only or Candidates only.
+  - Toggle between Auction and Note: Switch with `Note ⇄` or `Auction ⇄`. State persists across restarts in DataStore (`top_right_card`, `nouns_auction_position`).
+  - Smart de-duplication: When the live auction is displayed in the top header, the middle Nouns feed prioritizes governance Proposals and Candidates during auto-rotation, preventing duplicate auctions on screen. Auction updates continuously even when middle display mode is configured for Proposals only or Candidates only.
 - **Closeable Passive Learning Notes (Top Right)**:
   - Minimalist floating card at the top-right corner of the Home screen for passive learning.
   - Displays the definition of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology.
@@ -451,7 +455,9 @@ Accessible by long-pressing any empty area on the Home screen. The Settings expe
 
 ### 4. Nouns DAO ⌐◨-◨
 - `Show Nouns DAO feed`: Displays live governance proposals and candidate proposals on the Home screen.
-- `Nouns display mode`: Choose between `Auto Rotate (Proposals & Candidates)`, `Proposals only`, or `Candidates only`.
+- `Auction widget position`: Choose between `Top right (Default)` or `Below clock` to integrate the live auction directly underneath the Clock & Date.
+- `Show Noun auction image`: Toggle displaying the authentic 64x64 pixel art avatar from `https://noun.pics/{id}.png` or pure text mode.
+- `Nouns display mode`: Choose between `Auto Rotate (Auction, Proposals & Candidates)`, `Auction only`, `Proposals only`, or `Candidates only`.
 - `Items to display`: Configure maximum items displayed on the Home screen (2, 3, 4, 5, or 6 items).
 - `Proposal status filter`: Filter proposals by status (`All`, `Active`, `Executed`).
 

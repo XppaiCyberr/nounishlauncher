@@ -22,6 +22,7 @@ class NounsAuctionTest {
         assertEquals(0L, settings.cachedNounsAuctionTimestamp)
         assertEquals("auto_rotate", settings.nounsDisplayMode)
         assertEquals("auction", settings.topRightCard)
+        assertEquals("top_right", settings.nounsAuctionPosition)
         assertTrue(settings.showHomeNouns)
         assertTrue(settings.showNounsAuctionImage)
     }

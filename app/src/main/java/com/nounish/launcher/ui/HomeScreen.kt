@@ -108,6 +108,7 @@ fun HomeScreen(
     showNouns: Boolean = true,
     nounsAuction: NounsAuctionUi? = null,
     showNounsAuctionImage: Boolean = true,
+    nounsAuctionPosition: String = "top_right",
     nounsProposals: List<NounsProposalUi> = emptyList(),
     nounsCandidates: List<NounsCandidateUi> = emptyList(),
     nounsDisplayMode: String = "auto_rotate",
@@ -257,14 +258,17 @@ fun HomeScreen(
                 ?: DEFAULT_PASSIVE_NOTES.first()
         }
 
-        // Top section: Clock & Date on left, Nouns Auction (or Passive Note) on right
+        // Top section: Clock & Date on left, Nouns Auction (or Passive Note)
         val hasTopAuction = showNouns && nounsAuction != null
         val hasTopNote = showNote && !isNoteDismissed
-        val prefersNote = (topRightCard == "note")
+        val isAuctionBelowClock = (nounsAuctionPosition == "below_clock")
 
-        val isAuctionTopVisible = hasTopAuction && (!hasTopNote || !prefersNote)
-        val isNoteVisible = hasTopNote && (!hasTopAuction || prefersNote)
-        if (showClock || showDate || isAuctionTopVisible || isNoteVisible) {
+        val prefersNote = (topRightCard == "note")
+        val isAuctionTopVisible = !isAuctionBelowClock && hasTopAuction && (!hasTopNote || !prefersNote)
+        val isNoteVisible = hasTopNote && (isAuctionBelowClock || !hasTopAuction || prefersNote)
+        val isAuctionBelowClockVisible = isAuctionBelowClock && hasTopAuction
+
+        if (showClock || showDate || isAuctionBelowClockVisible || isAuctionTopVisible || isNoteVisible) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -272,35 +276,53 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                if (showClock || showDate) {
+                if (showClock || showDate || isAuctionBelowClockVisible) {
                     Column(
                         modifier = Modifier
                             .weight(1f, fill = false)
                             .padding(end = 12.dp)
-                            .combinedClickable(
-                                onClick = {
-                                    try {
-                                        val clockIntent = Intent(AlarmClock.ACTION_SHOW_ALARMS).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                        context.startActivity(clockIntent)
-                                    } catch (_: Exception) {}
-                                },
-                                onLongClick = onOpenSettings
-                            )
                     ) {
-                        if (showClock) {
-                            Text(
-                                text = formattedTime,
-                                style = typography.clock,
-                                color = colors.textSecondary
-                            )
+                        if (showClock || showDate) {
+                            Column(
+                                modifier = Modifier.combinedClickable(
+                                    onClick = {
+                                        try {
+                                            val clockIntent = Intent(AlarmClock.ACTION_SHOW_ALARMS).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            context.startActivity(clockIntent)
+                                        } catch (_: Exception) {}
+                                    },
+                                    onLongClick = onOpenSettings
+                                )
+                            ) {
+                                if (showClock) {
+                                    Text(
+                                        text = formattedTime,
+                                        style = typography.clock,
+                                        color = colors.textSecondary
+                                    )
+                                }
+                                if (showDate) {
+                                    Text(
+                                        text = formattedDate,
+                                        style = typography.clock,
+                                        color = colors.textSecondary.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
                         }
-                        if (showDate) {
-                            Text(
-                                text = formattedDate,
-                                style = typography.clock,
-                                color = colors.textSecondary.copy(alpha = 0.7f)
+
+                        if (isAuctionBelowClockVisible && nounsAuction != null) {
+                            if (showClock || showDate) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
+                            IntegratedNounsAuction(
+                                auction = nounsAuction,
+                                showImage = showNounsAuctionImage,
+                                nowMillis = currentTime.time,
+                                alignment = Alignment.Start,
+                                onSwitchToNote = null
                             )
                         }
                     }
@@ -309,10 +331,11 @@ fun HomeScreen(
                 }
 
                 if (isAuctionTopVisible && nounsAuction != null) {
-                    TopNounsAuctionCard(
+                    IntegratedNounsAuction(
                         auction = nounsAuction,
                         showImage = showNounsAuctionImage,
                         nowMillis = currentTime.time,
+                        alignment = Alignment.End,
                         onSwitchToNote = if (hasTopNote) {
                             { onToggleTopRightCard("note") }
                         } else null
@@ -322,7 +345,7 @@ fun HomeScreen(
                         note = currentNote,
                         onDismiss = onDismissNote,
                         onClick = onNextNote,
-                        onSwitchToAuction = if (hasTopAuction) {
+                        onSwitchToAuction = if (hasTopAuction && !isAuctionBelowClock) {
                             { onToggleTopRightCard("auction") }
                         } else null
                     )
@@ -1223,10 +1246,11 @@ private fun formatRangeWithCurrency(high: String, low: String, currency: String,
 }
 
 @Composable
-private fun TopNounsAuctionCard(
+private fun IntegratedNounsAuction(
     auction: NounsAuctionUi,
     showImage: Boolean = true,
     nowMillis: Long = System.currentTimeMillis(),
+    alignment: Alignment.Horizontal = Alignment.End,
     onSwitchToNote: (() -> Unit)? = null
 ) {
     val colors = LauncherTheme.colors
@@ -1234,118 +1258,97 @@ private fun TopNounsAuctionCard(
     val context = LocalContext.current
     var showBidderDetails by remember { mutableStateOf(false) }
 
+    val liveTimeLeft = remember(auction.endTime, auction.settled, nowMillis) {
+        NounsRepository.formatTimeLeft(auction.endTime, auction.settled, nowMillis)
+    }
+
+    val timeColor = if (auction.settled || liveTimeLeft == "Auction ended") {
+        CryptoRed.copy(alpha = 0.85f)
+    } else {
+        colors.textSecondary.copy(alpha = 0.7f)
+    }
+
     Column(
         modifier = Modifier
-            .widthIn(min = 140.dp, max = 205.dp)
-            .background(
-                color = colors.surface.copy(alpha = 0.55f),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .border(
-                width = 0.5.dp,
-                color = colors.textSecondary.copy(alpha = 0.2f),
-                shape = RoundedCornerShape(8.dp)
-            )
             .clickable {
                 showBidderDetails = !showBidderDetails
             }
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .padding(vertical = 1.dp),
+        horizontalAlignment = alignment
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Nouns Auction",
-                style = typography.clock.copy(fontSize = 11.5.sp),
-                fontWeight = FontWeight.Bold,
-                color = colors.accent,
-                letterSpacing = 0.5.sp
-            )
-            if (onSwitchToNote != null) {
-                Text(
-                    text = "Note ⇄",
-                    style = typography.clock.copy(fontSize = 9.5.sp),
-                    color = colors.textSecondary.copy(alpha = 0.65f),
-                    modifier = Modifier
-                        .clickable { onSwitchToNote() }
-                        .padding(start = 6.dp, top = 2.dp, bottom = 2.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = if (alignment == Alignment.End) Arrangement.End else Arrangement.Start
         ) {
-            if (showImage) {
+            if (showImage && alignment == Alignment.Start) {
                 NounsAvatar(
                     nounId = auction.nounId,
-                    size = 36.dp
+                    size = 18.dp,
+                    showBorder = false
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+
+            Text(
+                text = "Noun #${auction.nounId} · ${auction.amountFormatted}",
+                style = typography.clock,
+                color = colors.textSecondary
+            )
+
+            if (showImage && alignment == Alignment.End) {
+                Spacer(modifier = Modifier.width(6.dp))
+                NounsAvatar(
+                    nounId = auction.nounId,
+                    size = 18.dp,
+                    showBorder = false
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            if (onSwitchToNote != null) {
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Noun #${auction.nounId}",
-                    style = typography.priceLabel,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textPrimary
-                )
-                Text(
-                    text = auction.amountFormatted,
-                    style = typography.priceLabel,
-                    color = if (auction.amountEth > 0.0) CryptoGreen else colors.textSecondary
+                    text = "⇄",
+                    style = typography.clock,
+                    color = colors.textSecondary.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .clickable { onSwitchToNote() }
+                        .padding(horizontal = 2.dp)
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        val liveTimeLeft = remember(auction.endTime, auction.settled, nowMillis) {
-            NounsRepository.formatTimeLeft(auction.endTime, auction.settled, nowMillis)
-        }
-
-        val timeColor = if (auction.settled || liveTimeLeft == "Auction ended") {
-            CryptoRed.copy(alpha = 0.85f)
-        } else {
-            colors.textSecondary.copy(alpha = 0.75f)
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = if (alignment == Alignment.End) Arrangement.End else Arrangement.Start
         ) {
             Text(
                 text = liveTimeLeft,
-                style = typography.clock.copy(fontSize = 10.sp),
+                style = typography.clock,
                 color = timeColor
             )
 
             if (auction.isStale && auction.ageMarker.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = auction.ageMarker,
-                    style = typography.clock.copy(fontSize = 9.sp),
+                    text = "· ${auction.ageMarker}",
+                    style = typography.clock,
                     color = colors.textSecondary.copy(alpha = 0.5f)
                 )
             }
         }
 
         if (showBidderDetails) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Bidder: ${auction.bidderFormatted}",
-                style = typography.clock.copy(fontSize = 9.5.sp),
-                color = colors.textSecondary.copy(alpha = 0.7f)
-            )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
+                text = "Bidder: ${auction.bidderFormatted}",
+                style = typography.clock,
+                color = colors.textSecondary.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(1.dp))
+            Text(
                 text = "Bid on nouns.wtf ↗",
-                style = typography.clock.copy(fontSize = 9.5.sp),
-                fontWeight = FontWeight.Bold,
+                style = typography.clock,
+                fontWeight = FontWeight.SemiBold,
                 color = colors.textPrimary,
                 modifier = Modifier.clickable {
                     try {
@@ -1374,75 +1377,62 @@ private fun PassiveNoteCard(
     Column(
         modifier = Modifier
             .widthIn(max = 205.dp)
-            .background(
-                color = colors.surface.copy(alpha = 0.55f),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .border(
-                width = 0.5.dp,
-                color = colors.textSecondary.copy(alpha = 0.2f),
-                shape = RoundedCornerShape(8.dp)
-            )
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .padding(vertical = 1.dp),
+        horizontalAlignment = Alignment.End
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
         ) {
             Text(
                 text = note.title,
-                style = typography.clock.copy(fontSize = 11.5.sp),
+                style = typography.clock,
                 fontWeight = FontWeight.Bold,
                 color = colors.accent,
-                letterSpacing = 0.5.sp,
                 modifier = Modifier.weight(1f, fill = false)
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                if (onSwitchToAuction != null) {
-                    Text(
-                        text = "Auction ⇄",
-                        style = typography.clock.copy(fontSize = 9.5.sp),
-                        color = colors.textSecondary.copy(alpha = 0.65f),
-                        modifier = Modifier
-                            .clickable { onSwitchToAuction() }
-                            .padding(horizontal = 2.dp, vertical = 2.dp)
-                    )
-                }
-                Box(
+            if (onSwitchToAuction != null) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "⇄",
+                    style = typography.clock,
+                    color = colors.textSecondary.copy(alpha = 0.6f),
                     modifier = Modifier
-                        .size(20.dp)
-                        .clickable { onDismiss() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "✕",
-                        fontSize = 11.sp,
-                        color = colors.textSecondary.copy(alpha = 0.6f)
-                    )
-                }
+                        .clickable { onSwitchToAuction() }
+                        .padding(horizontal = 2.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable { onDismiss() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✕",
+                    fontSize = 11.sp,
+                    color = colors.textSecondary.copy(alpha = 0.6f)
+                )
             }
         }
 
         Text(
             text = note.body,
-            style = typography.clock.copy(fontSize = 10.sp, lineHeight = 14.sp),
-            color = colors.textSecondary.copy(alpha = 0.85f),
-            modifier = Modifier.padding(top = 3.dp)
+            style = typography.clock,
+            color = colors.textSecondary.copy(alpha = 0.7f),
+            maxLines = 2
         )
 
         if (note.attribution.isNotEmpty()) {
             Text(
                 text = note.attribution,
-                style = typography.clock.copy(fontSize = 9.sp),
+                style = typography.clock.copy(fontSize = 11.sp),
                 color = colors.textSecondary.copy(alpha = 0.5f),
                 modifier = Modifier
                     .align(Alignment.End)
-                    .padding(top = 2.dp)
+                    .padding(top = 1.dp)
             )
         }
     }

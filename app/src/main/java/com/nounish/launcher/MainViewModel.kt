@@ -1520,6 +1520,12 @@ class MainViewModel(
         }
     }
 
+    fun setNounsAuctionPosition(position: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setNounsAuctionPosition(position)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null

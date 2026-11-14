@@ -94,6 +94,7 @@ fun SettingsScreen(
     onUpdateIdxAutoRotateInterval: (Int) -> Unit = {},
     onToggleShowHomeNouns: (Boolean) -> Unit = {},
     onToggleShowNounsAuctionImage: (Boolean) -> Unit = {},
+    onUpdateNounsAuctionPosition: (String) -> Unit = {},
     onUpdateNounsDisplayMode: (String) -> Unit = {},
     onUpdateNounsMaxDisplayCount: (Int) -> Unit = {},
     onUpdateNounsStatusFilter: (String) -> Unit = {},
@@ -161,6 +162,7 @@ fun SettingsScreen(
     var showNounsStatusFilterDialog by remember { mutableStateOf(false) }
     var showNounsDisplayModeDialog by remember { mutableStateOf(false) }
     var showNounsMaxCountDialog by remember { mutableStateOf(false) }
+    var showNounsAuctionPositionDialog by remember { mutableStateOf(false) }
 
     val swipeLeftAppName = remember(settings.swipeLeftPackage, allApps) {
         allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
@@ -676,6 +678,18 @@ fun SettingsScreen(
                                 }
 
                                 if (settings.showHomeNouns) {
+                                    item {
+                                        val posLabel = when (settings.nounsAuctionPosition) {
+                                            "below_clock" -> "Below clock"
+                                            else -> "Top right (Default)"
+                                        }
+                                        SettingsActionRow(
+                                            title = "Auction widget position",
+                                            subtitle = posLabel,
+                                            onClick = { showNounsAuctionPositionDialog = true }
+                                        )
+                                    }
+
                                     item {
                                         SettingsSwitchRow(
                                             title = "Show Noun auction image",
@@ -1964,6 +1978,52 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showNounsDisplayModeDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Nouns Auction Position Dialog
+    if (showNounsAuctionPositionDialog) {
+        val positions = listOf(
+            "top_right" to "Top right (Default)",
+            "below_clock" to "Below clock"
+        )
+        AlertDialog(
+            onDismissRequest = { showNounsAuctionPositionDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Auction Widget Position",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                LazyColumn(modifier = Modifier.height(130.dp)) {
+                    items(positions) { (posKey, label) ->
+                        val isSelected = posKey == settings.nounsAuctionPosition
+                        Text(
+                            text = label,
+                            style = typography.settingsItem.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            ),
+                            color = if (isSelected) colors.textPrimary else colors.textSecondary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateNounsAuctionPosition(posKey)
+                                    showNounsAuctionPositionDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showNounsAuctionPositionDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }

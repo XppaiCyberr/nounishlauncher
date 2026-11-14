@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.29` (versionCode `30`) · **Release APK Footprint**: `~1.13 MB` (1,184,615 bytes)
+**Version**: `1.0.30` (versionCode `31`) · **Release APK Footprint**: `~1.13 MB` (1,184,615 bytes)
 
 ---
 
@@ -16,18 +16,21 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 
 ## Features
 
-### 1. Direct On-Chain Nouns Auction Feed & Top-Right Display
-- **Dedicated Top-Right Corner Placement**: The live daily Nouns auction is featured prominently at the top right of the home screen opposite the Clock & Date, titled **`Nouns Auction`** in accent color (clean header, no Noggle).
-- **Ergonomic & Balanced Layout**: Arranged with the official pixel-art Noun avatar (`https://noun.pics/{id}.png`) alongside the Noun ID and highest bid (`Noun #2070`, `8.50 ETH`), with the real-time `timeleft` countdown (`2h 14m left` or `Settled`) placed directly below them.
+### 1. Direct On-Chain Nouns Auction Feed & Integrated Clock Placement
+- **Cardless, Compact Integrated Styling**: Completely integrated with the screen typography (same font size and metrics as the Clock & Date, `14 sp`). No card background, no borders, and no heavy padding, blending natively into AMOLED black.
+- **Configurable Widget Placement**:
+  - **Below Clock**: Stacks directly beneath the Time and Date on the left side of the screen (`Noun #<id> · <amount>` and countdown timer), keeping all status information unified on the left.
+  - **Top Right (Default)**: Positioned opposite the Clock & Date in the top-right corner.
+  - Selectable in Settings under **Nouns DAO -> Auction widget position**.
 - **Canonical Ethereum Auction House Proxy**: Directly queries the official Nouns Auction House proxy contract [`0x830bd73e4184cef73443c15111a1df14e495c706`](https://etherscan.io/address/0x830bd73e4184cef73443c15111a1df14e495c706) via standard Ethereum JSON-RPC `eth_call`.
 - **Method Selector `0x7d9f6db5` (`auction()`)**: Calls the public `auction()` function and decodes all 6 returned ABI fields directly on-device (`nounId`, `amount`, `startTime`, `endTime`, `bidder`, `settled`).
 - **Completely Decentralized & Serverless**: Requires zero custom backend, no intermediaries, and no proprietary servers. Includes automatic multi-endpoint RPC fallback (Alchemy Ethereum Mainnet, Cloudflare Ethereum, PublicNode) for 100% uptime and resilience.
 - **Official Pixel-Art Noun Image Display (`https://noun.pics/{id}.png`)**:
   - Displays the authentic 64x64 pixel-art avatar for the active auction Noun fetched from `https://noun.pics/{nounId}.png` (e.g. `https://noun.pics/2070.png`).
   - Rendered with `FilterQuality.None` (nearest-neighbor) so every pixel is razor-sharp and punchy on AMOLED screens without blurry bilinear interpolation.
-  - Features an inline thumbnail in the top-right card (`36.dp`) and auction row (`28.dp`/`34.dp`), expanding into a generous preview when tapped.
+  - Features an inline thumbnail in the integrated auction widget (`18.dp`) and auction row (`28.dp`/`34.dp`), expanding into a generous preview when tapped.
   - Fallback placeholder: Displays the iconic `⌐◨-◨` glasses in a rounded surface box while loading or when offline.
-  - Zero Third-Party Bloat: Built with zero heavy image libraries (no Coil, Glide, or Picasso), maintaining the ultra-lightweight ~1.12 MB APK size.
+  - Zero Third-Party Bloat: Built with zero heavy image libraries (no Coil, Glide, or Picasso), maintaining the ultra-lightweight ~1.13 MB APK size.
   - Dual-Layer Caching: Cached in memory (`LruCache`) and on local disk storage (`context.cacheDir/noun_pics/`) for instantaneous zero-latency offline loading without burning mobile data.
   - Toggleable in Settings under **Nouns DAO -> Show Noun auction image** for users who prefer pure text mode.
 - **AMOLED Distraction-Free Presentation**:
@@ -39,10 +42,10 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Resolves bidder addresses to human-readable ENS names (e.g. `vitalik.eth`, `stripymofo.eth`) directly on-chain via the canonical `ReverseRecords` contract (`0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C`) using batch `getNames(address[])` eth_call queries.
   - Fallback display: Displays shortened hexadecimal address (`0x3a41...f91c`) or `No bids` if unbid.
   - Cached in-memory with thread-safe `ConcurrentHashMap` for instant rendering and zero repeated queries.
-  - Tap the top-right auction card or auction row to view the resolved bidder and launch `https://nouns.wtf` directly in the system web browser (`Bid on nouns.wtf ↗`).
-- **Persistent Top-Right Card Preference**:
+  - Tap the integrated auction widget or auction row to view the resolved bidder and launch `https://nouns.wtf` directly in the system web browser (`Bid on nouns.wtf ↗`).
+- **Persistent Card Switching**:
   - Seamlessly toggle between **Nouns Auction** and **Passive Learning Note** with `Note ⇄` / `Auction ⇄`.
-  - State persists across device reboots and launcher restarts in Jetpack DataStore preferences (`top_right_card`).
+  - State persists across device reboots and launcher restarts in Jetpack DataStore preferences (`top_right_card`, `nouns_auction_position`).
 - **Smart Middle Feed De-duplication**: When the live auction is prominently displayed in the top-right corner, the middle Nouns feed intelligently prioritizes governance Proposals and Candidates during auto-rotation, preventing redundant duplicate auctions on screen. Top-right auction updates remain active even when the middle feed is configured for Proposals only or Candidates only.
 - **Parallelized On-Chain RPC Queries**: Queries for Auction, Proposals, and Candidates execute concurrently in parallel coroutines, with synchronized `coroutineScope` management ensuring pull-to-refresh indicators remain active until network calls settle.
 - **On-Chain Write Transactions Specification**: Full EIP-1193 unsigned payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
