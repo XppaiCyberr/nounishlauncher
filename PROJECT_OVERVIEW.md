@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.34` (versionCode `35`) · **Optimized Release APK**: `~1.13 MB` (1,185,609 bytes)
+**Current Version**: `v1.0.35` (versionCode `36`) · **Optimized Release APK**: `~1.13 MB` (1,186,328 bytes)
 
 ---
 
@@ -20,7 +20,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 2. **AMOLED Monochrome & Signature Nounish Accent Colors**: Pitch black background (`#000000`) paired with crisp white and subtle grey typography. Includes 6 curated Nounish accent palettes (Pure Monochrome, Nounish Red `⌐◨-◨`, Warm Amber, AMOLED Mint Green, Muted Slate, Soft Lavender) with targeted tinting, an optional light theme, monospace mode, and fine-grained font size scaling (Micro 65%, Extra Small 75%, Small 85%, Compact 92%, Default 100%, Large 115%, Extra Large 130%).
 3. **Calm & Distraction-Free**: No notification badges, algorithmic feeds, unread counters, or telemetry traps.
 4. **Privacy-Focused & Offline by Default**: Zero analytics, telemetry, or tracking. Network operations are strictly confined to user-enabled public market tickers (Binance public market data, IDX mirror, and Nouns DAO feeds), with zero background services.
-5. **Instantaneous & Lightweight**: App cold starts in under 300 ms with an optimized release APK footprint of only **~1.13 MB** (1,185,609 bytes). Pinned shortcuts render on frame 1 from DataStore without waiting for `PackageManager`.
+5. **Instantaneous & Lightweight**: App cold starts in under 300 ms with an optimized release APK footprint of only **~1.13 MB** (1,186,328 bytes). Pinned shortcuts render on frame 1 from DataStore without waiting for `PackageManager`.
 6. **Robust Process-Death Safety**: Full state restoration for active screen, drawer search, scroll offset, and settings across Android system process kills.
 7. **Strict Background Discipline**: App lists are cached in memory and refreshed exclusively on package broadcast events. All network polling and WebSocket connections terminate immediately on `onPause()` or when navigating away from Home.
 8. **Window Hardware Alpha Compositing Architecture (Zero-Ghosting)**: Translucent RGBA_8888 window surface composited directly by SurfaceFlinger against the system wallpaper, paired with a single static root scrim layer and sequential `AnimatedContent` transitions that prevent afterimage ghosting.
@@ -67,7 +67,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
     - **Live Real-Time Countdown**: Countdown ticks second-by-second dynamically derived from the launcher clock (`currentTime.time`) without relying on frozen cached DataStore strings.
     - **Pixel-Art Noun Image Display (`https://noun.pics/{id}.png`)**: Displays the authentic 64x64 pixel-art avatar for the active auction Noun from `https://noun.pics/{nounId}.png` rendered with `FilterQuality.None` for crisp AMOLED sharpness. Cached on disk and in memory with `⌐◨-◨` placeholder while loading or offline. Toggleable in Settings (**Show Noun auction image**).
     - AMOLED typography: `[Avatar] Noun #2070    8.50 ETH    2h 14m left`.
-    - Tap to expand: reveals larger avatar preview (`44.dp`/`52.dp`), `High Bidder: vitalik.eth` (or `0x3a41...f91c`), and `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
+    - Tap to expand: reveals larger avatar preview (`44.dp`/`52.dp`), `High Bidder: vitalik.eth` (or `0x3a41...f91c`), and dynamic randomized client bidding link (`Bid on nouns.wtf ↗`, `Bid on noun.wtf ↗`, or `Bid on nouns.game ↗`).
     - **On-Chain Write Transactions Specification**: Full EIP-1193 payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
   - **Governance & Candidates Feed (100% On-Chain RPC)**: Live Nouns DAO governance proposals and candidate proposals queried directly from the Ethereum Mainnet DAO Proxy (`0x6f3E6272A167e8AcCb32072d08E0957F9c79223d`) and Candidate (`0xf790A5f59678dd733fb3De93493A91f472ca1365`) contracts via JSON-RPC batch calls—with zero intermediate API backend dependency.
   - Minimalist AMOLED text-only presentation: `#1002  Proposal Title  Status`.
@@ -114,7 +114,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
     - **Top Right (Default)**: Positioned opposite the Clock & Date in the top-right corner.
     - Selectable in Settings under **Nouns DAO -> Auction widget position**.
   - Displays inline 18.dp pixel-art avatar (`https://noun.pics/{id}.png`), token ID, and highest bid (`Noun #2070 · 8.50 ETH`), with real-time countdown timer (`2h 14m left` or `Settled`) ticking second-by-second directly derived from the launcher clock.
-  - Interactive expansion: tap to reveal highest bidder (with on-chain reverse ENS name like `vitalik.eth` or shortened hex) and one-tap `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
+  - Interactive expansion: tap to reveal highest bidder (with on-chain reverse ENS name like `vitalik.eth` or shortened hex) and randomized client bid link across decentralized community frontends (`nouns.wtf`, `noun.wtf`, `nouns.game`).
   - Smart de-duplication: When the live auction is displayed in the top header, the middle Nouns feed prioritizes governance Proposals and Candidates during auto-rotation, preventing duplicate auctions on screen. Auction updates continuously even when middle display mode is configured for Proposals only or Candidates only.
 - **Passive Learning Notes (Top Right or Bottom Right)**:
   - Minimalist card on the Home screen for passive learning with zero visual clutter.
@@ -353,7 +353,7 @@ The outgoing screen fades out rapidly (90 ms) and is cleanly disposed from the c
 | **Backup / Restore** | Android SAF (`CreateDocument` / `OpenDocument`) | Permissionless, offline JSON export and import |
 | **Network Engine** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external networking libraries; parses JSON with `org.json` |
 | **Code Shrinking** | R8 Full Mode | Minified bytecode and resource shrinking |
-| **Release Footprint** | **~1.13 MB** (1,185,609 bytes) | Ultra-lightweight signed release APK |
+| **Release Footprint** | **~1.13 MB** (1,186,328 bytes) | Ultra-lightweight signed release APK |
 | **Release Signing** | Custom Keystore (v1 + v2 + v3 + v4) | Passes Google Play Protect and security audits |
 
 ---
@@ -557,7 +557,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 
 ### Outputs
-- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,185,609 bytes)
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,186,328 bytes)
 - **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 - **Release App Bundle**: `app/build/outputs/bundle/release/app-release.aab`
 

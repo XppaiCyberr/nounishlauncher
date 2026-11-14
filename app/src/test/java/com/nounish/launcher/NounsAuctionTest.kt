@@ -238,4 +238,25 @@ class NounsAuctionTest {
         val tEnded = t0Millis + 70_000L // past end time
         assertEquals("Auction ended", NounsRepository.formatTimeLeft(endTimeSeconds, settled = false, nowMillis = tEnded))
     }
+
+    @Test
+    fun testAuctionClients() {
+        val clients = NounsRepository.AUCTION_CLIENTS
+        assertEquals(3, clients.size)
+
+        val nounsWtf = clients.find { it.name == "nouns.wtf" }
+        assertNotNull(nounsWtf)
+        assertEquals("https://nouns.wtf", nounsWtf!!.buildUrl(2073))
+
+        val nounWtf = clients.find { it.name == "noun.wtf" }
+        assertNotNull(nounWtf)
+        assertEquals("https://noun.wtf/noun/2073", nounWtf!!.buildUrl(2073))
+
+        val nounsGame = clients.find { it.name == "nouns.game" }
+        assertNotNull(nounsGame)
+        assertEquals("https://nouns.game/auction", nounsGame!!.buildUrl(2073))
+
+        val randomClient = NounsRepository.getRandomAuctionClient()
+        assertTrue(clients.contains(randomClient))
+    }
 }

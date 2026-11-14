@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.34` (versionCode `35`) · **Release APK Footprint**: `~1.13 MB` (1,185,609 bytes)
+**Version**: `1.0.35` (versionCode `36`) · **Release APK Footprint**: `~1.13 MB` (1,186,328 bytes)
 
 ---
 
@@ -42,7 +42,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Resolves bidder addresses to human-readable ENS names (e.g. `vitalik.eth`, `stripymofo.eth`) directly on-chain via the canonical `ReverseRecords` contract (`0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C`) using batch `getNames(address[])` eth_call queries.
   - Fallback display: Displays shortened hexadecimal address (`0x3a41...f91c`) or `No bids` if unbid.
   - Cached in-memory with thread-safe `ConcurrentHashMap` for instant rendering and zero repeated queries.
-  - Tap the integrated auction widget or auction row to view the resolved bidder and launch `https://nouns.wtf` directly in the system web browser (`Bid on nouns.wtf ↗`).
+  - Tap the integrated auction widget or auction row to view the resolved bidder and launch a randomized decentralized Nouns client in the system browser (`nouns.wtf`, `noun.wtf`, or `nouns.game`).
 - **Smart Middle Feed De-duplication**: When the live auction is prominently displayed in the top-right corner, the middle Nouns feed intelligently prioritizes governance Proposals and Candidates during auto-rotation, preventing redundant duplicate auctions on screen. Top-right auction updates remain active even when the middle feed is configured for Proposals only or Candidates only.
 - **Parallelized On-Chain RPC Queries**: Queries for Auction, Proposals, and Candidates execute concurrently in parallel coroutines, with synchronized `coroutineScope` management ensuring pull-to-refresh indicators remain active until network calls settle.
 - **On-Chain Write Transactions Specification**: Full EIP-1193 unsigned payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
@@ -151,7 +151,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 | **Storage & Persistence** | Jetpack DataStore Preferences | Asynchronous, thread-safe disk persistence for settings and cached data |
 | **Document Access** | Android Storage Access Framework (SAF) | Permissionless, offline JSON backup and restore (`CreateDocument` / `OpenDocument`) |
 | **Networking** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external network libraries; `org.json` parser; WebSocket client |
-| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.13 MB** release APK (1,185,609 bytes) |
+| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.13 MB** release APK (1,186,328 bytes) |
 
 ---
 
@@ -255,7 +255,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,185,609 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,186,328 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

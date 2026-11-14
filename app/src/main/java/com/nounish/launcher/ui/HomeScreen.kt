@@ -1274,6 +1274,9 @@ private fun IntegratedNounsAuction(
     val lineHeightDp = with(density) { typography.clock.lineHeight.toDp() }
     val avatarSizeDp = with(density) { typography.clock.fontSize.toDp().coerceAtLeast(14.dp) }
     var showBidderDetails by remember { mutableStateOf(false) }
+    var currentClient by remember(auction.nounId) {
+        mutableStateOf(NounsRepository.getRandomAuctionClient())
+    }
 
     val liveTimeLeft = remember(auction.endTime, auction.settled, nowMillis) {
         NounsRepository.formatTimeLeft(auction.endTime, auction.settled, nowMillis)
@@ -1288,6 +1291,9 @@ private fun IntegratedNounsAuction(
     Column(
         modifier = Modifier.clickable {
             showBidderDetails = !showBidderDetails
+            if (showBidderDetails) {
+                currentClient = NounsRepository.getRandomAuctionClient()
+            }
         },
         horizontalAlignment = alignment
     ) {
@@ -1351,13 +1357,13 @@ private fun IntegratedNounsAuction(
             )
             Spacer(modifier = Modifier.height(1.dp))
             Text(
-                text = "Bid on nouns.wtf ↗",
+                text = "Bid on ${currentClient.name} ↗",
                 style = typography.clock,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.textPrimary,
                 modifier = Modifier.clickable {
                     try {
-                        val uri = Uri.parse("https://nouns.wtf")
+                        val uri = Uri.parse(currentClient.buildUrl(auction.nounId))
                         val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
@@ -1480,10 +1486,18 @@ private fun NounsAuctionCard(
     val typography = LauncherTheme.typography
     val context = LocalContext.current
     var showDetails by remember { mutableStateOf(false) }
+    var currentClient by remember(auction.nounId) {
+        mutableStateOf(NounsRepository.getRandomAuctionClient())
+    }
 
     Column(
         modifier = Modifier
-            .clickable { showDetails = !showDetails }
+            .clickable {
+                showDetails = !showDetails
+                if (showDetails) {
+                    currentClient = NounsRepository.getRandomAuctionClient()
+                }
+            }
             .graphicsLayer {
                 alpha = if (auction.isStale) 0.55f else 1.0f
             }
@@ -1572,13 +1586,13 @@ private fun NounsAuctionCard(
                     )
 
                     Text(
-                        text = "Bid on nouns.wtf ↗",
+                        text = "Bid on ${currentClient.name} ↗",
                         style = typography.clock,
                         fontWeight = FontWeight.SemiBold,
                         color = colors.textPrimary,
                         modifier = Modifier.clickable {
                             try {
-                                val uri = Uri.parse("https://nouns.wtf")
+                                val uri = Uri.parse(currentClient.buildUrl(auction.nounId))
                                 val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 }

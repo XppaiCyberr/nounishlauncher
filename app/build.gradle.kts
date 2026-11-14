@@ -11,8 +11,8 @@ android {
         applicationId = "com.nounish.launcher"
         minSdk = 26
         targetSdk = 34
-        versionCode = 35
-        versionName = "1.0.34"
+        versionCode = 36
+        versionName = "1.0.35"
 
         vectorDrawables {
             useSupportLibrary = true

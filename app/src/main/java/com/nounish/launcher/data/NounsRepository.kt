@@ -38,6 +38,19 @@ data class NounsAuctionUi(
     val ageMarker: String = ""
 )
 
+data class NounsAuctionClient(
+    val name: String,
+    val urlTemplate: String
+) {
+    fun buildUrl(nounId: Int): String {
+        return if (urlTemplate.contains("{id}")) {
+            urlTemplate.replace("{id}", nounId.toString())
+        } else {
+            urlTemplate
+        }
+    }
+}
+
 data class NounsProposal(
     val id: Int,
     val title: String,
@@ -881,6 +894,16 @@ class NounsRepository {
                 isStale = isStale,
                 ageMarker = ageMarker
             )
+        }
+
+        val AUCTION_CLIENTS = listOf(
+            NounsAuctionClient("nouns.wtf", "https://nouns.wtf"),
+            NounsAuctionClient("noun.wtf", "https://noun.wtf/noun/{id}"),
+            NounsAuctionClient("nouns.game", "https://nouns.game/auction")
+        )
+
+        fun getRandomAuctionClient(): NounsAuctionClient {
+            return AUCTION_CLIENTS.random()
         }
     }
 }
