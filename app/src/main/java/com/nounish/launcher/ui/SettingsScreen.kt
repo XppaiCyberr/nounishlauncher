@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,12 +41,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nounish.launcher.R
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.service.LockScreenService
@@ -249,17 +253,30 @@ fun SettingsScreen(
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
                         SettingsSectionHeader(title = "About")
-                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                            Text(
-                                text = "Nounish Launcher 1.0.18",
-                                style = typography.settingsItem,
-                                color = colors.textPrimary
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.app_logo),
+                                contentDescription = "Nounish Launcher Logo",
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(8.dp))
                             )
-                            Text(
-                                text = "Minimal, text-only, AMOLED friendly, zero tracking.",
-                                style = typography.settingsDescription,
-                                color = colors.textSecondary
-                            )
+                            Column {
+                                Text(
+                                    text = "Nounish Launcher 1.0.36",
+                                    style = typography.settingsItem,
+                                    color = colors.textPrimary
+                                )
+                                Text(
+                                    text = "Minimal, text-only, AMOLED friendly, zero tracking.",
+                                    style = typography.settingsDescription,
+                                    color = colors.textSecondary
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.height(24.dp))
                     }

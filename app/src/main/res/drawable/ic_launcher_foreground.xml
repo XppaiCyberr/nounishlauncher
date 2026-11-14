@@ -3,14 +3,17 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Clean minimalist 'N' square glyph -->
+    <!-- Nounish Glasses (glasses-square-black-eyes-red) -->
+    <!-- Black Frame -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M34,42h24v4h-24z M62,42h24v4h-24z M34,46h4v4h-4z M54,46h4v4h-4z M62,46h4v4h-4z M82,46h4v4h-4z M22,50h16v4h-16z M54,50h12v4h-12z M82,50h4v4h-4z M22,54h4v4h-4z M34,54h4v4h-4z M54,54h4v4h-4z M62,54h4v4h-4z M82,54h4v4h-4z M22,58h4v4h-4z M34,58h4v4h-4z M54,58h4v4h-4z M62,58h4v4h-4z M82,58h4v4h-4z M34,62h24v4h-24z M62,62h24v4h-24z" />
+    <!-- White Eye Whites -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M32,32 h12 v44 h-12 z" />
+        android:pathData="M38,46h8v4h-8z M66,46h8v4h-8z M38,50h8v4h-8z M66,50h8v4h-8z M38,54h8v4h-8z M66,54h8v4h-8z M38,58h8v4h-8z M66,58h8v4h-8z" />
+    <!-- Red Pupils -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M64,32 h12 v44 h-12 z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M44,36 L64,68 h8 L52,36 z" />
+        android:fillColor="#FF0E0E"
+        android:pathData="M46,46h8v4h-8z M74,46h8v4h-8z M46,50h8v4h-8z M74,50h8v4h-8z M46,54h8v4h-8z M74,54h8v4h-8z M46,58h8v4h-8z M74,58h8v4h-8z" />
 </vector>

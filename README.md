@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.35` (versionCode `36`) · **Release APK Footprint**: `~1.13 MB` (1,186,328 bytes)
+**Version**: `1.0.36` (versionCode `37`) · **Release APK Footprint**: `~1.13 MB` (1,186,328 bytes)
 
 ---
 
@@ -49,6 +49,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Offline DataStore Caching**: Caches full auction state in Jetpack DataStore preferences for zero-latency frame-1 presentation on launch.
 
 ### 2. Signature Nounish Aesthetics & Accent Colors
+- **Official Nouns Glasses App Icon**: Features the canonical Nouns DAO glasses brandmark (`glasses-square-black-eyes-red`: black square frames, crisp white eyes, and vibrant red pupils) set against a high-contrast white adaptive background. Built as an exact 16x6 pixel-grid vector centered symmetrically within Android's 72dp adaptive safe zone to prevent edge clipping under all OEM launcher shapes (circle, squircle, round rectangle). Includes Android 13+ Themed Icon monochrome support and multi-density legacy mipmaps.
 - **Signature Nounish Accent Color Palettes**: Choose from 6 curated palettes to personalize your experience while maintaining AMOLED elegance:
   - **Pure Monochrome**: Crisp white (`#FFFFFF`) on AMOLED Black / Deep graphite (`#121212`) in Light Theme.
   - **Nounish Red `⌐◨-◨`**: Iconic vibrant red (`#E53935`).
@@ -198,8 +199,9 @@ nounishlauncher/
 │       │   │       ├── NotificationHelper.kt    # Notification shade expansion via StatusBarManager reflection
 │       │   │       └── PackageChangeReceiver.kt # BroadcastReceiver for app install/uninstall updates
 │       │   └── res/
-│       │       ├── drawable/                    # Vector assets for launcher icon
-│       │       ├── mipmap-anydpi-v26/           # Adaptive launcher icons
+│       │       ├── drawable/                    # Vector assets (ic_launcher_foreground/background, app_logo)
+│       │       ├── mipmap-anydpi-v26/           # Adaptive launcher icons with monochrome theming
+│       │       ├── mipmap-*/                    # Multi-density legacy launcher icons (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi)
 │       │       ├── values/                      # Strings and window themes (windowIsTranslucent, transparent)
 │       │       └── values-v28/                  # Display cutout support and window themes
 │       └── test/java/com/nounish/launcher/
