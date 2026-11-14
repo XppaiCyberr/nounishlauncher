@@ -6,6 +6,14 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ---
 
+## Preview
+
+| Home (Proposals) | Home (Candidates) | Settings (Categories) | Drawer (Bottom Search) |
+|:---:|:---:|:---:|:---:|
+| <img src="screenshots/01-home-proposals.jpg" width="220" alt="Home Screen with Nouns Proposals" /> | <img src="screenshots/02-home-candidates.jpg" width="220" alt="Home Screen with Nouns Candidates" /> | <img src="screenshots/03-settings-categories.jpg" width="220" alt="Redesigned Settings Categories" /> | <img src="screenshots/04-drawer-bottom-search.jpg" width="220" alt="App Drawer with Bottom Search and Index" /> |
+
+---
+
 ## Design Philosophy
 
 1. **Minimalist App Icons & Pure Text Mode**: Toggleable option to display subtle, minimalist app icons beside each app with an optional monochrome/grayscale filter that preserves the calm AMOLED aesthetic, or toggle off completely for a pure text-only experience.

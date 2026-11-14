@@ -6,6 +6,14 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 
 ---
 
+## Preview
+
+| Home (Proposals) | Home (Candidates) | Settings (Categories) | Drawer (Bottom Search) |
+|:---:|:---:|:---:|:---:|
+| <img src="screenshots/01-home-proposals.jpg" width="220" alt="Home Screen with Nouns Proposals" /> | <img src="screenshots/02-home-candidates.jpg" width="220" alt="Home Screen with Nouns Candidates" /> | <img src="screenshots/03-settings-categories.jpg" width="220" alt="Redesigned Settings Categories" /> | <img src="screenshots/04-drawer-bottom-search.jpg" width="220" alt="App Drawer with Bottom Search and Index" /> |
+
+---
+
 ## Features
 
 ### 1. Direct On-Chain Nouns Auction Feed & Top-Right Display
