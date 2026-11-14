@@ -255,8 +255,12 @@ fun HomeScreen(
         }
 
         // Top section: Clock & Date on left, Nouns Auction (or Passive Note) on right
-        val isAuctionTopVisible = showNouns && nounsAuction != null
-        val isNoteVisible = showNote && !isNoteDismissed && !isAuctionTopVisible
+        val hasTopAuction = showNouns && nounsAuction != null
+        val hasTopNote = showNote && !isNoteDismissed
+        var showNoteInsteadOfAuction by remember { mutableStateOf(false) }
+
+        val isAuctionTopVisible = hasTopAuction && (!hasTopNote || !showNoteInsteadOfAuction)
+        val isNoteVisible = hasTopNote && (!hasTopAuction || showNoteInsteadOfAuction)
         if (showClock || showDate || isAuctionTopVisible || isNoteVisible) {
             Row(
                 modifier = Modifier
@@ -304,13 +308,19 @@ fun HomeScreen(
                 if (isAuctionTopVisible && nounsAuction != null) {
                     TopNounsAuctionCard(
                         auction = nounsAuction,
-                        showImage = showNounsAuctionImage
+                        showImage = showNounsAuctionImage,
+                        onSwitchToNote = if (hasTopNote) {
+                            { showNoteInsteadOfAuction = true }
+                        } else null
                     )
                 } else if (isNoteVisible) {
                     PassiveNoteCard(
                         note = currentNote,
                         onDismiss = onDismissNote,
-                        onClick = onNextNote
+                        onClick = onNextNote,
+                        onSwitchToAuction = if (hasTopAuction) {
+                            { showNoteInsteadOfAuction = false }
+                        } else null
                     )
                 }
             }
@@ -1208,7 +1218,8 @@ private fun formatRangeWithCurrency(high: String, low: String, currency: String,
 @Composable
 private fun TopNounsAuctionCard(
     auction: NounsAuctionUi,
-    showImage: Boolean = true
+    showImage: Boolean = true,
+    onSwitchToNote: (() -> Unit)? = null
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
@@ -1232,13 +1243,29 @@ private fun TopNounsAuctionCard(
             }
             .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
-        Text(
-            text = "Nouns Auction",
-            style = typography.clock.copy(fontSize = 11.5.sp),
-            fontWeight = FontWeight.Bold,
-            color = colors.accent,
-            letterSpacing = 0.5.sp
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Nouns Auction",
+                style = typography.clock.copy(fontSize = 11.5.sp),
+                fontWeight = FontWeight.Bold,
+                color = colors.accent,
+                letterSpacing = 0.5.sp
+            )
+            if (onSwitchToNote != null) {
+                Text(
+                    text = "Note ⇄",
+                    style = typography.clock.copy(fontSize = 9.5.sp),
+                    color = colors.textSecondary.copy(alpha = 0.65f),
+                    modifier = Modifier
+                        .clickable { onSwitchToNote() }
+                        .padding(start = 6.dp, top = 2.dp, bottom = 2.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(6.dp))
 
@@ -1326,7 +1353,8 @@ private fun TopNounsAuctionCard(
 private fun PassiveNoteCard(
     note: PassiveNote,
     onDismiss: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onSwitchToAuction: (() -> Unit)? = null
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
@@ -1356,19 +1384,35 @@ private fun PassiveNoteCard(
                 style = typography.clock.copy(fontSize = 11.5.sp),
                 fontWeight = FontWeight.Bold,
                 color = colors.accent,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.5.sp,
+                modifier = Modifier.weight(1f, fill = false)
             )
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clickable { onDismiss() },
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = "✕",
-                    fontSize = 11.sp,
-                    color = colors.textSecondary.copy(alpha = 0.6f)
-                )
+                if (onSwitchToAuction != null) {
+                    Text(
+                        text = "Auction ⇄",
+                        style = typography.clock.copy(fontSize = 9.5.sp),
+                        color = colors.textSecondary.copy(alpha = 0.65f),
+                        modifier = Modifier
+                            .clickable { onSwitchToAuction() }
+                            .padding(horizontal = 2.dp, vertical = 2.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "✕",
+                        fontSize = 11.sp,
+                        color = colors.textSecondary.copy(alpha = 0.6f)
+                    )
+                }
             }
         }
 

@@ -82,128 +82,216 @@ data class NounsCandidateUi(
     val ageMarker: String = ""
 )
 
+data class RawProposalStruct(
+    val id: Int,
+    val proposer: String,
+    val quorum: Int,
+    val forVotes: Int,
+    val againstVotes: Int,
+    val abstainVotes: Int,
+    val creationBlock: Long
+)
+
 class NounsRepository {
 
-    private val baseUrl = "https://xpp.wtf/nouns"
-
     suspend fun fetchProposals(limit: Int = 10, status: String = "All"): Result<List<NounsProposal>> = withContext(Dispatchers.IO) {
-        var connection: HttpURLConnection? = null
-        try {
-            val urlString = if (status.equals("All", ignoreCase = true)) {
-                "$baseUrl/api.php?endpoint=proposals&limit=$limit"
-            } else {
-                "$baseUrl/api.php?endpoint=proposals&limit=$limit&status=$status"
-            }
-            val url = URL(urlString)
-            connection = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 8_000
-                readTimeout = 8_000
-                setRequestProperty("Accept", "application/json")
-                setRequestProperty("User-Agent", "NounishLauncher/1.0")
-            }
+        val targetLimit = limit.coerceIn(1, 20)
+        val isAllStatus = status.equals("All", ignoreCase = true)
+        val batchWindow = if (isAllStatus) targetLimit else (targetLimit * 3).coerceIn(12, 30)
 
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                return@withContext Result.failure(RuntimeException("HTTP ${connection.responseCode}"))
-            }
+        for (rpcUrl in RPC_ENDPOINTS) {
+            try {
+                // 1. Query proposalCount() -> selector 0xda35c664 on DAO Proxy
+                val countPayload = JSONObject().apply {
+                    put("jsonrpc", "2.0")
+                    put("id", 1)
+                    put("method", "eth_call")
+                    val callObj = JSONObject().apply {
+                        put("to", DAO_PROXY_CONTRACT)
+                        put("data", PROPOSAL_COUNT_SELECTOR)
+                    }
+                    put("params", org.json.JSONArray(listOf(callObj, "latest")))
+                }
 
-            val jsonString = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-            val root = JSONObject(jsonString)
-            if (!root.optBoolean("success", false)) {
-                return@withContext Result.failure(RuntimeException(root.optString("error", "Unknown error")))
-            }
+                val countRespStr = postJsonRpc(rpcUrl, countPayload.toString()) ?: continue
+                val countRoot = JSONObject(countRespStr)
+                val countHex = countRoot.optString("result", "").removePrefix("0x").trim()
+                if (countHex.isEmpty() || countHex.startsWith("null")) continue
 
-            val dataArray = root.getJSONArray("data")
-            val proposals = mutableListOf<NounsProposal>()
-            val now = System.currentTimeMillis()
+                val totalCount = BigInteger(countHex, 16).toInt()
+                if (totalCount <= 0) continue
 
-            for (i in 0 until dataArray.length()) {
-                val item = dataArray.getJSONObject(i)
-                val stateObj = item.optJSONObject("state")
-                val statusLabel = stateObj?.optString("label") ?: "Unknown"
-                val statusIndex = stateObj?.optInt("index", 0) ?: 0
-                val votesObj = item.optJSONObject("votes")
-                val forVotes = votesObj?.optInt("for", 0) ?: 0
-                val againstVotes = votesObj?.optInt("against", 0) ?: 0
-                val abstainVotes = votesObj?.optInt("abstain", 0) ?: 0
-                val quorum = votesObj?.optInt("quorum", 0) ?: 0
+                val lowestId = (totalCount - batchWindow + 1).coerceAtLeast(1)
+                val ids = (totalCount downTo lowestId).toList()
 
-                proposals.add(
+                // 2. Batch query proposals(id) [0x013cf08b] and state(id) [0x3e4f49e6]
+                val structBatch = org.json.JSONArray()
+                ids.forEachIndexed { idx, propId ->
+                    val paddedId = propId.toString(16).padStart(64, '0')
+                    structBatch.put(JSONObject().apply {
+                        put("jsonrpc", "2.0")
+                        put("id", idx * 2 + 1)
+                        put("method", "eth_call")
+                        val pObj = JSONObject().apply {
+                            put("to", DAO_PROXY_CONTRACT)
+                            put("data", PROPOSALS_SELECTOR + paddedId)
+                        }
+                        put("params", org.json.JSONArray(listOf(pObj, "latest")))
+                    })
+                    structBatch.put(JSONObject().apply {
+                        put("jsonrpc", "2.0")
+                        put("id", idx * 2 + 2)
+                        put("method", "eth_call")
+                        val sObj = JSONObject().apply {
+                            put("to", DAO_PROXY_CONTRACT)
+                            put("data", PROPOSAL_STATE_SELECTOR + paddedId)
+                        }
+                        put("params", org.json.JSONArray(listOf(sObj, "latest")))
+                    })
+                }
+
+                val batchRespStr = postJsonRpc(rpcUrl, structBatch.toString()) ?: continue
+                val batchArr = org.json.JSONArray(batchRespStr)
+                val resultById = HashMap<Int, String>(batchArr.length())
+                for (i in 0 until batchArr.length()) {
+                    val item = batchArr.optJSONObject(i) ?: continue
+                    val rpcId = item.optInt("id", -1)
+                    val res = item.optString("result", "")
+                    if (rpcId != -1 && res.isNotBlank() && res != "0x") {
+                        resultById[rpcId] = res
+                    }
+                }
+
+                data class PendingProposal(
+                    val struct: RawProposalStruct,
+                    val statusIndex: Int,
+                    val statusLabel: String
+                )
+
+                val matchedProposals = mutableListOf<PendingProposal>()
+                for (idx in ids.indices) {
+                    val propId = ids[idx]
+                    val structHex = resultById[idx * 2 + 1] ?: continue
+                    val stateHex = resultById[idx * 2 + 2] ?: continue
+
+                    val struct = decodeProposalStruct(propId, structHex) ?: continue
+                    val stateClean = stateHex.removePrefix("0x").trim()
+                    val stateIndex = if (stateClean.isNotEmpty()) BigInteger(stateClean, 16).toInt() else 0
+                    val stateLabel = stateLabelForIndex(stateIndex)
+
+                    if (isAllStatus || stateLabel.equals(status, ignoreCase = true)) {
+                        matchedProposals.add(PendingProposal(struct, stateIndex, stateLabel))
+                        if (matchedProposals.size >= targetLimit) break
+                    }
+                }
+
+                if (matchedProposals.isEmpty() && isAllStatus) continue
+
+                // 3. Fetch missing proposal titles from ProposalCreated event logs at exact creationBlock
+                val missingTitles = matchedProposals.filter { !proposalTitleCache.containsKey(it.struct.id) && it.struct.creationBlock > 0L }
+                if (missingTitles.isNotEmpty()) {
+                    val logsBatch = org.json.JSONArray()
+                    for (pending in missingTitles) {
+                        val blockHex = "0x" + pending.struct.creationBlock.toString(16)
+                        logsBatch.put(JSONObject().apply {
+                            put("jsonrpc", "2.0")
+                            put("id", pending.struct.id)
+                            put("method", "eth_getLogs")
+                            val filterObj = JSONObject().apply {
+                                put("address", DAO_PROXY_CONTRACT)
+                                put("fromBlock", blockHex)
+                                put("toBlock", blockHex)
+                                put("topics", org.json.JSONArray(listOf(PROPOSAL_CREATED_TOPIC)))
+                            }
+                            put("params", org.json.JSONArray(listOf(filterObj)))
+                        })
+                    }
+
+                    // Try current RPC first, fallback to Alchemy if eth_getLogs is restricted on public node
+                    val logsRespStr = postJsonRpc(rpcUrl, logsBatch.toString())
+                        ?: if (rpcUrl != RPC_ENDPOINTS.first()) postJsonRpc(RPC_ENDPOINTS.first(), logsBatch.toString()) else null
+
+                    if (logsRespStr != null && logsRespStr.trim().startsWith("[")) {
+                        try {
+                            val logsArr = org.json.JSONArray(logsRespStr)
+                            for (i in 0 until logsArr.length()) {
+                                val rpcItem = logsArr.optJSONObject(i) ?: continue
+                                val propId = rpcItem.optInt("id", 0)
+                                val logsResult = rpcItem.optJSONArray("result") ?: continue
+                                for (j in 0 until logsResult.length()) {
+                                    val logObj = logsResult.optJSONObject(j) ?: continue
+                                    val dataHex = logObj.optString("data", "")
+                                    val decoded = decodeProposalCreatedDescription(dataHex)
+                                    if (decoded != null && (decoded.first == propId || logsResult.length() == 1)) {
+                                        val title = extractProposalTitle(decoded.second, propId)
+                                        proposalTitleCache[propId] = title
+                                        break
+                                    }
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }
+                }
+
+                val now = System.currentTimeMillis()
+                val proposals = matchedProposals.map { pending ->
+                    val id = pending.struct.id
                     NounsProposal(
-                        id = item.optInt("id", 0),
-                        title = item.optString("title", "Proposal #${item.optInt("id", 0)}"),
-                        statusLabel = statusLabel,
-                        statusIndex = statusIndex,
-                        proposer = item.optString("proposer", ""),
-                        forVotes = forVotes,
-                        againstVotes = againstVotes,
-                        abstainVotes = abstainVotes,
-                        quorum = quorum,
+                        id = id,
+                        title = proposalTitleCache[id] ?: "Proposal #$id",
+                        statusLabel = pending.statusLabel,
+                        statusIndex = pending.statusIndex,
+                        proposer = pending.struct.proposer,
+                        forVotes = pending.struct.forVotes,
+                        againstVotes = pending.struct.againstVotes,
+                        abstainVotes = pending.struct.abstainVotes,
+                        quorum = pending.struct.quorum,
                         timestamp = now
                     )
-                )
-            }
+                }
 
-            Result.success(proposals)
-        } catch (e: Exception) {
-            Result.failure(e)
-        } finally {
-            connection?.disconnect()
+                return@withContext Result.success(proposals)
+            } catch (_: Exception) {
+                // Try next RPC endpoint
+            }
         }
+
+        Result.failure(RuntimeException("Failed to fetch Nouns proposals from Ethereum RPC endpoints"))
     }
 
     suspend fun fetchCandidates(limit: Int = 10): Result<List<NounsCandidate>> = withContext(Dispatchers.IO) {
-        // First try xpp.wtf endpoint in case server has it
-        try {
-            val url = URL("$baseUrl/api.php?endpoint=candidates&limit=$limit")
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 4_000
-                readTimeout = 4_000
-                setRequestProperty("Accept", "application/json")
-                setRequestProperty("User-Agent", "NounishLauncher/1.0")
-            }
-            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
-                val jsonStr = BufferedReader(InputStreamReader(conn.inputStream)).use { it.readText() }
-                conn.disconnect()
-                val root = JSONObject(jsonStr)
-                if (root.optBoolean("success", false)) {
-                    val arr = root.optJSONArray("data")
-                    if (arr != null && arr.length() > 0) {
-                        val list = mutableListOf<NounsCandidate>()
-                        val now = System.currentTimeMillis()
-                        for (i in 0 until arr.length()) {
-                            val obj = arr.getJSONObject(i)
-                            list.add(
-                                NounsCandidate(
-                                    slug = obj.optString("slug", ""),
-                                    title = obj.optString("title", obj.optString("slug")),
-                                    proposer = obj.optString("proposer", ""),
-                                    timestamp = now
-                                )
-                            )
-                        }
-                        if (list.isNotEmpty()) {
-                            return@withContext Result.success(list)
-                        }
-                    }
-                }
-            } else {
-                conn.disconnect()
-            }
-        } catch (_: Exception) {
-            // Fall through to Alchemy RPC
-        }
-
-        // Direct Alchemy RPC fallback for candidates
         try {
             val candidates = fetchCandidatesViaRpc(limit)
             if (candidates.isNotEmpty()) {
                 return@withContext Result.success(candidates)
             }
-            Result.failure(RuntimeException("No candidates found"))
+            Result.failure(RuntimeException("No candidates found on-chain"))
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private fun postJsonRpc(rpcUrl: String, payloadJson: String, timeoutMs: Int = 7_000): String? {
+        var conn: HttpURLConnection? = null
+        return try {
+            conn = (URL(rpcUrl).openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = timeoutMs
+                readTimeout = timeoutMs
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("User-Agent", "NounishLauncher/1.0")
+            }
+            conn.outputStream.use { it.write(payloadJson.toByteArray(Charsets.UTF_8)) }
+            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader(InputStreamReader(conn.inputStream)).use { it.readText() }
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        } finally {
+            conn?.disconnect()
         }
     }
 
@@ -423,13 +511,110 @@ class NounsRepository {
     }
 
     companion object {
+        const val DAO_PROXY_CONTRACT = "0x6f3E6272A167e8AcCb32072d08E0957F9c79223d"
+        const val CANDIDATE_CONTRACT = "0xf790A5f59678dd733fb3De93493A91f472ca1365"
         const val AUCTION_CONTRACT = "0x830bd73e4184cef73443c15111a1df14e495c706"
+        const val PROPOSAL_COUNT_SELECTOR = "0xda35c664"
+        const val PROPOSALS_SELECTOR = "0x013cf08b"
+        const val PROPOSAL_STATE_SELECTOR = "0x3e4f49e6"
         const val AUCTION_METHOD_DATA = "0x7d9f6db5"
+        const val PROPOSAL_CREATED_TOPIC = "0x7d84a6263ae0d98d3329bd7b46bb4e8d6f98cd35a7adb45c274c8b7fd5ebd5e0"
+
+        val STATE_LABELS = mapOf(
+            0 to "Pending",
+            1 to "Active",
+            2 to "Canceled",
+            3 to "Defeated",
+            4 to "Succeeded",
+            5 to "Queued",
+            6 to "Expired",
+            7 to "Executed",
+            8 to "Vetoed",
+            9 to "Objection Period",
+            10 to "Updatable"
+        )
+
         val RPC_ENDPOINTS = listOf(
             "https://eth-mainnet.g.alchemy.com/v2/K0Oex8ponc-8nl61tthZj",
-            "https://cloudflare-eth.com",
-            "https://ethereum.publicnode.com"
+            "https://ethereum.publicnode.com",
+            "https://cloudflare-eth.com"
         )
+
+        private val proposalTitleCache = java.util.concurrent.ConcurrentHashMap<Int, String>()
+
+        fun cacheProposalTitle(id: Int, title: String) {
+            if (id > 0 && title.isNotBlank() && title != "Proposal #$id") {
+                proposalTitleCache[id] = title
+            }
+        }
+
+        fun stateLabelForIndex(stateIndex: Int): String {
+            return STATE_LABELS[stateIndex] ?: "State $stateIndex"
+        }
+
+        fun decodeProposalStruct(id: Int, hex: String): RawProposalStruct? {
+            val clean = hex.removePrefix("0x").trim()
+            if (clean.length < 15 * 64) return null
+            return try {
+                val proposer = "0x" + clean.substring(64 + 24, 128).lowercase(Locale.US)
+                val quorum = BigInteger(clean.substring(3 * 64, 4 * 64), 16).toInt()
+                val forVotes = BigInteger(clean.substring(7 * 64, 8 * 64), 16).toInt()
+                val againstVotes = BigInteger(clean.substring(8 * 64, 9 * 64), 16).toInt()
+                val abstainVotes = BigInteger(clean.substring(9 * 64, 10 * 64), 16).toInt()
+                val creationBlock = BigInteger(clean.substring(14 * 64, 15 * 64), 16).toLong()
+                RawProposalStruct(
+                    id = id,
+                    proposer = proposer,
+                    quorum = quorum,
+                    forVotes = forVotes,
+                    againstVotes = againstVotes,
+                    abstainVotes = abstainVotes,
+                    creationBlock = creationBlock
+                )
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        fun decodeProposalCreatedDescription(logDataHex: String): Pair<Int, String>? {
+            val clean = logDataHex.removePrefix("0x").trim()
+            if (clean.length < 9 * 64) return null
+            return try {
+                val id = BigInteger(clean.substring(0, 64), 16).toInt()
+                val descByteOffset = BigInteger(clean.substring(8 * 64, 9 * 64), 16).toInt()
+                val descCharOffset = descByteOffset * 2
+                if (descCharOffset + 64 > clean.length) return id to ""
+                val descByteLength = BigInteger(clean.substring(descCharOffset, descCharOffset + 64), 16).toInt()
+                val descDataStart = descCharOffset + 64
+                val descDataEnd = (descDataStart + descByteLength * 2).coerceAtMost(clean.length)
+                if (descByteLength <= 0 || descDataStart >= descDataEnd) return id to ""
+                val descHex = clean.substring(descDataStart, descDataEnd)
+                val bytes = ByteArray(descHex.length / 2)
+                var i = 0
+                while (i < descHex.length - 1) {
+                    bytes[i / 2] = ((Character.digit(descHex[i], 16) shl 4) + Character.digit(descHex[i + 1], 16)).toByte()
+                    i += 2
+                }
+                val description = String(bytes, Charsets.UTF_8)
+                id to description
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        fun extractProposalTitle(description: String, id: Int): String {
+            if (description.isBlank()) return "Proposal #$id"
+            for (line in description.lineSequence()) {
+                val trimmed = line.trim()
+                if (trimmed.isNotEmpty()) {
+                    val cleaned = trimmed.replace(Regex("^#+\\s*"), "").trim()
+                    if (cleaned.isNotEmpty()) {
+                        return if (cleaned.length > 140) cleaned.take(139) + "…" else cleaned
+                    }
+                }
+            }
+            return "Proposal #$id"
+        }
 
         fun decodeAuction(hex: String, now: Long = System.currentTimeMillis()): NounsAuction? {
             val cleanHex = hex.removePrefix("0x").trim()

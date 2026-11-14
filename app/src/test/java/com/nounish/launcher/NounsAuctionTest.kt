@@ -148,4 +148,43 @@ class NounsAuctionTest {
         assertTrue(ui.isStale)
         assertEquals("5m ago", ui.ageMarker)
     }
+
+    @Test
+    fun testDecodeProposalStructAndTitle() {
+        val slots = listOf(
+            1002.toString(16).padStart(64, '0'), // 0: id
+            "000000000000000000000000c7ccec521eed20fcddff8f95424816ac421c7d87", // 1: proposer
+            3.toString(16).padStart(64, '0'),    // 2: proposalThreshold
+            136.toString(16).padStart(64, '0'),  // 3: quorumVotes
+            1791985259L.toString(16).padStart(64, '0'), // 4: eta
+            26145681.toString(16).padStart(64, '0'), // 5: startBlock
+            26174481.toString(16).padStart(64, '0'), // 6: endBlock
+            215.toString(16).padStart(64, '0'),  // 7: forVotes
+            0.toString(16).padStart(64, '0'),    // 8: againstVotes
+            4.toString(16).padStart(64, '0'),    // 9: abstainVotes
+            0.toString(16).padStart(64, '0'),    // 10: canceled
+            0.toString(16).padStart(64, '0'),    // 11: vetoed
+            1.toString(16).padStart(64, '0'),    // 12: executed
+            1361.toString(16).padStart(64, '0'), // 13: totalSupply
+            26124081L.toString(16).padStart(64, '0') // 14: creationBlock
+        )
+        val rawHex = "0x" + slots.joinToString("")
+        val parsed = NounsRepository.decodeProposalStruct(1002, rawHex)
+        assertNotNull(parsed)
+        assertEquals(1002, parsed!!.id)
+        assertEquals("0xc7ccec521eed20fcddff8f95424816ac421c7d87", parsed.proposer)
+        assertEquals(136, parsed.quorum)
+        assertEquals(215, parsed.forVotes)
+        assertEquals(0, parsed.againstVotes)
+        assertEquals(4, parsed.abstainVotes)
+        assertEquals(26124081L, parsed.creationBlock)
+
+        assertEquals("Active", NounsRepository.stateLabelForIndex(1))
+        assertEquals("Executed", NounsRepository.stateLabelForIndex(7))
+        assertEquals("Defeated", NounsRepository.stateLabelForIndex(3))
+
+        val md = "\n# Migrate Remaining V1 Treasury to V2\n\nBody text here"
+        assertEquals("Migrate Remaining V1 Treasury to V2", NounsRepository.extractProposalTitle(md, 1002))
+        assertEquals("Proposal #999", NounsRepository.extractProposalTitle("", 999))
+    }
 }

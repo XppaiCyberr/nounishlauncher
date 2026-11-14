@@ -898,6 +898,10 @@ class MainViewModel(
         val currentSettings = settings.value
         if (!currentSettings.showHomeNouns) return
 
+        currentSettings.cachedNounsProposals.forEach { cached ->
+            NounsRepository.cacheProposalTitle(cached.id, cached.title)
+        }
+
         val result = nounsRepository.fetchProposals(
             limit = 10,
             status = currentSettings.nounsStatusFilter

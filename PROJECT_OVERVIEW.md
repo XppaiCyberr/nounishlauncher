@@ -56,10 +56,10 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
     - Decodes current Token ID (`nounId`), highest bid in Wei converted to ETH (`amount`), auction start/end timestamps (`startTime`, `endTime`), current bidder address (`bidder`), and settlement state (`settled`).
     - 100% decentralized and serverless with multi-endpoint RPC fallback (Alchemy, Cloudflare, PublicNode).
     - **Pixel-Art Noun Image Display (`https://noun.pics/{id}.png`)**: Displays the authentic 64x64 pixel-art avatar for the active auction Noun from `https://noun.pics/{nounId}.png` rendered with `FilterQuality.None` for crisp AMOLED sharpness. Cached on disk and in memory with `⌐◨-◨` placeholder while loading or offline. Toggleable in Settings (**Show Noun auction image**).
-    - AMOLED typography: `[🖼️] Noun #2070    8.50 ETH    2h 14m left`.
+    - AMOLED typography: `[Avatar] Noun #2070    8.50 ETH    2h 14m left`.
     - Tap to expand: reveals larger avatar preview (`44.dp`/`52.dp`), `High Bidder: 0x3a41...f91c`, and `Bid on nouns.wtf ↗` link opening `https://nouns.wtf`.
     - **On-Chain Write Transactions Specification**: Full EIP-1193 payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
-  - **Governance & Candidates Feed**: Live Nouns DAO governance proposals and candidate proposals powered by `https://xpp.wtf/nouns/` with Ethereum RPC fallback.
+  - **Governance & Candidates Feed (100% On-Chain RPC)**: Live Nouns DAO governance proposals and candidate proposals queried directly from the Ethereum Mainnet DAO Proxy (`0x6f3E6272A167e8AcCb32072d08E0957F9c79223d`) and Candidate (`0xf790A5f59678dd733fb3De93493A91f472ca1365`) contracts via JSON-RPC batch calls—with zero intermediate API backend dependency.
   - Minimalist AMOLED text-only presentation: `#1002  Proposal Title  Status`.
   - Color-coded status indicator: **Active** in bold green (`CryptoGreen`), **Executed** in muted grey, **Defeated/Canceled/Vetoed** in subtle red.
   - Interactive voting expansion: Tapping any proposal reveals live quorum and vote counts (`For: 215 · Against: 0 · Quorum: 136 · Vote ↗`).

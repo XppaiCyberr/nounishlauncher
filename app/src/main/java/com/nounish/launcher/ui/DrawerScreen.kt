@@ -339,24 +339,26 @@ fun DrawerScreen(
                 }
             }
 
+            val calculationResultContent: @Composable () -> Unit = {
+                if (calculationResult != null) {
+                    CalculationResultRow(
+                        result = calculationResult,
+                        fontSize = fontSize,
+                        hapticFeedbackLevel = hapticFeedbackLevel
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
             if (!searchBarAtBottom) {
                 Spacer(modifier = Modifier.height(16.dp))
                 searchBarContent()
                 Spacer(modifier = Modifier.height(12.dp))
                 recentAppsContent()
                 Spacer(modifier = Modifier.height(4.dp))
+                calculationResultContent()
             } else {
                 Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // Minimalist Math Calculation Result Row
-            if (calculationResult != null) {
-                CalculationResultRow(
-                    result = calculationResult,
-                    fontSize = fontSize,
-                    hapticFeedbackLevel = hapticFeedbackLevel
-                )
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             // Main Content: Alphabet Index + Niagara-style Animated App List
@@ -560,8 +562,11 @@ fun DrawerScreen(
             }
 
             if (searchBarAtBottom) {
-                recentAppsContent()
-                Spacer(modifier = Modifier.height(8.dp))
+                if (searchQuery.isEmpty() && recentApps.isNotEmpty()) {
+                    recentAppsContent()
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                calculationResultContent()
                 searchBarContent()
                 Spacer(modifier = Modifier.height(12.dp))
             } else {
