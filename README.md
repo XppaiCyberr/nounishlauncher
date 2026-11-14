@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.32` (versionCode `33`) · **Release APK Footprint**: `~1.13 MB` (1,187,509 bytes)
+**Version**: `1.0.33` (versionCode `34`) · **Release APK Footprint**: `~1.13 MB` (1,184,497 bytes)
 
 ---
 
@@ -43,9 +43,6 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - Fallback display: Displays shortened hexadecimal address (`0x3a41...f91c`) or `No bids` if unbid.
   - Cached in-memory with thread-safe `ConcurrentHashMap` for instant rendering and zero repeated queries.
   - Tap the integrated auction widget or auction row to view the resolved bidder and launch `https://nouns.wtf` directly in the system web browser (`Bid on nouns.wtf ↗`).
-- **Persistent Card Switching**:
-  - Seamlessly toggle between **Nouns Auction** and **Passive Learning Note** with `Note ⇄` / `Auction ⇄`.
-  - State persists across device reboots and launcher restarts in Jetpack DataStore preferences (`top_right_card`, `nouns_auction_position`).
 - **Smart Middle Feed De-duplication**: When the live auction is prominently displayed in the top-right corner, the middle Nouns feed intelligently prioritizes governance Proposals and Candidates during auto-rotation, preventing redundant duplicate auctions on screen. Top-right auction updates remain active even when the middle feed is configured for Proposals only or Candidates only.
 - **Parallelized On-Chain RPC Queries**: Queries for Auction, Proposals, and Candidates execute concurrently in parallel coroutines, with synchronized `coroutineScope` management ensuring pull-to-refresh indicators remain active until network calls settle.
 - **On-Chain Write Transactions Specification**: Full EIP-1193 unsigned payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
@@ -108,7 +105,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Clean Uninstall Pruning**: Automatically drops uninstalled apps from pinned shortcuts and DataStore, leaving zero dead entries.
 - **Clock & Date Customization**: Choose between System Default (respects Android's 24-hour setting), 24-hour (`HH:mm`), 12-hour with AM/PM (`h:mm a`), or 12-hour without AM/PM (`h:mm`). Includes optional live seconds (`:ss`) and selectable date format presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or custom `SimpleDateFormat` patterns. Tapping the clock launches the system alarm/clock app.
 - **Custom Corner Text (Bottom Right)**: Display custom text (such as your username, handle, or motivational quote) in the bottom-right corner of the Home screen, styled in muted secondary tone. Configurable in Settings (default: `xppaicyber`) or toggled off completely.
-- **Closeable Passive Learning Notes (Top Right or Bottom Right)**: Minimalist card featuring the ethos of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology. Easily dismissed via a subtle `x` button and restored anytime from Settings. Includes configurable placement (`Top right (Default)` or `Bottom right` split alongside pinned apps) and non-overlapping action controls.
+- **Passive Learning Notes (Top Right or Bottom Right)**: Minimalist card featuring the ethos of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology. Free of distracting swap or dismiss buttons. Tapping the card cycles smoothly to the next tip. Fully configurable in Settings (`Top right (Default)` or `Bottom right` split alongside pinned apps).
 - **Currency Format**: Real-time market prices clearly specify currency format across tickers, headers, and ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`). Configurable in Settings (Suffix, Prefix, or None).
 
 ### 8. Live Market & Community Feeds
@@ -154,7 +151,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 | **Storage & Persistence** | Jetpack DataStore Preferences | Asynchronous, thread-safe disk persistence for settings and cached data |
 | **Document Access** | Android Storage Access Framework (SAF) | Permissionless, offline JSON backup and restore (`CreateDocument` / `OpenDocument`) |
 | **Networking** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external network libraries; `org.json` parser; WebSocket client |
-| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.13 MB** release APK (1,187,509 bytes) |
+| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.13 MB** release APK (1,184,497 bytes) |
 
 ---
 
@@ -258,7 +255,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,187,509 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,184,497 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

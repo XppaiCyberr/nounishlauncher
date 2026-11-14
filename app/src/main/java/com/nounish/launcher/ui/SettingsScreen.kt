@@ -438,21 +438,20 @@ fun SettingsScreen(
                                 item {
                                     val noteSubtitle = when {
                                         !settings.showHomeScreenNote -> "Disabled"
-                                        settings.homeScreenNoteDismissed -> "Dismissed from home (tap to restore)"
                                         settings.homeScreenNotePosition == "bottom_right" -> "Showing passive learning notes on bottom-right"
                                         else -> "Showing passive learning notes on top-right"
                                     }
                                     SettingsSwitchRow(
                                         title = "Passive learning note",
                                         subtitle = noteSubtitle,
-                                        checked = settings.showHomeScreenNote && !settings.homeScreenNoteDismissed,
+                                        checked = settings.showHomeScreenNote,
                                         onCheckedChange = { checked ->
                                             onToggleShowHomeScreenNote(checked)
                                         }
                                     )
                                 }
 
-                                if (settings.showHomeScreenNote && !settings.homeScreenNoteDismissed) {
+                                if (settings.showHomeScreenNote) {
                                     item {
                                         val posLabel = when (settings.homeScreenNotePosition) {
                                             "bottom_right" -> "Bottom right"

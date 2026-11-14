@@ -1455,6 +1455,9 @@ class MainViewModel(
     fun setShowHomeScreenNote(show: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setShowHomeScreenNote(show)
+            if (show) {
+                settingsStore.setHomeScreenNoteDismissed(false)
+            }
         }
     }
 

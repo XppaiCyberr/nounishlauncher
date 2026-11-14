@@ -128,11 +128,7 @@ fun HomeScreen(
     cryptoCurrency: String = "USDT",
     showNote: Boolean = true,
     homeScreenNotePosition: String = "top_right",
-    isNoteDismissed: Boolean = false,
     noteIndex: Int = 0,
-    topRightCard: String = "auction",
-    onToggleTopRightCard: (String) -> Unit = {},
-    onDismissNote: () -> Unit = {},
     onNextNote: () -> Unit = {},
     onAppClick: (AppItem) -> Unit,
     onAppInfoClick: (AppItem) -> Unit,
@@ -260,17 +256,14 @@ fun HomeScreen(
                 ?: DEFAULT_PASSIVE_NOTES.first()
         }
 
-        // Top section: Clock & Date on left, Nouns Auction (or Passive Note)
+        // Top section: Clock & Date on left, Nouns Auction & Passive Note on right
         val hasTopAuction = showNouns && nounsAuction != null
-        val hasTopNote = showNote && !isNoteDismissed && (homeScreenNotePosition == "top_right")
         val isAuctionBelowClock = (nounsAuctionPosition == "below_clock")
-
-        val prefersNote = (topRightCard == "note")
-        val isAuctionTopVisible = !isAuctionBelowClock && hasTopAuction && (!hasTopNote || !prefersNote)
-        val isNoteVisible = hasTopNote && (isAuctionBelowClock || !hasTopAuction || prefersNote)
+        val isAuctionTopVisible = !isAuctionBelowClock && hasTopAuction
         val isAuctionBelowClockVisible = isAuctionBelowClock && hasTopAuction
+        val isNoteTopVisible = showNote && (homeScreenNotePosition == "top_right")
 
-        if (showClock || showDate || isAuctionBelowClockVisible || isAuctionTopVisible || isNoteVisible) {
+        if (showClock || showDate || isAuctionBelowClockVisible || isAuctionTopVisible || isNoteTopVisible) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -323,8 +316,7 @@ fun HomeScreen(
                                 auction = nounsAuction,
                                 showImage = showNounsAuctionImage,
                                 nowMillis = currentTime.time,
-                                alignment = Alignment.Start,
-                                onSwitchToNote = null
+                                alignment = Alignment.Start
                             )
                         }
                     }
@@ -332,25 +324,26 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
-                if (isAuctionTopVisible && nounsAuction != null) {
-                    IntegratedNounsAuction(
-                        auction = nounsAuction,
-                        showImage = showNounsAuctionImage,
-                        nowMillis = currentTime.time,
-                        alignment = Alignment.End,
-                        onSwitchToNote = if (hasTopNote) {
-                            { onToggleTopRightCard("note") }
-                        } else null
-                    )
-                } else if (isNoteVisible) {
-                    PassiveNoteCard(
-                        note = currentNote,
-                        onDismiss = onDismissNote,
-                        onClick = onNextNote,
-                        onSwitchToAuction = if (hasTopAuction && !isAuctionBelowClock) {
-                            { onToggleTopRightCard("auction") }
-                        } else null
-                    )
+                if (isAuctionTopVisible || isNoteTopVisible) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (isAuctionTopVisible && nounsAuction != null) {
+                            IntegratedNounsAuction(
+                                auction = nounsAuction,
+                                showImage = showNounsAuctionImage,
+                                nowMillis = currentTime.time,
+                                alignment = Alignment.End
+                            )
+                        }
+                        if (isNoteTopVisible) {
+                            PassiveNoteCard(
+                                note = currentNote,
+                                onClick = onNextNote
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -795,7 +788,7 @@ fun HomeScreen(
         val fontScale = getFontScale(fontSize)
         val iconSize = (24 * fontScale).coerceIn(16f, 32f).dp
 
-        val isNoteBottomVisible = showNote && !isNoteDismissed && (homeScreenNotePosition == "bottom_right")
+        val isNoteBottomVisible = showNote && (homeScreenNotePosition == "bottom_right")
         val hasCornerText = showCornerText && cornerText.isNotBlank()
         val hasBottomRight = isNoteBottomVisible || hasCornerText
 
@@ -858,9 +851,7 @@ fun HomeScreen(
                     if (isNoteBottomVisible) {
                         PassiveNoteCard(
                             note = currentNote,
-                            onDismiss = onDismissNote,
-                            onClick = onNextNote,
-                            onSwitchToAuction = null
+                            onClick = onNextNote
                         )
                     }
 
@@ -1274,8 +1265,7 @@ private fun IntegratedNounsAuction(
     auction: NounsAuctionUi,
     showImage: Boolean = true,
     nowMillis: Long = System.currentTimeMillis(),
-    alignment: Alignment.Horizontal = Alignment.End,
-    onSwitchToNote: (() -> Unit)? = null
+    alignment: Alignment.Horizontal = Alignment.End
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
@@ -1328,22 +1318,6 @@ private fun IntegratedNounsAuction(
                     size = avatarSizeDp,
                     showBorder = false
                 )
-            }
-
-            if (onSwitchToNote != null) {
-                Spacer(modifier = Modifier.width(6.dp))
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clickable { onSwitchToNote() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "⇄",
-                        fontSize = 11.sp,
-                        color = colors.textSecondary.copy(alpha = 0.6f)
-                    )
-                }
             }
         }
 
@@ -1398,14 +1372,10 @@ private fun IntegratedNounsAuction(
 @Composable
 private fun PassiveNoteCard(
     note: PassiveNote,
-    onDismiss: () -> Unit,
-    onClick: () -> Unit,
-    onSwitchToAuction: (() -> Unit)? = null
+    onClick: () -> Unit
 ) {
     val colors = LauncherTheme.colors
     val typography = LauncherTheme.typography
-    val density = LocalDensity.current
-    val lineHeightDp = with(density) { typography.clock.lineHeight.toDp() }
 
     Column(
         modifier = Modifier
@@ -1413,56 +1383,14 @@ private fun PassiveNoteCard(
             .clickable { onClick() },
         horizontalAlignment = Alignment.End
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(lineHeightDp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = note.title,
-                style = typography.clock,
-                fontWeight = FontWeight.Bold,
-                color = colors.accent,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (onSwitchToAuction != null) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable { onSwitchToAuction() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "⇄",
-                            fontSize = 11.sp,
-                            color = colors.textSecondary.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clickable { onDismiss() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "✕",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textSecondary.copy(alpha = 0.6f)
-                    )
-                }
-            }
-        }
+        Text(
+            text = note.title,
+            style = typography.clock,
+            fontWeight = FontWeight.Bold,
+            color = colors.accent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
 
         Spacer(modifier = Modifier.height(2.dp))
 
