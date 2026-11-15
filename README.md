@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.40` (versionCode `41`) · **Release APK Footprint**: `~1.18 MB` (1,242,846 bytes)
+**Version**: `1.0.41` (versionCode `42`) · **Release APK Footprint**: `~1.18 MB` (1,243,062 bytes)
 
 ---
 
@@ -57,7 +57,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Lazy Loading of Historical Proposals & Candidates**: Scrolling to the bottom automatically paginates and lazily loads older on-chain proposals and community candidates using batch RPC queries and Alchemy asset transfer pagination.
 - **Animated Noggles Loading Indicator**: While loading older items at the bottom, an animated `⌐◨-◨` indicator types character-by-character with organic breathing scaling, pulsing alpha, and cycling progress dots in the user's accent color.
 - **Top-Right Noggles Refresh Button**: The top-right refresh action displays `Refresh ⌐◨-◨` when idle and pulses with animated breathing noggles (`Syncing... ⌐◨-◨`) while syncing from Ethereum Mainnet.
-- **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->` and `noun.wtf ->`) open official clients directly in the browser.
+- **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->`, `nouncil.club ->`, and `nouns.game ->`) open verified decentralized governance frontends directly in the browser (`https://nouns.wtf/vote/{id}`, `https://nouncil.club/proposal/{id}`, and `https://nouns.game/proposals/{id}`).
 - **Dedicated Top Navigation Bar**: Clean `<- Home` navigation bar with quick on-chain refresh on Governance.
 - **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings. The App Drawer is intentionally disabled on Governance to ensure uninterrupted vertical list scrolling even when swiping near corners.
 - **Dedicated Default Gesture**: Swipe left on Home defaults directly to opening fullscreen Governance proposals, cleanly toggleable in Settings under **Gestures -> Swipe left** or **Nouns DAO -> Second home screen (Governance)**.
@@ -274,7 +274,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,242,846 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,243,062 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

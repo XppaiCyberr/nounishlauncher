@@ -651,7 +651,7 @@ private fun GovernanceProposalCard(
 
     val statusColor = when (prop.statusLabel.lowercase(Locale.US)) {
         "active" -> CryptoGreen
-        "executed" -> colors.textSecondary.copy(alpha = 0.85f)
+        "executed" -> CryptoGreen
         "defeated", "canceled", "vetoed" -> CryptoRed.copy(alpha = 0.85f)
         "succeeded", "queued" -> colors.textPrimary
         else -> colors.textSecondary.copy(alpha = 0.7f)
@@ -813,13 +813,24 @@ private fun GovernanceProposalCard(
                 )
 
                 Text(
-                    text = "noun.wtf ->",
+                    text = "nouncil.club ->",
                     style = typography.clock,
                     fontWeight = FontWeight.Medium,
                     color = colors.textSecondary.copy(alpha = 0.75f),
                     modifier = Modifier.clickable {
                         LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
-                        openUrl(context, "https://noun.wtf/noun/${prop.id}")
+                        openUrl(context, "https://nouncil.club/proposal/${prop.id}")
+                    }
+                )
+
+                Text(
+                    text = "nouns.game ->",
+                    style = typography.clock,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.textSecondary.copy(alpha = 0.75f),
+                    modifier = Modifier.clickable {
+                        LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
+                        openUrl(context, "https://nouns.game/proposals/${prop.id}")
                     }
                 )
             }

@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.40` (versionCode `41`) · **Optimized Release APK**: `~1.18 MB` (1,242,846 bytes)
+**Current Version**: `v1.0.41` (versionCode `42`) · **Optimized Release APK**: `~1.18 MB` (1,243,062 bytes)
 
 ---
 
@@ -73,7 +73,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
     - **On-Chain Write Transactions Specification**: Full EIP-1193 payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
   - **Governance & Candidates Feed (100% On-Chain RPC)**: Live Nouns DAO governance proposals and candidate proposals queried directly from the Ethereum Mainnet DAO Proxy (`0x6f3E6272A167e8AcCb32072d08E0957F9c79223d`) and Candidate (`0xf790A5f59678dd733fb3De93493A91f472ca1365`) contracts via JSON-RPC batch calls—with zero intermediate API backend dependency.
   - Minimalist AMOLED text-only presentation: `#1002  Proposal Title  Status`.
-  - Color-coded status indicator: **Active** in bold green (`CryptoGreen`), **Executed** in muted grey, **Defeated/Canceled/Vetoed** in subtle red.
+  - Color-coded status indicator: **Active** and **Executed** in bold green (`CryptoGreen`), **Defeated/Canceled/Vetoed** in subtle red.
   - Interactive voting expansion: Tapping any proposal reveals proposer ENS name or shortened hex, live quorum and vote counts (`By: stripymofo.eth · For: 215 · Against: 0 · Quorum: 136 · Vote ↗`).
   - Direct voting action: Tapping `Vote ↗` opens `https://nouns.wtf/vote/{id}` directly in the system web browser. Tapping a candidate proposal opens `https://nouns.wtf/candidates/{proposer}-{slug}`.
   - Parallelized RPC execution: Auction, proposals, and candidates fetch concurrently in coroutines, with synchronized `coroutineScope` management ensuring pull-to-refresh spinners remain active until all network jobs settle.
@@ -145,7 +145,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Lazy Loading of Historical Proposals & Candidates**: Scrolling to the bottom automatically paginates and lazily loads older on-chain proposals and community candidates using batch RPC queries and Alchemy asset transfer pagination.
 - **Animated Noggles Loading Indicator**: While loading older items at the bottom, an animated `⌐◨-◨` indicator types character-by-character with organic breathing scaling, pulsing alpha, and cycling progress dots in the user's accent color.
 - **Top-Right Noggles Refresh Button**: The top-right refresh action displays `Refresh ⌐◨-◨` when idle and pulses with animated breathing noggles (`Syncing... ⌐◨-◨`) while syncing from Ethereum Mainnet.
-- **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->` and `noun.wtf ->`) open official clients directly in the browser.
+- **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->`, `nouncil.club ->`, and `nouns.game ->`) open verified decentralized governance frontends directly in the browser.
 - **Dedicated Top Navigation Bar**: Clean `<- Home` navigation bar with quick on-chain refresh on Governance.
 - **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings. The App Drawer is intentionally disabled on Governance to ensure uninterrupted vertical list scrolling even when swiping near corners.
 - **Dedicated Default Gesture**: Swipe left on Home defaults directly to opening fullscreen Governance proposals, cleanly toggleable in Settings under **Gestures -> Swipe left** or **Nouns DAO -> Second home screen (Governance)**.

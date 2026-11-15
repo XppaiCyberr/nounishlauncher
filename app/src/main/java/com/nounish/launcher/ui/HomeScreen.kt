@@ -1657,7 +1657,7 @@ private fun NounsProposalList(
 
                     val statusColor = when (prop.statusLabel.lowercase(Locale.US)) {
                         "active" -> CryptoGreen
-                        "executed" -> colors.textSecondary.copy(alpha = 0.8f)
+                        "executed" -> CryptoGreen
                         "defeated", "canceled", "vetoed" -> CryptoRed.copy(alpha = 0.7f)
                         "succeeded", "queued" -> colors.textPrimary
                         else -> colors.textSecondary.copy(alpha = 0.6f)
