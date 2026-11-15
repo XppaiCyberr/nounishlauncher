@@ -107,6 +107,7 @@ fun HomeScreen(
     idxDisplayMode: String = "auto_rotate",
     idxAutoRotateIntervalSeconds: Int = 6,
     showNouns: Boolean = true,
+    showNounsAuction: Boolean = true,
     nounsAuction: NounsAuctionUi? = null,
     showNounsAuctionImage: Boolean = true,
     nounsAuctionPosition: String = "top_right",
@@ -257,7 +258,7 @@ fun HomeScreen(
         }
 
         // Top section: Clock & Date on left, Nouns Auction & Passive Note on right
-        val hasTopAuction = showNouns && nounsAuction != null
+        val hasTopAuction = showNounsAuction && nounsAuction != null
         val isAuctionBelowClock = (nounsAuctionPosition == "below_clock")
         val isAuctionTopVisible = !isAuctionBelowClock && hasTopAuction
         val isAuctionBelowClockVisible = isAuctionBelowClock && hasTopAuction

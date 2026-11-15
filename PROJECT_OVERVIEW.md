@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.37` (versionCode `38`) · **Optimized Release APK**: `~1.18 MB` (1,242,061 bytes)
+**Current Version**: `v1.0.38` (versionCode `39`) · **Optimized Release APK**: `~1.18 MB` (1,242,061 bytes)
 
 ---
 
@@ -115,6 +115,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
     - **Below Clock**: Stacks directly beneath Time and Date on the left side of the screen (`Noun #<id> · <amount>` and live countdown), grouping header information together.
     - **Top Right (Default)**: Positioned opposite the Clock & Date in the top-right corner.
     - Selectable in Settings under **Nouns DAO -> Auction widget position**.
+  - **Independent Auction & Feed Controls**: The live auction widget operates completely independently from the Home governance feed. Disabling "Show Nouns DAO feed" disables only the middle proposals and candidates cards while leaving the live auction, countdown, highest bid, and pixel-art avatar active and updating in real time.
   - Displays inline 18.dp pixel-art avatar (`https://noun.pics/{id}.png`), token ID, and highest bid (`Noun #2070 · 8.50 ETH`), with real-time countdown timer (`2h 14m left` or `Settled`) ticking second-by-second directly derived from the launcher clock.
   - Interactive expansion: tap to reveal highest bidder (with on-chain reverse ENS name like `vitalik.eth` or shortened hex) and randomized client bid link across decentralized community frontends (`nouns.wtf`, `noun.wtf`, `nouns.game`).
   - Smart de-duplication: When the live auction is displayed in the top header, the middle Nouns feed prioritizes governance Proposals and Candidates during auto-rotation, preventing duplicate auctions on screen. Auction updates continuously even when middle display mode is configured for Proposals only or Candidates only.

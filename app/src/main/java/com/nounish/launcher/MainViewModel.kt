@@ -540,7 +540,7 @@ class MainViewModel(
 
     fun startPriceRefresh(isHomeActive: Boolean = false) {
         val currentSettings = settings.value
-        val hasActiveFeed = currentSettings.cryptoPriceEnabled || currentSettings.showHomeNouns || currentSettings.showHomeIdx
+        val hasActiveFeed = currentSettings.cryptoPriceEnabled || currentSettings.showHomeNouns || currentSettings.showHomeIdx || currentSettings.showNounsAuction || currentSettings.enableGovernanceScreen
         if (!hasActiveFeed) {
             stopAllPriceUpdates()
             _priceState.value = PriceUiState()
@@ -970,7 +970,7 @@ class MainViewModel(
 
     private suspend fun fetchNounsAuction() {
         val currentSettings = settings.value
-        if (!currentSettings.showHomeNouns) return
+        if (!currentSettings.showNounsAuction && !currentSettings.showHomeNouns && !currentSettings.enableGovernanceScreen) return
 
         val result = nounsRepository.fetchCurrentAuction()
         val auction = result.getOrNull()
@@ -1174,9 +1174,11 @@ class MainViewModel(
                         launch { fetchIdxPrices() }
                     }
 
-                    // 3. Fetch Nouns auction, proposals & candidates concurrently (if showHomeNouns or enableGovernanceScreen)
-                    if (currentSettings.showHomeNouns || currentSettings.enableGovernanceScreen) {
+                    // 3. Fetch Nouns auction, proposals & candidates concurrently
+                    if (currentSettings.showNounsAuction || currentSettings.showHomeNouns || currentSettings.enableGovernanceScreen) {
                         launch { fetchNounsAuction() }
+                    }
+                    if (currentSettings.showHomeNouns || currentSettings.enableGovernanceScreen) {
                         launch { fetchNounsProposals() }
                         launch { fetchNounsCandidates() }
                     }
@@ -1654,10 +1656,18 @@ class MainViewModel(
             settingsStore.setShowHomeNouns(show)
             if (show) {
                 coroutineScope {
-                    launch { fetchNounsAuction() }
                     launch { fetchNounsProposals() }
                     launch { fetchNounsCandidates() }
                 }
+            }
+        }
+    }
+
+    fun setShowNounsAuction(show: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setShowNounsAuction(show)
+            if (show) {
+                fetchNounsAuction()
             }
         }
     }

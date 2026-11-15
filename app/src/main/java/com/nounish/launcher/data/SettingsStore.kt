@@ -135,6 +135,7 @@ data class LauncherSettings(
     val homeScreenNoteDismissed: Boolean = false,
     val homeScreenNoteIndex: Int = 0,
     val showHomeNouns: Boolean = true,
+    val showNounsAuction: Boolean = true,
     val nounsStatusFilter: String = "All",
     val nounsDisplayMode: String = "auto_rotate", // "auto_rotate", "proposals", "candidates"
     val nounsMaxDisplayCount: Int = 3,
@@ -215,6 +216,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_HOME_NOTE_DISMISSED = booleanPreferencesKey("home_note_dismissed")
         private val KEY_HOME_NOTE_INDEX = intPreferencesKey("home_note_index")
         private val KEY_SHOW_HOME_NOUNS = booleanPreferencesKey("show_home_nouns")
+        private val KEY_SHOW_NOUNS_AUCTION = booleanPreferencesKey("show_nouns_auction")
         private val KEY_NOUNS_STATUS_FILTER = stringPreferencesKey("nouns_status_filter")
         private val KEY_NOUNS_DISPLAY_MODE = stringPreferencesKey("nouns_display_mode")
         private val KEY_NOUNS_MAX_DISPLAY_COUNT = intPreferencesKey("nouns_max_display_count")
@@ -315,6 +317,7 @@ class SettingsStore(private val context: Context) {
         val homeNoteDismissed = prefs[KEY_HOME_NOTE_DISMISSED] ?: false
         val homeNoteIndex = prefs[KEY_HOME_NOTE_INDEX] ?: 0
         val showHomeNouns = prefs[KEY_SHOW_HOME_NOUNS] ?: true
+        val showNounsAuction = prefs[KEY_SHOW_NOUNS_AUCTION] ?: true
         val nounsStatusFilter = prefs[KEY_NOUNS_STATUS_FILTER] ?: "All"
         val nounsDisplayMode = prefs[KEY_NOUNS_DISPLAY_MODE] ?: "auto_rotate"
         val nounsMaxDisplayCount = prefs[KEY_NOUNS_MAX_DISPLAY_COUNT] ?: 3
@@ -392,6 +395,7 @@ class SettingsStore(private val context: Context) {
             homeScreenNoteDismissed = homeNoteDismissed,
             homeScreenNoteIndex = homeNoteIndex,
             showHomeNouns = showHomeNouns,
+            showNounsAuction = showNounsAuction,
             nounsStatusFilter = nounsStatusFilter,
             nounsDisplayMode = nounsDisplayMode,
             nounsMaxDisplayCount = nounsMaxDisplayCount,
@@ -745,6 +749,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_SHOW_HOME_NOUNS] = show }
     }
 
+    suspend fun setShowNounsAuction(show: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_NOUNS_AUCTION] = show }
+    }
+
     suspend fun setNounsStatusFilter(filter: String) {
         context.dataStore.edit { it[KEY_NOUNS_STATUS_FILTER] = filter }
     }
@@ -906,6 +914,7 @@ class SettingsStore(private val context: Context) {
         root.put("homeScreenNoteDismissed", settings.homeScreenNoteDismissed)
         root.put("homeScreenNoteIndex", settings.homeScreenNoteIndex)
         root.put("showHomeNouns", settings.showHomeNouns)
+        root.put("showNounsAuction", settings.showNounsAuction)
         root.put("nounsStatusFilter", settings.nounsStatusFilter)
         root.put("nounsDisplayMode", settings.nounsDisplayMode)
         root.put("nounsMaxDisplayCount", settings.nounsMaxDisplayCount)
@@ -1024,6 +1033,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("homeScreenNoteDismissed")) prefs[KEY_HOME_NOTE_DISMISSED] = root.getBoolean("homeScreenNoteDismissed")
                 if (root.has("homeScreenNoteIndex")) prefs[KEY_HOME_NOTE_INDEX] = root.getInt("homeScreenNoteIndex")
                 if (root.has("showHomeNouns")) prefs[KEY_SHOW_HOME_NOUNS] = root.getBoolean("showHomeNouns")
+                if (root.has("showNounsAuction")) prefs[KEY_SHOW_NOUNS_AUCTION] = root.getBoolean("showNounsAuction")
                 if (root.has("nounsStatusFilter")) prefs[KEY_NOUNS_STATUS_FILTER] = root.getString("nounsStatusFilter")
                 if (root.has("nounsDisplayMode")) prefs[KEY_NOUNS_DISPLAY_MODE] = root.getString("nounsDisplayMode")
                 if (root.has("nounsMaxDisplayCount")) prefs[KEY_NOUNS_MAX_DISPLAY_COUNT] = root.getInt("nounsMaxDisplayCount")

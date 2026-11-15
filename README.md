@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.37` (versionCode `38`) · **Release APK Footprint**: `~1.18 MB` (1,242,061 bytes)
+**Version**: `1.0.38` (versionCode `39`) · **Release APK Footprint**: `~1.18 MB` (1,242,061 bytes)
 
 ---
 
@@ -17,6 +17,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 ## Features
 
 ### 1. Direct On-Chain Nouns Auction Feed & Integrated Clock Placement
+- **Independent Auction & Feed Controls**: The live auction widget operates completely independently from the Home governance feed. Disabling "Show Nouns DAO feed" disables only the middle proposals and candidates cards while leaving the live auction, countdown, highest bid, and pixel-art avatar active and updating in real time.
 - **Cardless, Compact Integrated Styling**: Completely integrated with the screen typography (same font size and metrics as the Clock & Date, `14 sp`). No card background, no borders, and no heavy padding, blending natively into AMOLED black.
 - **Configurable Widget Placement**:
   - **Below Clock**: Stacks directly beneath the Time and Date on the left side of the screen (`Noun #<id> · <amount>` and countdown timer), keeping all status information unified on the left.

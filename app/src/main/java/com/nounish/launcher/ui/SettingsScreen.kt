@@ -98,6 +98,7 @@ fun SettingsScreen(
     onUpdateIdxSymbols: (List<String>) -> Unit = {},
     onUpdateIdxAutoRotateInterval: (Int) -> Unit = {},
     onToggleShowHomeNouns: (Boolean) -> Unit = {},
+    onToggleShowNounsAuction: (Boolean) -> Unit = {},
     onToggleEnableGovernanceScreen: (Boolean) -> Unit = {},
     onToggleShowNounsAuctionImage: (Boolean) -> Unit = {},
     onUpdateNounsAuctionPosition: (String) -> Unit = {},
@@ -244,7 +245,7 @@ fun SettingsScreen(
                         val badge = when (cat) {
                             SettingsCategory.CRYPTO -> if (settings.cryptoPriceEnabled) "Active" else null
                             SettingsCategory.IDX -> if (settings.showHomeIdx) "Active" else null
-                            SettingsCategory.NOUNS -> if (settings.showHomeNouns) "Active" else null
+                            SettingsCategory.NOUNS -> if (settings.showHomeNouns || settings.showNounsAuction || settings.enableGovernanceScreen) "Active" else null
                             SettingsCategory.APPS_BACKUP -> "${settings.pinnedApps.size}/8 pinned"
                             else -> null
                         }
@@ -274,7 +275,7 @@ fun SettingsScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Nounish Launcher 1.0.37",
+                                    text = "Nounish Launcher 1.0.38",
                                     style = typography.settingsItem,
                                     color = colors.textPrimary
                                 )
@@ -710,23 +711,14 @@ fun SettingsScreen(
                             SettingsCategory.NOUNS -> {
                                 item {
                                     SettingsSwitchRow(
-                                        title = "Show Nouns DAO feed",
-                                        subtitle = if (settings.showHomeNouns) "Display live governance proposals and candidates on Home" else "Disabled",
-                                        checked = settings.showHomeNouns,
-                                        onCheckedChange = onToggleShowHomeNouns
+                                        title = "Show Nouns live auction",
+                                        subtitle = if (settings.showNounsAuction) "Display live auction, bid, and countdown on Home" else "Disabled",
+                                        checked = settings.showNounsAuction,
+                                        onCheckedChange = onToggleShowNounsAuction
                                     )
                                 }
 
-                                item {
-                                    SettingsSwitchRow(
-                                        title = "Second home screen (Governance)",
-                                        subtitle = if (settings.enableGovernanceScreen) "Swipe left on Home to view full-screen proposals" else "Disabled",
-                                        checked = settings.enableGovernanceScreen,
-                                        onCheckedChange = onToggleEnableGovernanceScreen
-                                    )
-                                }
-
-                                if (settings.showHomeNouns) {
+                                if (settings.showNounsAuction) {
                                     item {
                                         val posLabel = when (settings.nounsAuctionPosition) {
                                             "below_clock" -> "Below clock"
@@ -747,7 +739,18 @@ fun SettingsScreen(
                                             onCheckedChange = onToggleShowNounsAuctionImage
                                         )
                                     }
+                                }
 
+                                item {
+                                    SettingsSwitchRow(
+                                        title = "Show Nouns DAO feed",
+                                        subtitle = if (settings.showHomeNouns) "Display live governance proposals and candidates on Home" else "Disabled",
+                                        checked = settings.showHomeNouns,
+                                        onCheckedChange = onToggleShowHomeNouns
+                                    )
+                                }
+
+                                if (settings.showHomeNouns) {
                                     item {
                                         val modeLabel = when (settings.nounsDisplayMode) {
                                             "auction" -> "Auction only"
@@ -779,6 +782,15 @@ fun SettingsScreen(
                                             )
                                         }
                                     }
+                                }
+
+                                item {
+                                    SettingsSwitchRow(
+                                        title = "Second home screen (Governance)",
+                                        subtitle = if (settings.enableGovernanceScreen) "Swipe left on Home to view full-screen proposals" else "Disabled",
+                                        checked = settings.enableGovernanceScreen,
+                                        onCheckedChange = onToggleEnableGovernanceScreen
+                                    )
                                 }
                             }
 

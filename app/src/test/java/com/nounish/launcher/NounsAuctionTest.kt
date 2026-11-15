@@ -25,8 +25,26 @@ class NounsAuctionTest {
         assertEquals("top_right", settings.nounsAuctionPosition)
         assertEquals("top_right", settings.homeScreenNotePosition)
         assertTrue(settings.showHomeNouns)
+        assertTrue(settings.showNounsAuction)
         assertTrue(settings.showNounsAuctionImage)
         assertTrue(settings.enableGovernanceScreen)
+    }
+
+    @Test
+    fun testDisablingFeedKeepsAuctionActive() {
+        val defaultSettings = LauncherSettings()
+        assertTrue(defaultSettings.showHomeNouns)
+        assertTrue(defaultSettings.showNounsAuction)
+
+        // Disabling the middle Nouns feed does not affect showNounsAuction
+        val feedDisabled = defaultSettings.copy(showHomeNouns = false)
+        assertFalse(feedDisabled.showHomeNouns)
+        assertTrue(feedDisabled.showNounsAuction)
+
+        // Auction can be independently disabled without affecting the feed
+        val auctionDisabled = defaultSettings.copy(showNounsAuction = false)
+        assertTrue(auctionDisabled.showHomeNouns)
+        assertFalse(auctionDisabled.showNounsAuction)
     }
 
     @Test

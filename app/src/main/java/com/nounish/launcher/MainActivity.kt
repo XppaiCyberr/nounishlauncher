@@ -200,13 +200,13 @@ class MainActivity : ComponentActivity() {
             }
 
             // Manage price refresh lifecycle: runs while drawer or home crypto/idx/nouns is active
-            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.useWebSocketOnHome, settings.swipeDownAction, settings.swipeDownToRefresh) {
+            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.showNounsAuction, settings.enableGovernanceScreen, settings.useWebSocketOnHome, settings.swipeDownAction, settings.swipeDownToRefresh) {
                 when {
-                    !settings.cryptoPriceEnabled && !settings.showHomeNouns && !settings.showHomeIdx -> {
+                    !settings.cryptoPriceEnabled && !settings.showHomeNouns && !settings.showNounsAuction && !settings.showHomeIdx && !settings.enableGovernanceScreen -> {
                         viewModel.stopAllPriceUpdates()
                     }
                     (currentScreen == Screen.Home || currentScreen == Screen.Governance) &&
-                        (settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns || settings.enableGovernanceScreen) -> {
+                        (settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns || settings.showNounsAuction || settings.enableGovernanceScreen) -> {
                         viewModel.startPriceRefresh(isHomeActive = true)
                     }
                     currentScreen == Screen.Drawer -> {
@@ -285,6 +285,7 @@ class MainActivity : ComponentActivity() {
                                     idxDisplayMode = settings.idxDisplayMode,
                                     idxAutoRotateIntervalSeconds = settings.idxAutoRotateIntervalSeconds,
                                     showNouns = settings.showHomeNouns,
+                                    showNounsAuction = settings.showNounsAuction,
                                     nounsAuction = homeNounsAuction,
                                     showNounsAuctionImage = settings.showNounsAuctionImage,
                                     nounsProposals = homeNounsList,
@@ -474,6 +475,7 @@ class MainActivity : ComponentActivity() {
                                     onUpdateIdxSymbols = { viewModel.setIdxSymbols(it) },
                                     onUpdateIdxAutoRotateInterval = { viewModel.setIdxAutoRotateInterval(it) },
                                     onToggleShowHomeNouns = { viewModel.setShowHomeNouns(it) },
+                                    onToggleShowNounsAuction = { viewModel.setShowNounsAuction(it) },
                                     onToggleEnableGovernanceScreen = { viewModel.setEnableGovernanceScreen(it) },
                                     onToggleShowNounsAuctionImage = { viewModel.setShowNounsAuctionImage(it) },
                                     onUpdateNounsAuctionPosition = { viewModel.setNounsAuctionPosition(it) },
@@ -543,8 +545,8 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // App list is kept in memory and refreshed strictly via PackageChangeReceiver / LauncherApps.Callback.
         val settings = viewModel.settings.value
-        val hasActiveHomeFeed = settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns
-        if (settings.cryptoPriceEnabled || settings.showHomeNouns) {
+        val hasActiveHomeFeed = settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns || settings.showNounsAuction
+        if (settings.cryptoPriceEnabled || settings.showHomeNouns || settings.showNounsAuction) {
             val isHome = currentScreenState.value == Screen.Home
             if (isHome && hasActiveHomeFeed) {
                 viewModel.startPriceRefresh(isHomeActive = true)
