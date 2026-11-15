@@ -141,7 +141,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Real-Time Status Filters**: Filter on-chain proposals instantly across All, Active, Succeeded, Defeated, and Executed.
 - **Complete On-Chain Voting Breakdown**: Displays proposal token IDs, status badges (color-coded in AMOLED Green/Red/Amber), full titles, reverse ENS proposer names (e.g. `stripymofo.eth`), exact vote counts (For, Against, Abstain, Quorum), and an inline visual voting ratio bar.
 - **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->` and `noun.wtf ->`) open official clients directly in the browser.
-- **Subtle Page Indicator Dots**: Clean 2-dot indicator (`● ○` on Home, `○ ●` on Governance) providing instant visual awareness and one-tap page switching.
+- **Dedicated Top Navigation Bar**: Clean `<- Home` navigation bar with quick on-chain refresh on Governance.
 - **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe up to open App Drawer, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings.
 - **Customizable**: Configurable in Settings under **Nouns DAO -> Second home screen (Governance)** or mapped to custom quick apps under **Gestures -> Swipe left app**.
 

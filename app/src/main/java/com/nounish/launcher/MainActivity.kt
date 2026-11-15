@@ -328,11 +328,6 @@ class MainActivity : ComponentActivity() {
                                     onOpenSettings = {
                                         currentScreen = Screen.Settings
                                     },
-                                    enableGovernanceScreen = settings.enableGovernanceScreen,
-                                    hasSwipeLeftPackage = !settings.swipeLeftPackage.isNullOrBlank(),
-                                    onNavigateToGovernance = {
-                                        currentScreen = Screen.Governance
-                                    },
                                     onSwipeLeft = {
                                         if (!settings.swipeLeftPackage.isNullOrBlank()) {
                                             viewModel.appRepository.launchPackage(settings.swipeLeftPackage!!)
