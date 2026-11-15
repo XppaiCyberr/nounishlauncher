@@ -80,7 +80,6 @@ fun GovernanceScreen(
     onLoadOlderProposals: () -> Unit = {},
     onLoadOlderCandidates: () -> Unit = {},
     onBack: () -> Unit,
-    onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     onDoubleTap: () -> Unit
 ) {
@@ -182,7 +181,6 @@ fun GovernanceScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
             .launcherGestures(
                 onSwipeRight = onBack,
-                onSwipeUp = onOpenDrawer,
                 onSwipeDown = {
                     LauncherHaptic.performStrong(haptic, hapticFeedbackLevel)
                     onRefresh()

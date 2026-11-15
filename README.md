@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.39` (versionCode `40`) · **Release APK Footprint**: `~1.18 MB` (1,242,675 bytes)
+**Version**: `1.0.40` (versionCode `41`) · **Release APK Footprint**: `~1.18 MB` (1,242,846 bytes)
 
 ---
 
@@ -59,8 +59,8 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Top-Right Noggles Refresh Button**: The top-right refresh action displays `Refresh ⌐◨-◨` when idle and pulses with animated breathing noggles (`Syncing... ⌐◨-◨`) while syncing from Ethereum Mainnet.
 - **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->` and `noun.wtf ->`) open official clients directly in the browser.
 - **Dedicated Top Navigation Bar**: Clean `<- Home` navigation bar with quick on-chain refresh on Governance.
-- **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe up to open App Drawer, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings.
-- **Customizable**: Configurable in Settings under **Nouns DAO -> Second home screen (Governance)** or mapped to custom quick apps under **Gestures -> Swipe left app**.
+- **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings. The App Drawer is intentionally disabled on Governance to ensure uninterrupted vertical list scrolling even when swiping near corners.
+- **Dedicated Default Gesture**: Swipe left on Home defaults directly to opening fullscreen Governance proposals, cleanly toggleable in Settings under **Gestures -> Swipe left** or **Nouns DAO -> Second home screen (Governance)**.
 
 ### 3. Signature Nounish Aesthetics & Accent Colors
 - **Official Nouns Glasses App Icon**: Features the canonical Nouns DAO glasses brandmark (`glasses-square-black-eyes-red`: black square frames, crisp white eyes, and vibrant red pupils) set against a high-contrast white adaptive background. Built as an exact 16x6 pixel-grid vector centered symmetrically within Android's 72dp adaptive safe zone to prevent edge clipping under all OEM launcher shapes (circle, squircle, round rectangle). Includes Android 13+ Themed Icon monochrome support and multi-density legacy mipmaps.
@@ -142,7 +142,8 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Open App Drawer**: Opens instant search.
   - **Disabled**: Prevents swipe-down action.
 - **Swipe Down in Drawer**: Close App Drawer.
-- **Swipe Left / Right**: Launch user-assigned quick apps.
+- **Swipe Left**: Open fullscreen Governance proposals (Nouns DAO secondary home screen).
+- **Swipe Right**: Launch user-assigned quick app.
 - **Double-Tap**: Screen lock.
 - **Long-Press Background**: Open Settings.
 - **Minimalist App Icons & Monochrome Filter**: Display subtle icons beside apps in Home and Drawer, apply an AMOLED monochrome/grayscale filter, or disable icons entirely for pure text mode.
@@ -273,7 +274,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,242,675 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,242,846 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

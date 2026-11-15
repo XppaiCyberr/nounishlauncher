@@ -173,15 +173,6 @@ fun SettingsScreen(
     var showNounsAuctionPositionDialog by remember { mutableStateOf(false) }
     var showNotePositionDialog by remember { mutableStateOf(false) }
 
-    val swipeLeftAppName = remember(settings.swipeLeftPackage, settings.enableGovernanceScreen, allApps) {
-        if (!settings.swipeLeftPackage.isNullOrBlank()) {
-            allApps.find { it.packageName == settings.swipeLeftPackage }?.displayLabel ?: "None"
-        } else if (settings.enableGovernanceScreen) {
-            "Governance Proposals (Second Home)"
-        } else {
-            "None"
-        }
-    }
     val swipeRightAppName = remember(settings.swipeRightPackage, allApps) {
         allApps.find { it.packageName == settings.swipeRightPackage }?.displayLabel ?: "None"
     }
@@ -277,7 +268,7 @@ fun SettingsScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Nounish Launcher 1.0.39",
+                                    text = "Nounish Launcher 1.0.40",
                                     style = typography.settingsItem,
                                     color = colors.textPrimary
                                 )
@@ -510,10 +501,11 @@ fun SettingsScreen(
                                 }
 
                                 item {
-                                    SettingsActionRow(
-                                        title = "Swipe left app",
-                                        subtitle = swipeLeftAppName,
-                                        onClick = { showAppPickerForSwipe = "left" }
+                                    SettingsSwitchRow(
+                                        title = "Swipe left",
+                                        subtitle = if (settings.enableGovernanceScreen) "Fullscreen governance (Nouns DAO)" else "Disabled",
+                                        checked = settings.enableGovernanceScreen,
+                                        onCheckedChange = onToggleEnableGovernanceScreen
                                     )
                                 }
 

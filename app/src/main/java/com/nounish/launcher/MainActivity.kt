@@ -336,9 +336,7 @@ class MainActivity : ComponentActivity() {
                                         currentScreen = Screen.Settings
                                     },
                                     onSwipeLeft = {
-                                        if (!settings.swipeLeftPackage.isNullOrBlank()) {
-                                            viewModel.appRepository.launchPackage(settings.swipeLeftPackage!!)
-                                        } else if (settings.enableGovernanceScreen) {
+                                        if (settings.enableGovernanceScreen) {
                                             currentScreen = Screen.Governance
                                         }
                                     },
@@ -373,10 +371,6 @@ class MainActivity : ComponentActivity() {
                                     onLoadOlderProposals = { viewModel.loadOlderProposals() },
                                     onLoadOlderCandidates = { viewModel.loadOlderCandidates() },
                                     onBack = { currentScreen = Screen.Home },
-                                    onOpenDrawer = {
-                                        viewModel.onSearchQueryChanged("")
-                                        currentScreen = Screen.Drawer
-                                    },
                                     onOpenSettings = { currentScreen = Screen.Settings },
                                     onDoubleTap = {
                                         if (settings.doubleTapLock) {

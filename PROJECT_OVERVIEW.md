@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.39` (versionCode `40`) · **Optimized Release APK**: `~1.18 MB` (1,242,675 bytes)
+**Current Version**: `v1.0.40` (versionCode `41`) · **Optimized Release APK**: `~1.18 MB` (1,242,846 bytes)
 
 ---
 
@@ -147,8 +147,8 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Top-Right Noggles Refresh Button**: The top-right refresh action displays `Refresh ⌐◨-◨` when idle and pulses with animated breathing noggles (`Syncing... ⌐◨-◨`) while syncing from Ethereum Mainnet.
 - **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->` and `noun.wtf ->`) open official clients directly in the browser.
 - **Dedicated Top Navigation Bar**: Clean `<- Home` navigation bar with quick on-chain refresh on Governance.
-- **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe up to open App Drawer, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings.
-- **Customizable**: Configurable in Settings under **Nouns DAO -> Second home screen (Governance)** or mapped to custom quick apps under **Gestures -> Swipe left app**.
+- **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings. The App Drawer is intentionally disabled on Governance to ensure uninterrupted vertical list scrolling even when swiping near corners.
+- **Dedicated Default Gesture**: Swipe left on Home defaults directly to opening fullscreen Governance proposals, cleanly toggleable in Settings under **Gestures -> Swipe left** or **Nouns DAO -> Second home screen (Governance)**.
 
 ### 3. App Drawer & Search
 - **Multi-Activity & Work Profile Support**:
@@ -454,7 +454,7 @@ Accessible by long-pressing any empty area on the Home screen. The Settings expe
 - `Passive note position`: Select placement between `Top right (Default)` and `Bottom right`. When bottom-right is chosen, it sits side-by-side with pinned shortcuts in a split bottom section.
 - `Gestures`:
   - `Swipe down action`: Configure downward swipe action on Home: Refresh market & Nouns data (default, pull-down with ⌐◨-◨ indicator; pauses background polling), Open notification shade, Open app drawer, or Disabled.
-  - `Swipe left app`: Assign an app to launch on left swipe.
+  - `Swipe left`: Fullscreen governance (Nouns DAO secondary home screen toggle).
   - `Swipe right app`: Assign an app to launch on right swipe.
   - `Double tap to lock screen`: Toggle double-tap screen lock.
 - `App Drawer`:
