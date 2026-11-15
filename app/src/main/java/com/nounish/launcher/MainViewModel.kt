@@ -924,14 +924,14 @@ class MainViewModel(
 
     private suspend fun fetchNounsProposals() {
         val currentSettings = settings.value
-        if (!currentSettings.showHomeNouns) return
+        if (!currentSettings.showHomeNouns && !currentSettings.enableGovernanceScreen) return
 
         currentSettings.cachedNounsProposals.forEach { cached ->
             NounsRepository.cacheProposalTitle(cached.id, cached.title)
         }
 
         val result = nounsRepository.fetchProposals(
-            limit = 10,
+            limit = 15,
             status = currentSettings.nounsStatusFilter
         )
         val proposals = result.getOrNull()
@@ -969,8 +969,8 @@ class MainViewModel(
 
     private suspend fun fetchNounsCandidates() {
         val currentSettings = settings.value
-        if (!currentSettings.showHomeNouns) return
-        if (currentSettings.nounsDisplayMode == "proposals") return
+        if (!currentSettings.showHomeNouns && !currentSettings.enableGovernanceScreen) return
+        if (currentSettings.nounsDisplayMode == "proposals" && !currentSettings.enableGovernanceScreen) return
 
         val result = nounsRepository.fetchCandidates(limit = 10)
         val candidates = result.getOrNull()
@@ -1532,6 +1532,19 @@ class MainViewModel(
     fun setNounsAuctionPosition(position: String) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setNounsAuctionPosition(position)
+        }
+    }
+
+    fun setEnableGovernanceScreen(enable: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setEnableGovernanceScreen(enable)
+            if (enable) {
+                coroutineScope {
+                    launch { fetchNounsAuction() }
+                    launch { fetchNounsProposals() }
+                    launch { fetchNounsCandidates() }
+                }
+            }
         }
     }
 

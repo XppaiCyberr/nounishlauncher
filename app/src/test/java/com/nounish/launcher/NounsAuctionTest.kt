@@ -26,6 +26,7 @@ class NounsAuctionTest {
         assertEquals("top_right", settings.homeScreenNotePosition)
         assertTrue(settings.showHomeNouns)
         assertTrue(settings.showNounsAuctionImage)
+        assertTrue(settings.enableGovernanceScreen)
     }
 
     @Test
@@ -258,5 +259,21 @@ class NounsAuctionTest {
 
         val randomClient = NounsRepository.getRandomAuctionClient()
         assertTrue(clients.contains(randomClient))
+    }
+
+    @Test
+    fun testGovernanceScreenSettings() {
+        val defaultSettings = LauncherSettings()
+        assertTrue(defaultSettings.enableGovernanceScreen)
+        assertNull(defaultSettings.swipeLeftPackage)
+
+        val disabledSettings = defaultSettings.copy(enableGovernanceScreen = false)
+        assertFalse(disabledSettings.enableGovernanceScreen)
+
+        val screens = Screen.values().map { it.name }
+        assertTrue(screens.contains("Governance"))
+        assertTrue(screens.contains("Home"))
+        assertTrue(screens.contains("Drawer"))
+        assertTrue(screens.contains("Settings"))
     }
 }

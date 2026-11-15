@@ -17,6 +17,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -32,6 +34,7 @@ import androidx.lifecycle.lifecycleScope
 import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
 import com.nounish.launcher.service.LockScreenService
 import com.nounish.launcher.ui.DrawerScreen
+import com.nounish.launcher.ui.GovernanceScreen
 import com.nounish.launcher.ui.HomeScreen
 import com.nounish.launcher.ui.SettingsScreen
 import com.nounish.launcher.ui.theme.LauncherTheme
@@ -42,6 +45,7 @@ import kotlinx.coroutines.withContext
 
 enum class Screen {
     Home,
+    Governance,
     Drawer,
     Settings
 }
@@ -195,7 +199,8 @@ class MainActivity : ComponentActivity() {
                     !settings.cryptoPriceEnabled && !settings.showHomeNouns && !settings.showHomeIdx -> {
                         viewModel.stopAllPriceUpdates()
                     }
-                    currentScreen == Screen.Home && (settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns) -> {
+                    (currentScreen == Screen.Home || currentScreen == Screen.Governance) &&
+                        (settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns || settings.enableGovernanceScreen) -> {
                         viewModel.startPriceRefresh(isHomeActive = true)
                     }
                     currentScreen == Screen.Drawer -> {
@@ -228,12 +233,32 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Fast fade animation under 150 ms
+                    // Fast hardware-accelerated transitions
                     AnimatedContent(
                         targetState = currentScreen,
                         transitionSpec = {
-                            fadeIn(animationSpec = tween(durationMillis = 120)) togetherWith
-                                fadeOut(animationSpec = tween(durationMillis = 90))
+                            if (initialState == Screen.Home && targetState == Screen.Governance) {
+                                slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(durationMillis = 200)
+                                ) + fadeIn(animationSpec = tween(durationMillis = 150)) togetherWith
+                                    slideOutHorizontally(
+                                        targetOffsetX = { -it / 3 },
+                                        animationSpec = tween(durationMillis = 180)
+                                    ) + fadeOut(animationSpec = tween(durationMillis = 150))
+                            } else if (initialState == Screen.Governance && targetState == Screen.Home) {
+                                slideInHorizontally(
+                                    initialOffsetX = { -it / 3 },
+                                    animationSpec = tween(durationMillis = 200)
+                                ) + fadeIn(animationSpec = tween(durationMillis = 150)) togetherWith
+                                    slideOutHorizontally(
+                                        targetOffsetX = { it },
+                                        animationSpec = tween(durationMillis = 180)
+                                    ) + fadeOut(animationSpec = tween(durationMillis = 150))
+                            } else {
+                                fadeIn(animationSpec = tween(durationMillis = 120)) togetherWith
+                                    fadeOut(animationSpec = tween(durationMillis = 90))
+                            }
                         },
                         label = "ScreenTransition"
                     ) { screen ->
@@ -303,9 +328,16 @@ class MainActivity : ComponentActivity() {
                                     onOpenSettings = {
                                         currentScreen = Screen.Settings
                                     },
+                                    enableGovernanceScreen = settings.enableGovernanceScreen,
+                                    hasSwipeLeftPackage = !settings.swipeLeftPackage.isNullOrBlank(),
+                                    onNavigateToGovernance = {
+                                        currentScreen = Screen.Governance
+                                    },
                                     onSwipeLeft = {
-                                        settings.swipeLeftPackage?.let { pkg ->
-                                            viewModel.appRepository.launchPackage(pkg)
+                                        if (!settings.swipeLeftPackage.isNullOrBlank()) {
+                                            viewModel.appRepository.launchPackage(settings.swipeLeftPackage!!)
+                                        } else if (settings.enableGovernanceScreen) {
+                                            currentScreen = Screen.Governance
                                         }
                                     },
                                     onSwipeRight = {
@@ -322,6 +354,27 @@ class MainActivity : ComponentActivity() {
                                     swipeDownAction = settings.swipeDownAction,
                                     hapticFeedbackLevel = settings.hapticFeedbackLevel,
                                     onManualRefresh = { viewModel.refreshMarketAndNounsData() }
+                                )
+                            }
+
+                            Screen.Governance -> {
+                                GovernanceScreen(
+                                    proposals = homeNounsList,
+                                    candidates = homeNounsCandidatesList,
+                                    isRefreshing = isRefreshingData,
+                                    hapticFeedbackLevel = settings.hapticFeedbackLevel,
+                                    onRefresh = { viewModel.refreshMarketAndNounsData() },
+                                    onBack = { currentScreen = Screen.Home },
+                                    onOpenDrawer = {
+                                        viewModel.onSearchQueryChanged("")
+                                        currentScreen = Screen.Drawer
+                                    },
+                                    onOpenSettings = { currentScreen = Screen.Settings },
+                                    onDoubleTap = {
+                                        if (settings.doubleTapLock) {
+                                            LockScreenService.lockScreen(this@MainActivity)
+                                        }
+                                    }
                                 )
                             }
 
@@ -414,6 +467,7 @@ class MainActivity : ComponentActivity() {
                                     onUpdateIdxSymbols = { viewModel.setIdxSymbols(it) },
                                     onUpdateIdxAutoRotateInterval = { viewModel.setIdxAutoRotateInterval(it) },
                                     onToggleShowHomeNouns = { viewModel.setShowHomeNouns(it) },
+                                    onToggleEnableGovernanceScreen = { viewModel.setEnableGovernanceScreen(it) },
                                     onToggleShowNounsAuctionImage = { viewModel.setShowNounsAuctionImage(it) },
                                     onUpdateNounsAuctionPosition = { viewModel.setNounsAuctionPosition(it) },
                                     onUpdateNounsDisplayMode = { viewModel.setNounsDisplayMode(it) },

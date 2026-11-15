@@ -147,7 +147,8 @@ data class LauncherSettings(
     val showNounsAuctionImage: Boolean = true,
     val topRightCard: String = "auction",
     val nounsAuctionPosition: String = "top_right", // "top_right", "below_clock"
-    val homeScreenNotePosition: String = "top_right" // "top_right", "bottom_right"
+    val homeScreenNotePosition: String = "top_right", // "top_right", "bottom_right"
+    val enableGovernanceScreen: Boolean = true
 )
 
 class SettingsStore(private val context: Context) {
@@ -227,6 +228,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_TOP_RIGHT_CARD = stringPreferencesKey("top_right_card")
         private val KEY_NOUNS_AUCTION_POSITION = stringPreferencesKey("nouns_auction_position")
         private val KEY_HOME_SCREEN_NOTE_POSITION = stringPreferencesKey("home_screen_note_position")
+        private val KEY_ENABLE_GOVERNANCE_SCREEN = booleanPreferencesKey("enable_governance_screen")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -326,6 +328,7 @@ class SettingsStore(private val context: Context) {
         val topRightCard = prefs[KEY_TOP_RIGHT_CARD] ?: "auction"
         val nounsAuctionPosition = prefs[KEY_NOUNS_AUCTION_POSITION] ?: "top_right"
         val homeScreenNotePosition = prefs[KEY_HOME_SCREEN_NOTE_POSITION] ?: "top_right"
+        val enableGovernanceScreen = prefs[KEY_ENABLE_GOVERNANCE_SCREEN] ?: true
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -401,7 +404,8 @@ class SettingsStore(private val context: Context) {
             showNounsAuctionImage = showNounsAuctionImage,
             topRightCard = topRightCard,
             nounsAuctionPosition = nounsAuctionPosition,
-            homeScreenNotePosition = homeScreenNotePosition
+            homeScreenNotePosition = homeScreenNotePosition,
+            enableGovernanceScreen = enableGovernanceScreen
         )
     }
 
@@ -733,6 +737,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_HOME_SCREEN_NOTE_POSITION] = position }
     }
 
+    suspend fun setEnableGovernanceScreen(enable: Boolean) {
+        context.dataStore.edit { it[KEY_ENABLE_GOVERNANCE_SCREEN] = enable }
+    }
+
     suspend fun setShowHomeNouns(show: Boolean) {
         context.dataStore.edit { it[KEY_SHOW_HOME_NOUNS] = show }
     }
@@ -905,6 +913,7 @@ class SettingsStore(private val context: Context) {
         root.put("topRightCard", settings.topRightCard)
         root.put("nounsAuctionPosition", settings.nounsAuctionPosition)
         root.put("homeScreenNotePosition", settings.homeScreenNotePosition)
+        root.put("enableGovernanceScreen", settings.enableGovernanceScreen)
 
         return root.toString(2)
     }
@@ -1022,6 +1031,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("topRightCard")) prefs[KEY_TOP_RIGHT_CARD] = root.getString("topRightCard")
                 if (root.has("nounsAuctionPosition")) prefs[KEY_NOUNS_AUCTION_POSITION] = root.getString("nounsAuctionPosition")
                 if (root.has("homeScreenNotePosition")) prefs[KEY_HOME_SCREEN_NOTE_POSITION] = root.getString("homeScreenNotePosition")
+                if (root.has("enableGovernanceScreen")) prefs[KEY_ENABLE_GOVERNANCE_SCREEN] = root.getBoolean("enableGovernanceScreen")
             }
             true
         } catch (_: Exception) {

@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.36` (versionCode `37`) · **Release APK Footprint**: `~1.13 MB` (1,186,328 bytes)
+**Version**: `1.0.37` (versionCode `38`) · **Release APK Footprint**: `~1.17 MB` (1,236,484 bytes)
 
 ---
 
@@ -48,7 +48,17 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **On-Chain Write Transactions Specification**: Full EIP-1193 unsigned payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
 - **Offline DataStore Caching**: Caches full auction state in Jetpack DataStore preferences for zero-latency frame-1 presentation on launch.
 
-### 2. Signature Nounish Aesthetics & Accent Colors
+### 2. Multi-Home Screen & Full-Screen Governance Proposals Space
+- **Swipe-Left Secondary Home Screen**: Swipe left from anywhere on Home to access a dedicated, full-screen Nouns DAO Governance space with fluid hardware-accelerated horizontal slide transitions.
+- **Proposals & Candidates Dual Tabs**: Toggle seamlessly between active governance Proposals and community Candidates via clean top tabs.
+- **Real-Time Status Filters**: Filter on-chain proposals instantly across All, Active, Succeeded, Defeated, and Executed.
+- **Complete On-Chain Voting Breakdown**: Displays proposal token IDs, status badges (color-coded in AMOLED Green/Red/Amber), full titles, reverse ENS proposer names (e.g. `stripymofo.eth`), exact vote counts (For, Against, Abstain, Quorum), and an inline visual voting ratio bar.
+- **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->` and `noun.wtf ->`) open official clients directly in the browser.
+- **Subtle Page Indicator Dots**: Clean 2-dot indicator (`● ○` on Home, `○ ●` on Governance) providing instant visual awareness and one-tap page switching.
+- **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe up to open App Drawer, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings.
+- **Customizable**: Configurable in Settings under **Nouns DAO -> Second home screen (Governance)** or mapped to custom quick apps under **Gestures -> Swipe left app**.
+
+### 3. Signature Nounish Aesthetics & Accent Colors
 - **Official Nouns Glasses App Icon**: Features the canonical Nouns DAO glasses brandmark (`glasses-square-black-eyes-red`: black square frames, crisp white eyes, and vibrant red pupils) set against a high-contrast white adaptive background. Built as an exact 16x6 pixel-grid vector centered symmetrically within Android's 72dp adaptive safe zone to prevent edge clipping under all OEM launcher shapes (circle, squircle, round rectangle). Includes Android 13+ Themed Icon monochrome support and multi-density legacy mipmaps.
 - **Signature Nounish Accent Color Palettes**: Choose from 6 curated palettes to personalize your experience while maintaining AMOLED elegance:
   - **Pure Monochrome**: Crisp white (`#FFFFFF`) on AMOLED Black / Deep graphite (`#121212`) in Light Theme.
@@ -67,7 +77,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   7. **Settings Category Pills**: Active selector pill border, background tint, and label text in Settings.
   8. **Switch Toggles**: Checked switch track color across all settings toggles.
 
-### 3. Customizable Haptic Feedback Intensity
+### 4. Customizable Haptic Feedback Intensity
 - **4 Distinct Feedback Levels**: Fine-tune tactile feedback across the launcher:
   - **Standard**: Balanced tactile ticks for navigation and firm long-press triggers.
   - **Subtle (Light Tick)**: Gentle, understated micro-ticks across all interactions.
@@ -75,19 +85,19 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
   - **Off (Disabled)**: Completely silent, vibration-free operation.
 - **Universal Application**: Seamlessly integrated across pull-to-refresh resistance milestones, gesture triggers (swipe down, screen lock), alphabet index scrubbing (tick on each letter crossed), and one-tap clipboard copy actions.
 
-### 4. Wallpaper Change Support & AMOLED Dark Scrim
+### 5. Wallpaper Change Support & AMOLED Dark Scrim
 - **Wallpaper Change Options**: Update the system wallpaper directly from Settings without leaving the launcher:
   - **Gallery / Photos Picker**: Select any photo with native crop-and-set intent (`WallpaperManager.getCropAndSetWallpaperIntent`) and direct bitmap stream fallback.
   - **System Wallpaper & Style Picker**: Direct shortcut to Android's native wallpaper chooser (`Intent.ACTION_SET_WALLPAPER`).
 - **AMOLED Dark Scrim Overlay**: Pair device wallpaper with a customizable dark scrim overlay (adjustable from **50% to 95%**, default **80%**) to ensure typography remains crisp, legible, and AMOLED-friendly over any image.
 
-### 5. Window Hardware Alpha Compositing Architecture (Zero-Ghosting)
+### 6. Window Hardware Alpha Compositing Architecture (Zero-Ghosting)
 - **RGBA_8888 Translucent Window Surface**: Explicitly configured via `window.setFormat(PixelFormat.TRANSLUCENT)`, ensuring Android's SurfaceFlinger hardware compositor blends window pixels directly with the wallpaper layer without color-depth reduction or banding artifacts.
 - **Window Translucency & Wallpaper Flags**: Configured with `android:windowIsTranslucent = true` and `android:windowShowWallpaper = true` in window styles with transparent backgrounds, allowing hardware-accelerated wallpaper presentation.
 - **Static Root Scrim Layer**: The root `Surface` applies `LauncherTheme.colors.background` (using `Color.Black.copy(alpha = dimAlpha)` or `#000000`) as a single, static compositing layer. Child screens (Home, Drawer, Settings) render on transparent surfaces, eliminating double-scrim multiplication and preventing background darkening during transitions.
 - **`AnimatedContent` Sequential Transitions**: Screen transitions utilize `AnimatedContent` with `fadeIn(tween(120))` together with `fadeOut(tween(90))`. Screen composables are cleanly disposed upon exit rather than overlapping simultaneously, guaranteeing **zero ghosting, no lingering text afterimages**, and silky-smooth 120 FPS transitions.
 
-### 6. App Drawer, Search & Ergonomics
+### 7. App Drawer, Search & Ergonomics
 - **Recent Apps**: Displays your most recently used apps in a clean, scrollable horizontal row of pills at the top (or anchored above the bottom search bar for instant one-handed reach). Automatically tracks up to 5 launched apps with LRU deduplication and hides seamlessly when searching.
 - **Inline Minimalist Calculator**: Type arithmetic expressions directly into the search bar (`125 * 8`, `45000 / 12`, `(15 + 5) * 4`, `25% * 80`, `2^8`, `100 - 15%`) to calculate in real time. Displays a clean `= <result>` row in your chosen accent color with one-tap copy to clipboard, subtle "Copied" confirmation, tactile haptic feedback, and zero interference with normal app searching.
 - **Deep App Shortcuts (Android 7.1+)**: Long-pressing any app on Home or Drawer queries dynamic, manifest, and pinned shortcuts via native `LauncherApps.getShortcuts()` (e.g. Chrome's "New Tab", chat conversations). Displayed as clean AMOLED text rows above standard options for instant one-tap launch.
@@ -100,7 +110,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Niagara-Style Fluid Wave Animation**: When scrubbing the alphabet index, apps smoothly curve and wave towards your thumb with organic spring physics at 120 FPS. Toggleable in Settings for a completely static list.
 - **App Context Menu**: Long-press any app to access deep shortcuts, Rename, Pin/Unpin, Hide/Unhide, App Info, and Uninstall.
 
-### 7. Home Screen Essentials
+### 8. Home Screen Essentials
 - **Pinned App Management & Split Bottom Layout**: Pin up to 8 apps (0–8 freely configurable) in large (`28 sp`) light-weight typography positioned in the lower-left area for ergonomic thumb reach. Click targets strictly wrap the app icon and label so tapping the empty right side never launches an app.
 - **Dedicated Up/Down Reordering**: Reorder pinned shortcuts directly in Settings -> Pinned Apps with dedicated up (`↑`) and down (`↓`) controls without unpinning and re-pinning.
 - **Clean Uninstall Pruning**: Automatically drops uninstalled apps from pinned shortcuts and DataStore, leaving zero dead entries.
@@ -109,7 +119,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Passive Learning Notes (Top Right or Bottom Right)**: Minimalist card featuring the ethos of Nounish `⌐◨-◨` ("do good with no expectation of return, create positive externalities, embrace absurdity & difference, teach people about nouns & crypto, have fun and be honest. - PIP3"), with tap-to-cycle bites of crypto culture and web3 terminology. Free of distracting swap or dismiss buttons. Tapping the card cycles smoothly to the next tip. Fully configurable in Settings (`Top right (Default)` or `Bottom right` split alongside pinned apps).
 - **Currency Format**: Real-time market prices clearly specify currency format across tickers, headers, and ranges—using `USDT` for Crypto (e.g. `68,450 USDT`) and `IDR` for IDX Saham (e.g. `9,850 IDR`). Configurable in Settings (Suffix, Prefix, or None).
 
-### 8. Live Market & Community Feeds
+### 9. Live Market & Community Feeds
 - **Live Binance Crypto Market Overview**: Real-time tickers, current prices, 24-hour daily percentage change, text sparklines (` ▂▃▄▅▆▇█`), and expandable 24h high/low (`H: 78,068 · L: 77,262`). Supports custom watchlists (`BTC`, `ETH`, `SOL`, `PEPE`, `BTCUSDT`, `ETHBIDR`) and quote currencies (`USDT`, `USDC`, `EUR`, `BIDR`, `TRY`, `BRL`, `GBP`, `AUD`, `BTC`).
 - **Indonesian Stock Exchange (IDX Saham)**: Live IDX quotes (`https://idx.xpp.wtf/`) with modes for Auto Rotate, Market Indices (`IHSG`, `LQ45`), Top Gainers, Top Losers, or Custom Watchlist (`BBCA`, `BBRI`, `BMRI`, `TLKM`, `ASII`, `GOTO`), complete with expandable 24h high/low and volume on tap.
 - **Auto-Rotating IDX Categories with Staggered Wave Transition**: In Auto Rotate mode, the IDX view smoothly cycles through categories every 6 seconds. Each transition features a staggered wave animation where stock rows slide 1 by 1 to the left with dynamic descriptive headers.
@@ -119,7 +129,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Stale-Data Indicators & Network Awareness**: When offline or displaying cached prices, values dim and display a subtle age marker (`·now`, `·5m`, `·1h`). Automatically stretches poll intervals on cellular data or battery saver mode, with exponential backoff on HTTP 429 rate limits.
 - **Optional Live WebSocket on Home**: Stream live real-time Binance ticks directly on Home via native RFC 6455 WebSocket client, cleanly closed when leaving Home or locking the screen.
 
-### 9. Gestures & Customization
+### 10. Gestures & Customization
 - **Swipe Up**: Open App Drawer.
 - **Swipe Down on Home**: Fully configurable in Settings:
   - **Manual refresh** (default): Refreshes market and Nouns data with breathing/typing `⌐◨-◨` glasses (pauses background polling).
@@ -152,7 +162,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 | **Storage & Persistence** | Jetpack DataStore Preferences | Asynchronous, thread-safe disk persistence for settings and cached data |
 | **Document Access** | Android Storage Access Framework (SAF) | Permissionless, offline JSON backup and restore (`CreateDocument` / `OpenDocument`) |
 | **Networking** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external network libraries; `org.json` parser; WebSocket client |
-| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.13 MB** release APK (1,186,328 bytes) |
+| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.17 MB** release APK (1,236,484 bytes) |
 
 ---
 
@@ -184,6 +194,7 @@ nounishlauncher/
 │       │   │   │   └── NetworkHelper.kt         # Metered network and battery saver detection
 │       │   │   ├── ui/
 │       │   │   │   ├── HomeScreen.kt            # Clock, date, market overview, text sparklines, pinned apps
+│       │   │   │   ├── GovernanceScreen.kt      # Full-screen Nouns DAO governance proposals & candidates space
 │       │   │   │   ├── DrawerScreen.kt          # Search bar, recent apps, calculator row, Niagara wave index
 │       │   │   │   ├── SettingsScreen.kt        # Settings hub, accent dialog, wallpaper, haptic level, SAF
 │       │   │   │   ├── GestureModifier.kt       # Gesture detection for swipes, taps, and long-presses
@@ -257,7 +268,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,186,328 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.17 MB** / 1,236,484 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

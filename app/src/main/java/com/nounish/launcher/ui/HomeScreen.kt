@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
@@ -141,6 +142,9 @@ fun HomeScreen(
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
     onDoubleTap: () -> Unit,
+    enableGovernanceScreen: Boolean = true,
+    hasSwipeLeftPackage: Boolean = false,
+    onNavigateToGovernance: () -> Unit = {},
     isRefreshing: Boolean = false,
     swipeDownAction: String = "refresh",
     hapticFeedbackLevel: String = "standard",
@@ -863,6 +867,41 @@ fun HomeScreen(
                             modifier = Modifier.clickable { onOpenSettings() }
                         )
                     }
+                }
+            }
+
+            if (enableGovernanceScreen && !hasSwipeLeftPackage) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Page 1 (Home - Active)
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(
+                                color = colors.accent,
+                                shape = CircleShape
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    // Page 2 (Governance - Inactive, Clickable)
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(
+                                color = colors.textSecondary.copy(alpha = 0.35f),
+                                shape = CircleShape
+                            )
+                            .clickable {
+                                LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
+                                onNavigateToGovernance()
+                            }
+                    )
                 }
             }
         }

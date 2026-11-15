@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.36` (versionCode `37`) · **Optimized Release APK**: `~1.13 MB` (1,186,328 bytes)
+**Current Version**: `v1.0.37` (versionCode `38`) · **Optimized Release APK**: `~1.17 MB` (1,236,484 bytes)
 
 ---
 
@@ -25,6 +25,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 7. **Strict Background Discipline**: App lists are cached in memory and refreshed exclusively on package broadcast events. All network polling and WebSocket connections terminate immediately on `onPause()` or when navigating away from Home.
 8. **Window Hardware Alpha Compositing Architecture (Zero-Ghosting)**: Translucent RGBA_8888 window surface composited directly by SurfaceFlinger against the system wallpaper, paired with a single static root scrim layer and sequential `AnimatedContent` transitions that prevent afterimage ghosting.
 9. **Canonical Nouns Glasses App Icon**: The app launcher icon implements the official Nouns DAO glasses (`glasses-square-black-eyes-red`: black square frames, crisp white eyes, red pupils) against a high-contrast white adaptive background. Vector-drawn with an exact 16x6 pixel grid centered in Android's 72dp safe zone for zero clipping on any OEM mask shape, accompanied by themed monochrome icon support and full multi-density legacy mipmaps.
+10. **Multi-Home Screen Architecture & Dedicated Governance Canvas**: Clean 2-page horizontal navigation providing a full-screen space for Nouns DAO governance proposals and candidates with dedicated status filtering, visual voting ratio bars, and reverse ENS proposer names.
 
 ---
 
@@ -134,7 +135,17 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Toggleable in Settings under **General -> Gestures -> Swipe down action**.
 - **Blank Area Long-Press**: Opens launcher Settings.
 
-### 2. App Drawer & Search
+### 2. Multi-Home Screen & Full-Screen Governance Proposals Space
+- **Swipe-Left Secondary Home Screen**: Swipe left from anywhere on Home to access a dedicated, full-screen Nouns DAO Governance space with fluid hardware-accelerated horizontal slide transitions.
+- **Proposals & Candidates Dual Tabs**: Toggle seamlessly between active governance Proposals and community Candidates via clean top tabs.
+- **Real-Time Status Filters**: Filter on-chain proposals instantly across All, Active, Succeeded, Defeated, and Executed.
+- **Complete On-Chain Voting Breakdown**: Displays proposal token IDs, status badges (color-coded in AMOLED Green/Red/Amber), full titles, reverse ENS proposer names (e.g. `stripymofo.eth`), exact vote counts (For, Against, Abstain, Quorum), and an inline visual voting ratio bar.
+- **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->` and `noun.wtf ->`) open official clients directly in the browser.
+- **Subtle Page Indicator Dots**: Clean 2-dot indicator (`● ○` on Home, `○ ●` on Governance) providing instant visual awareness and one-tap page switching.
+- **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe up to open App Drawer, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings.
+- **Customizable**: Configurable in Settings under **Nouns DAO -> Second home screen (Governance)** or mapped to custom quick apps under **Gestures -> Swipe left app**.
+
+### 3. App Drawer & Search
 - **Multi-Activity & Work Profile Support**:
   - Uses Android's official `LauncherApps` API across all user profiles (personal, work profile, secondary users).
   - Work profile apps are identified with a clean `(Work)` label suffix and launched directly into the managed profile via `launcherApps.startMainActivity`.
@@ -194,16 +205,16 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **App Info** (Opens system application details)
   - **Uninstall** (Prompts system uninstallation)
 
-### 3. Hidden Apps
+### 4. Hidden Apps
 - Hide distracting or rarely used apps from the main drawer list.
 - Hidden apps only appear when explicitly typed into the search bar or in the **Hidden Apps** manager in Settings.
 
-### 4. Settings Backup & Restore (JSON)
+### 5. Settings Backup & Restore (JSON)
 - **Zero-Telemetry Local Backup**: Export all pinned apps, hidden apps, custom app labels, and settings into an offline JSON file.
 - **Storage Access Framework (SAF)**: Integrates seamlessly with Android's system document picker (`CreateDocument` and `OpenDocument`) for safe, permissionless file import and export.
 - **Backwards Compatible**: Parses existing and future setting backups gracefully.
 
-### 5. Gestures
+### 6. Gestures
 - **Swipe Up**: Open App Drawer.
 - **Swipe Down on Home**: Fully configurable action:
   - **Refresh Market & Nouns Data** (default): Manually refresh market and Nouns data (Binance Crypto, IDX, Nouns DAO) with animated `⌐◨-◨` pull, breathing pulse, and character typing indicator. When selected, automatic background polling is paused.
@@ -211,13 +222,13 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Open App Drawer**: Opens the search and app drawer on downward swipe.
   - **Disabled**: Turns off downward swipe on Home.
 - **Swipe Down in Drawer**: Close App Drawer.
-- **Swipe Left**: Launch user-assigned quick app.
+- **Swipe Left**: Open Governance Proposals space (or user-assigned quick app).
 - **Swipe Right**: Launch user-assigned quick app.
 - **Double-Tap**: Screen lock trigger via `LockScreenService`.
 - **Long-Press**: Open Settings.
-- **System Back Button**: Prevents accidentally closing the launcher; returns to Home from Drawer or Settings.
+- **System Back Button**: Prevents accidentally closing the launcher; returns to Home from Governance, Drawer, or Settings.
 
-### 6. Crypto Price Ticker & Live Streaming
+### 7. Crypto Price Ticker & Live Streaming
 - **Zero API Key Required**: Queries Binance's public 24-hour ticker endpoint (`https://data-api.binance.vision/api/v3/ticker/24hr` with automatic failover to `api.binance.com` and `api.binance.me`).
 - **Custom Coin Watchlist**: Add any coin symbol (e.g. `BTC`, `ETH`, `SOL`, `PEPE`) or full trading pair (e.g. `BTCUSDT`, `ETHBIDR`).
 - **Quote Currency Selector**: Supports presets for `USDT`, `USDC`, `EUR`, `BIDR` (IDR), `TRY`, `BRL`, `GBP`, `AUD`, `BTC`, or any custom quote currency.
@@ -227,7 +238,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Optional Live WebSocket on Home**: Built-in zero-dependency RFC 6455 WebSocket client connecting to `data-stream.binance.vision:443`. Streams real-time price updates tick-by-tick directly to the Home screen. Closed immediately on pause, screen lock, or when navigating away.
 - **Stale-Data Indicator**: When offline or if API calls fail, cached prices are clearly marked with their age (`·now`, `·5m`, `·1h`) and dimmed.
 
-### 7. Aesthetics, Wallpaper & Personalization
+### 8. Aesthetics, Wallpaper & Personalization
 - **Signature Nounish Accent Colors**: Choose between Pure Monochrome, Nounish Red `⌐◨-◨` (`#E53935`), Warm Amber (`#FFB300`), AMOLED Mint Green (`#00E676`), Muted Slate (`#90A4AE`), and Soft Lavender (`#B39DDB`).
 - **Customizable Haptic Feedback Intensity**: Choose between `Standard`, `Subtle (Light Tick)`, `Firm (Strong)`, and `Off (Disabled)` for tactile feedback across gestures, alphabet scrubbing, pull-to-refresh, and copying.
 - **Wallpaper Change Support**: Direct integration with Gallery / Photos (crop-and-set) and Android System Wallpaper & Style picker from within Settings.
@@ -387,6 +398,7 @@ nounishlauncher/
 │       │   │   │   └── NetworkHelper.kt         # Metered network and battery saver detection
 │       │   │   ├── ui/
 │       │   │   │   ├── HomeScreen.kt            # Clock, date, market overview, text sparklines, pinned apps
+│       │   │   │   ├── GovernanceScreen.kt      # Full-screen Nouns DAO governance proposals & candidates space
 │       │   │   │   ├── DrawerScreen.kt          # Search bar, recent apps, calculator row, Niagara wave index
 │       │   │   │   ├── SettingsScreen.kt        # Settings hub, accent dialog, wallpaper, haptic level, SAF
 │       │   │   │   ├── GestureModifier.kt       # Pointer detection for swipes, taps, and long-presses
@@ -559,7 +571,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 
 ### Outputs
-- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.13 MB** / 1,186,328 bytes)
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.17 MB** / 1,236,484 bytes)
 - **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 - **Release App Bundle**: `app/build/outputs/bundle/release/app-release.aab`
 
