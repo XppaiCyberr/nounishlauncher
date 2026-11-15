@@ -87,6 +87,11 @@ data class NounsCandidate(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class CandidatesPage(
+    val candidates: List<NounsCandidate>,
+    val nextPageKey: String?
+)
+
 data class NounsCandidateUi(
     val slug: String,
     val title: String,
@@ -109,35 +114,55 @@ data class RawProposalStruct(
 
 class NounsRepository {
 
-    suspend fun fetchProposals(limit: Int = 10, status: String = "All"): Result<List<NounsProposal>> = withContext(Dispatchers.IO) {
+    suspend fun fetchProposals(
+        limit: Int = 10,
+        status: String = "All",
+        beforeId: Int? = null
+    ): Result<List<NounsProposal>> = withContext(Dispatchers.IO) {
         val targetLimit = limit.coerceIn(1, 20)
         val isAllStatus = status.equals("All", ignoreCase = true)
         val batchWindow = if (isAllStatus) targetLimit else (targetLimit * 3).coerceIn(12, 30)
 
+        if (beforeId != null && beforeId <= 0) {
+            return@withContext Result.success(emptyList())
+        }
+
         for (rpcUrl in RPC_ENDPOINTS) {
             try {
-                // 1. Query proposalCount() -> selector 0xda35c664 on DAO Proxy
-                val countPayload = JSONObject().apply {
-                    put("jsonrpc", "2.0")
-                    put("id", 1)
-                    put("method", "eth_call")
-                    val callObj = JSONObject().apply {
-                        put("to", DAO_PROXY_CONTRACT)
-                        put("data", PROPOSAL_COUNT_SELECTOR)
+                val startId: Int
+                if (beforeId != null) {
+                    startId = beforeId
+                } else {
+                    // 1. Query proposalCount() -> selector 0xda35c664 on DAO Proxy
+                    val countPayload = JSONObject().apply {
+                        put("jsonrpc", "2.0")
+                        put("id", 1)
+                        put("method", "eth_call")
+                        val callObj = JSONObject().apply {
+                            put("to", DAO_PROXY_CONTRACT)
+                            put("data", PROPOSAL_COUNT_SELECTOR)
+                        }
+                        put("params", org.json.JSONArray(listOf(callObj, "latest")))
                     }
-                    put("params", org.json.JSONArray(listOf(callObj, "latest")))
+
+                    val countRespStr = postJsonRpc(rpcUrl, countPayload.toString()) ?: continue
+                    val countRoot = JSONObject(countRespStr)
+                    val countHex = countRoot.optString("result", "").removePrefix("0x").trim()
+                    if (countHex.isEmpty() || countHex.startsWith("null")) continue
+
+                    val totalCount = BigInteger(countHex, 16).toInt()
+                    if (totalCount <= 0) continue
+                    startId = totalCount
                 }
 
-                val countRespStr = postJsonRpc(rpcUrl, countPayload.toString()) ?: continue
-                val countRoot = JSONObject(countRespStr)
-                val countHex = countRoot.optString("result", "").removePrefix("0x").trim()
-                if (countHex.isEmpty() || countHex.startsWith("null")) continue
-
-                val totalCount = BigInteger(countHex, 16).toInt()
-                if (totalCount <= 0) continue
-
-                val lowestId = (totalCount - batchWindow + 1).coerceAtLeast(1)
-                val ids = (totalCount downTo lowestId).toList()
+                val lowestId = (startId - batchWindow + 1).coerceAtLeast(1)
+                if (startId < 1 || lowestId > startId) {
+                    return@withContext Result.success(emptyList())
+                }
+                val ids = (startId downTo lowestId).toList()
+                if (ids.isEmpty()) {
+                    return@withContext Result.success(emptyList())
+                }
 
                 // 2. Batch query proposals(id) [0x013cf08b] and state(id) [0x3e4f49e6]
                 val structBatch = org.json.JSONArray()
@@ -275,12 +300,18 @@ class NounsRepository {
     }
 
     suspend fun fetchCandidates(limit: Int = 10): Result<List<NounsCandidate>> = withContext(Dispatchers.IO) {
-        try {
-            val candidates = fetchCandidatesViaRpc(limit)
-            if (candidates.isNotEmpty()) {
-                return@withContext Result.success(candidates)
-            }
+        val page = fetchCandidatesPageViaRpc(limit, null)
+        if (page.candidates.isNotEmpty()) {
+            Result.success(page.candidates)
+        } else {
             Result.failure(RuntimeException("No candidates found on-chain"))
+        }
+    }
+
+    suspend fun fetchCandidatesPage(limit: Int = 10, pageKey: String? = null): Result<CandidatesPage> = withContext(Dispatchers.IO) {
+        try {
+            val page = fetchCandidatesPageViaRpc(limit, pageKey)
+            Result.success(page)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -310,7 +341,7 @@ class NounsRepository {
         }
     }
 
-    private fun fetchCandidatesViaRpc(limit: Int): List<NounsCandidate> {
+    private fun fetchCandidatesPageViaRpc(limit: Int, pageKey: String? = null): CandidatesPage {
         val rpcUrl = "https://eth-mainnet.g.alchemy.com/v2/K0Oex8ponc-8nl61tthZj"
         val candidateContract = "0xf790A5f59678dd733fb3De93493A91f472ca1365"
         val candidateCreatedTopic = "0x092e72bcc568a2ad800b1d7bbd7cc3f305e4a7b596092c69d10da00e38d705e6"
@@ -325,6 +356,9 @@ class NounsRepository {
                 put("excludeZeroValue", false)
                 put("maxCount", "0x" + Integer.toHexString(limit * 2))
                 put("order", "desc")
+                if (!pageKey.isNullOrBlank()) {
+                    put("pageKey", pageKey)
+                }
             }
             put("params", org.json.JSONArray(listOf(paramsObj)))
         }
@@ -341,22 +375,23 @@ class NounsRepository {
 
         if (transfersConn.responseCode != HttpURLConnection.HTTP_OK) {
             transfersConn.disconnect()
-            return emptyList()
+            return CandidatesPage(emptyList(), null)
         }
 
         val transfersJson = BufferedReader(InputStreamReader(transfersConn.inputStream)).use { it.readText() }
         transfersConn.disconnect()
 
         val transfersRoot = JSONObject(transfersJson)
-        val resultObj = transfersRoot.optJSONObject("result") ?: return emptyList()
-        val transfersArr = resultObj.optJSONArray("transfers") ?: return emptyList()
+        val resultObj = transfersRoot.optJSONObject("result") ?: return CandidatesPage(emptyList(), null)
+        val nextPageKey = resultObj.optString("pageKey", "").trim().takeIf { it.isNotEmpty() }
+        val transfersArr = resultObj.optJSONArray("transfers") ?: return CandidatesPage(emptyList(), nextPageKey)
 
         val hashes = mutableListOf<String>()
         for (i in 0 until minOf(transfersArr.length(), limit * 2)) {
             val h = transfersArr.getJSONObject(i).optString("hash")
             if (h.isNotBlank()) hashes.add(h)
         }
-        if (hashes.isEmpty()) return emptyList()
+        if (hashes.isEmpty()) return CandidatesPage(emptyList(), nextPageKey)
 
         val batchArr = org.json.JSONArray()
         hashes.forEachIndexed { idx, h ->
@@ -381,7 +416,7 @@ class NounsRepository {
 
         if (batchConn.responseCode != HttpURLConnection.HTTP_OK) {
             batchConn.disconnect()
-            return emptyList()
+            return CandidatesPage(emptyList(), nextPageKey)
         }
 
         val batchJson = BufferedReader(InputStreamReader(batchConn.inputStream)).use { it.readText() }
@@ -447,7 +482,7 @@ class NounsRepository {
                                             timestamp = now
                                         )
                                     )
-                                    if (candidates.size >= limit) return candidates
+                                    if (candidates.size >= limit) return CandidatesPage(candidates, nextPageKey)
                                 }
                             }
                         }
@@ -456,7 +491,7 @@ class NounsRepository {
             }
         }
 
-        return candidates
+        return CandidatesPage(candidates, nextPageKey)
     }
 
     private fun hexStringToByteArray(hex: String): ByteArray {

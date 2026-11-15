@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.37` (versionCode `38`) · **Release APK Footprint**: `~1.17 MB` (1,236,484 bytes)
+**Version**: `1.0.37` (versionCode `38`) · **Release APK Footprint**: `~1.18 MB` (1,242,061 bytes)
 
 ---
 
@@ -53,6 +53,9 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Proposals & Candidates Dual Tabs**: Toggle seamlessly between active governance Proposals and community Candidates via clean top tabs.
 - **Real-Time Status Filters**: Filter on-chain proposals instantly across All, Active, Succeeded, Defeated, and Executed.
 - **Complete On-Chain Voting Breakdown**: Displays proposal token IDs, status badges (color-coded in AMOLED Green/Red/Amber), full titles, reverse ENS proposer names (e.g. `stripymofo.eth`), exact vote counts (For, Against, Abstain, Quorum), and an inline visual voting ratio bar.
+- **Lazy Loading of Historical Proposals & Candidates**: Scrolling to the bottom automatically paginates and lazily loads older on-chain proposals and community candidates using batch RPC queries and Alchemy asset transfer pagination.
+- **Animated Noggles Loading Indicator**: While loading older items at the bottom, an animated `⌐◨-◨` indicator types character-by-character with organic breathing scaling, pulsing alpha, and cycling progress dots in the user's accent color.
+- **Top-Right Noggles Refresh Button**: The top-right refresh action displays `Refresh ⌐◨-◨` when idle and pulses with animated breathing noggles (`Syncing... ⌐◨-◨`) while syncing from Ethereum Mainnet.
 - **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->` and `noun.wtf ->`) open official clients directly in the browser.
 - **Dedicated Top Navigation Bar**: Clean `<- Home` navigation bar with quick on-chain refresh on Governance.
 - **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe up to open App Drawer, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings.
@@ -162,7 +165,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 | **Storage & Persistence** | Jetpack DataStore Preferences | Asynchronous, thread-safe disk persistence for settings and cached data |
 | **Document Access** | Android Storage Access Framework (SAF) | Permissionless, offline JSON backup and restore (`CreateDocument` / `OpenDocument`) |
 | **Networking** | Java `HttpURLConnection` & RFC 6455 `SSLSocket` | Zero external network libraries; `org.json` parser; WebSocket client |
-| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.17 MB** release APK (1,236,484 bytes) |
+| **Footprint & Optimization** | R8 Full Mode & Resource Shrinking | Minified bytecode; **~1.18 MB** release APK (1,242,061 bytes) |
 
 ---
 
@@ -268,7 +271,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.17 MB** / 1,236,484 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,242,061 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

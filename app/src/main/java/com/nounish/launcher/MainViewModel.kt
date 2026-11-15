@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -350,6 +351,75 @@ class MainViewModel(
         val ageMarker = if (isStale && timestamp > 0L) PriceRepository.formatAgeMarker(timestamp) else ""
         NounsRepository.toUiModel(cached, isStale, ageMarker, now)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    // Governance screen lazy load & pagination state
+    private val _olderProposals = MutableStateFlow<List<CachedNounsProposal>>(emptyList())
+    private val _olderCandidates = MutableStateFlow<List<CachedNounsCandidate>>(emptyList())
+    private val _candidateNextPageKey = MutableStateFlow<String?>(null)
+    private val _isLoadingOlderProposals = MutableStateFlow(false)
+    val isLoadingOlderProposals: StateFlow<Boolean> = _isLoadingOlderProposals.asStateFlow()
+    private val _isLoadingOlderCandidates = MutableStateFlow(false)
+    val isLoadingOlderCandidates: StateFlow<Boolean> = _isLoadingOlderCandidates.asStateFlow()
+    private val _hasMoreProposals = MutableStateFlow(true)
+    val hasMoreProposals: StateFlow<Boolean> = _hasMoreProposals.asStateFlow()
+    private val _hasMoreCandidates = MutableStateFlow(true)
+    val hasMoreCandidates: StateFlow<Boolean> = _hasMoreCandidates.asStateFlow()
+
+    val governanceProposalsList: StateFlow<List<NounsProposalUi>> = combine(
+        homeNounsList,
+        _olderProposals,
+        _ensResolvedTrigger
+    ) { baseList, olderList, _ ->
+        if (olderList.isEmpty()) {
+            baseList
+        } else {
+            val existingIds = baseList.map { it.id }.toSet()
+            val olderUi = olderList.filter { it.id !in existingIds }.map { p ->
+                val ens = NounsRepository.getCachedEns(p.proposer)
+                val proposerFormatted = NounsRepository.formatAddress(p.proposer, ens)
+                NounsProposalUi(
+                    id = p.id,
+                    title = p.title,
+                    statusLabel = p.statusLabel,
+                    statusIndex = p.statusIndex,
+                    proposer = p.proposer,
+                    proposerFormatted = proposerFormatted,
+                    forVotes = p.forVotes,
+                    againstVotes = p.againstVotes,
+                    abstainVotes = p.abstainVotes,
+                    quorum = p.quorum,
+                    isStale = false,
+                    ageMarker = ""
+                )
+            }
+            (baseList + olderUi).sortedByDescending { it.id }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val governanceCandidatesList: StateFlow<List<NounsCandidateUi>> = combine(
+        homeNounsCandidatesList,
+        _olderCandidates,
+        _ensResolvedTrigger
+    ) { baseList, olderList, _ ->
+        if (olderList.isEmpty()) {
+            baseList
+        } else {
+            val existingSlugs = baseList.map { it.slug }.toSet()
+            val olderUi = olderList.filter { it.slug !in existingSlugs }.map { c ->
+                val ens = NounsRepository.getCachedEns(c.proposer)
+                val proposerFormatted = NounsRepository.formatAddress(c.proposer, ens)
+                NounsCandidateUi(
+                    slug = c.slug,
+                    title = c.title,
+                    proposer = c.proposer,
+                    proposerFormatted = proposerFormatted,
+                    isStale = false,
+                    ageMarker = ""
+                )
+            }
+            baseList + olderUi
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _isRefreshingData = MutableStateFlow(false)
     val isRefreshingData: StateFlow<Boolean> = _isRefreshingData.asStateFlow()
@@ -958,11 +1028,107 @@ class MainViewModel(
     }
 
     fun refreshNounsProposals() {
+        resetGovernancePagination()
         viewModelScope.launch(Dispatchers.IO) {
             coroutineScope {
                 launch { fetchNounsAuction() }
                 launch { fetchNounsProposals() }
                 launch { fetchNounsCandidates() }
+            }
+        }
+    }
+
+    private fun resetGovernancePagination() {
+        _olderProposals.value = emptyList()
+        _olderCandidates.value = emptyList()
+        _candidateNextPageKey.value = null
+        _hasMoreProposals.value = true
+        _hasMoreCandidates.value = true
+    }
+
+    fun loadOlderProposals() {
+        if (_isLoadingOlderProposals.value || !_hasMoreProposals.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoadingOlderProposals.value = true
+            try {
+                val currentMinId = governanceProposalsList.value.minOfOrNull { it.id } ?: 0
+                if (currentMinId <= 1) {
+                    _hasMoreProposals.value = false
+                    return@launch
+                }
+                val beforeId = currentMinId - 1
+                val result = nounsRepository.fetchProposals(limit = 12, status = "All", beforeId = beforeId)
+                val newProps = result.getOrNull()
+                if (!newProps.isNullOrEmpty()) {
+                    nounsRepository.resolveEnsNames(newProps.map { it.proposer })
+                    val newCached = newProps.map { p ->
+                        CachedNounsProposal(
+                            id = p.id,
+                            title = p.title,
+                            statusLabel = p.statusLabel,
+                            statusIndex = p.statusIndex,
+                            proposer = p.proposer,
+                            forVotes = p.forVotes,
+                            againstVotes = p.againstVotes,
+                            abstainVotes = p.abstainVotes,
+                            quorum = p.quorum,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    }
+                    _olderProposals.update { current ->
+                        (current + newCached).distinctBy { it.id }
+                    }
+                    _ensResolvedTrigger.value = System.currentTimeMillis()
+                    val newMin = newProps.minOfOrNull { it.id } ?: 0
+                    if (newMin <= 1) {
+                        _hasMoreProposals.value = false
+                    }
+                } else {
+                    if (beforeId <= 1) {
+                        _hasMoreProposals.value = false
+                    }
+                }
+            } catch (_: Exception) {
+            } finally {
+                _isLoadingOlderProposals.value = false
+            }
+        }
+    }
+
+    fun loadOlderCandidates() {
+        if (_isLoadingOlderCandidates.value || !_hasMoreCandidates.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoadingOlderCandidates.value = true
+            try {
+                val pageKey = _candidateNextPageKey.value
+                val result = nounsRepository.fetchCandidatesPage(limit = 10, pageKey = pageKey)
+                val page = result.getOrNull()
+                if (page != null) {
+                    _candidateNextPageKey.value = page.nextPageKey
+                    if (page.nextPageKey == null) {
+                        _hasMoreCandidates.value = false
+                    }
+                    if (page.candidates.isNotEmpty()) {
+                        nounsRepository.resolveEnsNames(page.candidates.map { it.proposer })
+                        val newCached = page.candidates.map { c ->
+                            CachedNounsCandidate(
+                                slug = c.slug,
+                                title = c.title,
+                                proposer = c.proposer,
+                                timestamp = System.currentTimeMillis()
+                            )
+                        }
+                        _olderCandidates.update { current ->
+                            (current + newCached).distinctBy { it.slug }
+                        }
+                        _ensResolvedTrigger.value = System.currentTimeMillis()
+                    }
+                } else {
+                    _hasMoreCandidates.value = false
+                }
+            } catch (_: Exception) {
+            } finally {
+                _isLoadingOlderCandidates.value = false
             }
         }
     }
@@ -992,6 +1158,7 @@ class MainViewModel(
 
     fun refreshMarketAndNounsData() {
         if (_isRefreshingData.value) return
+        resetGovernancePagination()
         viewModelScope.launch(Dispatchers.IO) {
             _isRefreshingData.value = true
             val startTime = System.currentTimeMillis()
@@ -1007,8 +1174,8 @@ class MainViewModel(
                         launch { fetchIdxPrices() }
                     }
 
-                    // 3. Fetch Nouns auction, proposals & candidates concurrently (if showHomeNouns)
-                    if (currentSettings.showHomeNouns) {
+                    // 3. Fetch Nouns auction, proposals & candidates concurrently (if showHomeNouns or enableGovernanceScreen)
+                    if (currentSettings.showHomeNouns || currentSettings.enableGovernanceScreen) {
                         launch { fetchNounsAuction() }
                         launch { fetchNounsProposals() }
                         launch { fetchNounsCandidates() }

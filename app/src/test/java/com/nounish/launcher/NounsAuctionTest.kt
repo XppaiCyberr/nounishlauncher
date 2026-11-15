@@ -276,4 +276,29 @@ class NounsAuctionTest {
         assertTrue(screens.contains("Drawer"))
         assertTrue(screens.contains("Settings"))
     }
+
+    @Test
+    fun testCandidatesPageModel() {
+        val cand1 = com.nounish.launcher.data.NounsCandidate(
+            slug = "test-slug-1",
+            title = "Test Candidate 1",
+            proposer = "0x1234567890123456789012345678901234567890"
+        )
+        val cand2 = com.nounish.launcher.data.NounsCandidate(
+            slug = "test-slug-2",
+            title = "Test Candidate 2",
+            proposer = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+        )
+        val page = com.nounish.launcher.data.CandidatesPage(
+            candidates = listOf(cand1, cand2),
+            nextPageKey = "page-key-1234"
+        )
+        assertEquals(2, page.candidates.size)
+        assertEquals("test-slug-1", page.candidates[0].slug)
+        assertEquals("page-key-1234", page.nextPageKey)
+
+        val emptyPage = com.nounish.launcher.data.CandidatesPage(emptyList(), null)
+        assertTrue(emptyPage.candidates.isEmpty())
+        assertNull(emptyPage.nextPageKey)
+    }
 }

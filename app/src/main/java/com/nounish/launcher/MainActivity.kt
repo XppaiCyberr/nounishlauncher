@@ -176,6 +176,12 @@ class MainActivity : ComponentActivity() {
             val homeIdxCategories by viewModel.homeIdxCategories.collectAsState()
             val homeNounsList by viewModel.homeNounsList.collectAsState()
             val homeNounsCandidatesList by viewModel.homeNounsCandidatesList.collectAsState()
+            val governanceProposalsList by viewModel.governanceProposalsList.collectAsState()
+            val governanceCandidatesList by viewModel.governanceCandidatesList.collectAsState()
+            val isLoadingOlderProposals by viewModel.isLoadingOlderProposals.collectAsState()
+            val isLoadingOlderCandidates by viewModel.isLoadingOlderCandidates.collectAsState()
+            val hasMoreProposals by viewModel.hasMoreProposals.collectAsState()
+            val hasMoreCandidates by viewModel.hasMoreCandidates.collectAsState()
             val homeNounsAuction by viewModel.homeNounsAuction.collectAsState()
             val isRefreshingData by viewModel.isRefreshingData.collectAsState()
 
@@ -354,11 +360,17 @@ class MainActivity : ComponentActivity() {
 
                             Screen.Governance -> {
                                 GovernanceScreen(
-                                    proposals = homeNounsList,
-                                    candidates = homeNounsCandidatesList,
+                                    proposals = governanceProposalsList,
+                                    candidates = governanceCandidatesList,
                                     isRefreshing = isRefreshingData,
+                                    isLoadingOlderProposals = isLoadingOlderProposals,
+                                    isLoadingOlderCandidates = isLoadingOlderCandidates,
+                                    hasMoreProposals = hasMoreProposals,
+                                    hasMoreCandidates = hasMoreCandidates,
                                     hapticFeedbackLevel = settings.hapticFeedbackLevel,
                                     onRefresh = { viewModel.refreshMarketAndNounsData() },
+                                    onLoadOlderProposals = { viewModel.loadOlderProposals() },
+                                    onLoadOlderCandidates = { viewModel.loadOlderCandidates() },
                                     onBack = { currentScreen = Screen.Home },
                                     onOpenDrawer = {
                                         viewModel.onSearchQueryChanged("")

@@ -4,6 +4,12 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,11 +33,15 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +62,8 @@ import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.CryptoRed
 import com.nounish.launcher.ui.theme.LauncherTheme
 import com.nounish.launcher.util.LauncherHaptic
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.util.Locale
 
 @Composable
@@ -58,8 +71,14 @@ fun GovernanceScreen(
     proposals: List<NounsProposalUi>,
     candidates: List<NounsCandidateUi>,
     isRefreshing: Boolean = false,
+    isLoadingOlderProposals: Boolean = false,
+    isLoadingOlderCandidates: Boolean = false,
+    hasMoreProposals: Boolean = true,
+    hasMoreCandidates: Boolean = true,
     hapticFeedbackLevel: String = "standard",
     onRefresh: () -> Unit,
+    onLoadOlderProposals: () -> Unit = {},
+    onLoadOlderCandidates: () -> Unit = {},
     onBack: () -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -72,6 +91,70 @@ fun GovernanceScreen(
 
     var selectedTab by remember { mutableStateOf("proposals") } // "proposals" or "candidates"
     var proposalFilter by remember { mutableStateOf("All") } // "All", "Active", "Succeeded", "Defeated", "Executed"
+
+    val proposalsListState = rememberLazyListState()
+    val candidatesListState = rememberLazyListState()
+
+    val shouldLoadMoreProposals by remember(proposalsListState, isLoadingOlderProposals, hasMoreProposals) {
+        derivedStateOf {
+            val total = proposalsListState.layoutInfo.totalItemsCount
+            val lastVisible = proposalsListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            total > 0 && lastVisible >= total - 2 && !isLoadingOlderProposals && hasMoreProposals
+        }
+    }
+
+    LaunchedEffect(shouldLoadMoreProposals) {
+        if (shouldLoadMoreProposals) {
+            onLoadOlderProposals()
+        }
+    }
+
+    val shouldLoadMoreCandidates by remember(candidatesListState, isLoadingOlderCandidates, hasMoreCandidates) {
+        derivedStateOf {
+            val total = candidatesListState.layoutInfo.totalItemsCount
+            val lastVisible = candidatesListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            total > 0 && lastVisible >= total - 2 && !isLoadingOlderCandidates && hasMoreCandidates
+        }
+    }
+
+    LaunchedEffect(shouldLoadMoreCandidates) {
+        if (shouldLoadMoreCandidates) {
+            onLoadOlderCandidates()
+        }
+    }
+
+    val refreshInfiniteTransition = rememberInfiniteTransition(label = "GovernanceRefreshBreathing")
+    val refreshBreathAlpha by refreshInfiniteTransition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "refreshBreathAlpha"
+    )
+
+    var refreshTypingIndex by remember { mutableIntStateOf(3) }
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            while (isActive) {
+                for (i in 0..3) {
+                    refreshTypingIndex = i
+                    delay(120L)
+                }
+                delay(300L)
+            }
+        } else {
+            refreshTypingIndex = 3
+        }
+    }
+
+    val refreshGlasses = when (refreshTypingIndex) {
+        0 -> "⌐"
+        1 -> "⌐◨"
+        2 -> "⌐◨-"
+        else -> "⌐◨-◨"
+    }
 
     BackHandler(onBack = onBack)
 
@@ -165,27 +248,54 @@ fun GovernanceScreen(
                     )
                 }
 
-                // Refresh Status or Action
+                // Refresh Status or Action with Noggles
                 if (isRefreshing) {
-                    Text(
-                        text = "Syncing...",
-                        style = typography.priceLabel,
-                        color = colors.accent,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 2.dp)
+                    ) {
+                        Text(
+                            text = "Syncing...",
+                            style = typography.priceLabel,
+                            color = colors.accent,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = refreshGlasses,
+                            style = typography.priceLabel,
+                            color = colors.accent,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.graphicsLayer {
+                                alpha = refreshBreathAlpha
+                            }
+                        )
+                    }
                 } else {
-                    Text(
-                        text = "Refresh",
-                        style = typography.priceLabel,
-                        color = colors.textSecondary.copy(alpha = 0.75f),
-                        fontWeight = FontWeight.Medium,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
                         modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
                             .clickable {
                                 LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
                                 onRefresh()
                             }
                             .padding(vertical = 4.dp, horizontal = 2.dp)
-                    )
+                    ) {
+                        Text(
+                            text = "Refresh",
+                            style = typography.priceLabel,
+                            color = colors.textSecondary.copy(alpha = 0.85f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "⌐◨-◨",
+                            style = typography.priceLabel,
+                            color = colors.accent,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -331,6 +441,7 @@ fun GovernanceScreen(
                     }
                 } else {
                     LazyColumn(
+                        state = proposalsListState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
@@ -343,6 +454,32 @@ fun GovernanceScreen(
                                 hapticFeedbackLevel = hapticFeedbackLevel
                             )
                         }
+
+                        if (isLoadingOlderProposals) {
+                            item(key = "loading_proposals_indicator") {
+                                NogglesLoadingIndicator(
+                                    label = "Loading older proposals",
+                                    accentColor = colors.accent,
+                                    textColor = colors.textSecondary
+                                )
+                            }
+                        } else if (!hasMoreProposals && filteredProposals.isNotEmpty()) {
+                            item(key = "end_proposals_indicator") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 18.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "All on-chain proposals loaded · ⌐◨-◨",
+                                        style = typography.priceLabel,
+                                        color = colors.textSecondary.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        }
+
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
                         }
@@ -373,6 +510,7 @@ fun GovernanceScreen(
                     }
                 } else {
                     LazyColumn(
+                        state = candidatesListState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
@@ -384,12 +522,121 @@ fun GovernanceScreen(
                                 context = context
                             )
                         }
+
+                        if (isLoadingOlderCandidates) {
+                            item(key = "loading_candidates_indicator") {
+                                NogglesLoadingIndicator(
+                                    label = "Loading older candidates",
+                                    accentColor = colors.accent,
+                                    textColor = colors.textSecondary
+                                )
+                            }
+                        } else if (!hasMoreCandidates && candidates.isNotEmpty()) {
+                            item(key = "end_candidates_indicator") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 18.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "All candidate proposals loaded · ⌐◨-◨",
+                                        style = typography.priceLabel,
+                                        color = colors.textSecondary.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        }
+
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun NogglesLoadingIndicator(
+    label: String,
+    accentColor: Color,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "nogglesLoading")
+    val breathScale by infiniteTransition.animateFloat(
+        initialValue = 0.93f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "nogglesBreathScale"
+    )
+    val breathAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "nogglesBreathAlpha"
+    )
+
+    var typingIndex by remember { mutableIntStateOf(3) }
+    var dotCount by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            for (i in 0..3) {
+                typingIndex = i
+                delay(110L)
+            }
+            for (d in 0..3) {
+                dotCount = (dotCount + 1) % 4
+                delay(220L)
+            }
+        }
+    }
+
+    val glassesText = when (typingIndex) {
+        0 -> "⌐"
+        1 -> "⌐◨"
+        2 -> "⌐◨-"
+        else -> "⌐◨-◨"
+    }
+
+    val dots = ".".repeat(dotCount)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 18.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = glassesText,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = accentColor,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = breathScale
+                    scaleY = breathScale
+                    alpha = breathAlpha
+                }
+            )
+            Text(
+                text = "$label$dots",
+                fontSize = 13.sp,
+                color = textColor.copy(alpha = 0.75f),
+                fontWeight = FontWeight.Normal
+            )
         }
     }
 }
