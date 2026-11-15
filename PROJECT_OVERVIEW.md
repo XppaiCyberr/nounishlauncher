@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.38` (versionCode `39`) · **Optimized Release APK**: `~1.18 MB` (1,242,061 bytes)
+**Current Version**: `v1.0.39` (versionCode `40`) · **Optimized Release APK**: `~1.18 MB` (1,242,675 bytes)
 
 ---
 
@@ -97,6 +97,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - Toggleable in Settings under **Market Layout -> Auto-rotate market carousel**.
 - **Pinned App Shortcuts & Split Bottom Layout**:
   - Up to 8 pinned apps positioned in the lower-left area for ergonomic one-handed thumb reach, with zero minimum limit (unpin down to 0 apps freely).
+  - **Navigation Bar Inset Protection**: Integrated `navigationBarsPadding()` combined with dedicated touch padding (`20.dp`) guarantees pinned shortcuts and bottom-right widgets never overlap with Android's system navigation bar (3-button navigation or gesture pill) across any display configuration.
   - **Content-Bounded Click Targets**: Pinned shortcuts are bounded strictly to their icon and text label instead of consuming the full horizontal width of the screen. Tapping empty space on the right side of the screen never triggers an unintended app launch.
   - **Split Bottom Section**: The bottom layout cleanly splits between the left-aligned pinned app list and the right-aligned corner area (housing the Passive Learning Note or Corner Text).
   - **Dedicated Up/Down Reordering**: In Settings -> Pinned Apps, dedicated up (`↑`) and down (`↓`) controls allow direct reordering of shortcuts without unpinning and re-pinning.

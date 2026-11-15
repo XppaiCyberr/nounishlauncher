@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.38` (versionCode `39`) · **Release APK Footprint**: `~1.18 MB` (1,242,061 bytes)
+**Version**: `1.0.39` (versionCode `40`) · **Release APK Footprint**: `~1.18 MB` (1,242,675 bytes)
 
 ---
 
@@ -116,6 +116,7 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 
 ### 8. Home Screen Essentials
 - **Pinned App Management & Split Bottom Layout**: Pin up to 8 apps (0–8 freely configurable) in large (`28 sp`) light-weight typography positioned in the lower-left area for ergonomic thumb reach. Click targets strictly wrap the app icon and label so tapping the empty right side never launches an app.
+- **System Navigation Bar Inset Protection**: Integrated `navigationBarsPadding()` combined with dedicated touch padding (`20.dp`) ensures pinned shortcuts and bottom-right widgets never overlap with Android's system navigation bar (3-button navigation or gesture pill) across any display configuration.
 - **Dedicated Up/Down Reordering**: Reorder pinned shortcuts directly in Settings -> Pinned Apps with dedicated up (`↑`) and down (`↓`) controls without unpinning and re-pinning.
 - **Clean Uninstall Pruning**: Automatically drops uninstalled apps from pinned shortcuts and DataStore, leaving zero dead entries.
 - **Clock & Date Customization**: Choose between System Default (respects Android's 24-hour setting), 24-hour (`HH:mm`), 12-hour with AM/PM (`h:mm a`), or 12-hour without AM/PM (`h:mm`). Includes optional live seconds (`:ss`) and selectable date format presets (`Full`, `Short`, `Standard with year`, `ISO 8601`, `US style`, `Compact`) or custom `SimpleDateFormat` patterns. Tapping the clock launches the system alarm/clock app.
@@ -272,7 +273,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,242,061 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,242,675 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

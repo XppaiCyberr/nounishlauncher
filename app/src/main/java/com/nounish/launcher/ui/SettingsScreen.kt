@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -189,6 +190,7 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
         Crossfade(
@@ -275,7 +277,7 @@ fun SettingsScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Nounish Launcher 1.0.38",
+                                    text = "Nounish Launcher 1.0.39",
                                     style = typography.settingsItem,
                                     color = colors.textPrimary
                                 )
