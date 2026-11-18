@@ -8,9 +8,13 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 
 ## Preview
 
-| Home (Proposals) | Home (Candidates) | Settings (Categories) | Drawer (Bottom Search) |
-|:---:|:---:|:---:|:---:|
-| <img src="screenshots/01-home-proposals.jpg" width="220" alt="Home Screen with Nouns Proposals" /> | <img src="screenshots/02-home-candidates.jpg" width="220" alt="Home Screen with Nouns Candidates" /> | <img src="screenshots/03-settings-categories.jpg" width="220" alt="Redesigned Settings Categories" /> | <img src="screenshots/04-drawer-bottom-search.jpg" width="220" alt="App Drawer with Bottom Search and Index" /> |
+| Home Screen | Nouns Governance | Lil Nouns Governance |
+|:---:|:---:|:---:|
+| <img src="screenshots/01-home.jpg" width="220" alt="Home Screen" /> | <img src="screenshots/02-nouns-proposals.jpg" width="220" alt="Nouns DAO Governance" /> | <img src="screenshots/03-lil-nouns-proposals.jpg" width="220" alt="Lil Nouns DAO Governance" /> |
+
+| Nouns Candidates | App Drawer | Settings Hub |
+|:---:|:---:|:---:|
+| <img src="screenshots/04-nouns-candidates.jpg" width="220" alt="Nouns DAO Candidates" /> | <img src="screenshots/05-app-drawer.jpg" width="220" alt="App Drawer" /> | <img src="screenshots/06-settings-categories.jpg" width="220" alt="Settings Categories" /> |
 
 ---
 
