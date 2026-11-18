@@ -16,6 +16,8 @@ import com.nounish.launcher.data.CoinTicker
 import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.data.IdxRepository
 import com.nounish.launcher.data.LauncherSettings
+import com.nounish.launcher.data.DailyWallpaperRepository
+import com.nounish.launcher.data.DailyWallpaperState
 import com.nounish.launcher.data.LilDigestEventUi
 import com.nounish.launcher.data.LilNounsRepository
 import com.nounish.launcher.data.NetworkHelper
@@ -425,6 +427,9 @@ class MainViewModel(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val lilNounsRepository = LilNounsRepository()
+    val dailyWallpaperRepository = DailyWallpaperRepository(application)
+    private val _dailyWallpaperState = MutableStateFlow(DailyWallpaperState())
+    val dailyWallpaperState: StateFlow<DailyWallpaperState> = _dailyWallpaperState.asStateFlow()
     private val _olderLilProposals = MutableStateFlow<List<CachedNounsProposal>>(emptyList())
     private val _isLoadingOlderLilProposals = MutableStateFlow(false)
     val isLoadingOlderLilProposals: StateFlow<Boolean> = _isLoadingOlderLilProposals.asStateFlow()
@@ -1806,9 +1811,75 @@ class MainViewModel(
         }
     }
 
+    fun setEnableDailyWallpaper(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setEnableDailyWallpaper(enabled)
+            if (enabled) {
+                syncDailyWallpaper(forceManifestRefresh = false)
+            }
+        }
+    }
+
+    fun cycleDailyWallpaper() {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.incrementDailyWallpaperOffset()
+            val nextOffset = settings.value.dailyWallpaperOffset + 1
+            val cached = dailyWallpaperRepository.getCachedWallpaperSync(nextOffset)
+            if (cached.file != null) {
+                _dailyWallpaperState.value = cached
+            }
+            val synced = dailyWallpaperRepository.syncTodayWallpaper(
+                manualOffset = nextOffset,
+                forceManifestRefresh = true
+            )
+            _dailyWallpaperState.value = synced
+        }
+    }
+
+    fun randomizeDailyWallpaper() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val count = dailyWallpaperRepository.getManifestCount(forceManifestRefresh = true)
+            if (count <= 0) return@launch
+            val currentOffset = settings.value.dailyWallpaperOffset
+            val randomOffset = dailyWallpaperRepository.computeRandomOffset(count, currentOffset)
+            settingsStore.setDailyWallpaperOffset(randomOffset)
+            val cached = dailyWallpaperRepository.getCachedWallpaperSync(randomOffset)
+            if (cached.file != null) {
+                _dailyWallpaperState.value = cached
+            }
+            val synced = dailyWallpaperRepository.syncTodayWallpaper(
+                manualOffset = randomOffset,
+                forceManifestRefresh = false
+            )
+            _dailyWallpaperState.value = synced
+        }
+    }
+
+    fun syncDailyWallpaper(forceManifestRefresh: Boolean = false) {
+        val pref = settings.value
+        if (!pref.enableDailyWallpaper) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val cached = dailyWallpaperRepository.getCachedWallpaperSync(pref.dailyWallpaperOffset)
+            if (cached.file != null) {
+                _dailyWallpaperState.value = cached
+            }
+            val synced = dailyWallpaperRepository.syncTodayWallpaper(
+                manualOffset = pref.dailyWallpaperOffset,
+                forceManifestRefresh = forceManifestRefresh
+            )
+            _dailyWallpaperState.value = synced
+        }
+    }
+
     fun setWallpaperDimLevel(level: Float) {
         viewModelScope.launch(Dispatchers.IO) {
             settingsStore.setWallpaperDimLevel(level)
+        }
+    }
+
+    fun setDailyWallpaperScaleMode(mode: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setDailyWallpaperScaleMode(mode)
         }
     }
 

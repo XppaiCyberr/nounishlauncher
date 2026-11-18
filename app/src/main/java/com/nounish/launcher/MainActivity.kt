@@ -23,6 +23,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
 import com.nounish.launcher.service.LockScreenService
+import com.nounish.launcher.ui.DailyWallpaperBackground
 import com.nounish.launcher.ui.DrawerScreen
 import com.nounish.launcher.ui.GovernanceScreen
 import com.nounish.launcher.ui.HomeScreen
@@ -197,8 +199,16 @@ class MainActivity : ComponentActivity() {
             val hasMoreLilDigest by viewModel.hasMoreLilDigest.collectAsState()
             val homeNounsAuction by viewModel.homeNounsAuction.collectAsState()
             val isRefreshingData by viewModel.isRefreshingData.collectAsState()
+            val dailyWallpaperState by viewModel.dailyWallpaperState.collectAsState()
 
             var currentScreen by remember { currentScreenState }
+
+            // Sync daily WebP wallpaper when enabled or offset changes
+            LaunchedEffect(settings.enableDailyWallpaper, settings.dailyWallpaperOffset) {
+                if (settings.enableDailyWallpaper) {
+                    viewModel.syncDailyWallpaper()
+                }
+            }
 
             // Wallpaper window flag synchronization
             LaunchedEffect(settings.showWallpaper) {
@@ -243,18 +253,29 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            val activeDailyWallpaperFile = if (settings.enableDailyWallpaper) dailyWallpaperState.file else null
+            val hasVisibleWallpaper = settings.showWallpaper || activeDailyWallpaperFile != null
+
             NounishLauncherTheme(
                 isLightTheme = settings.isLightTheme,
                 useMonospace = settings.useMonospace,
                 fontSize = settings.fontSize,
-                showWallpaper = settings.showWallpaper,
+                showWallpaper = hasVisibleWallpaper,
                 wallpaperDimLevel = settings.wallpaperDimLevel,
                 accentColor = settings.accentColor
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = LauncherTheme.colors.background
-                ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (activeDailyWallpaperFile != null) {
+                        DailyWallpaperBackground(
+                            file = activeDailyWallpaperFile,
+                            scaleMode = settings.dailyWallpaperScaleMode,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = LauncherTheme.colors.background
+                    ) {
                     // Back button handling
                     BackHandler(enabled = currentScreen != Screen.Home) {
                         if (currentScreen == Screen.Drawer && searchQuery.isNotEmpty()) {
@@ -591,6 +612,15 @@ class MainActivity : ComponentActivity() {
                                     onUpdateCryptoQuote = { viewModel.setCryptoQuoteCurrency(it) },
                                     onToggleLightTheme = { viewModel.setLightTheme(it) },
                                     onToggleShowWallpaper = { viewModel.setShowWallpaper(it) },
+                                    onToggleEnableDailyWallpaper = { viewModel.setEnableDailyWallpaper(it) },
+                                    onCycleDailyWallpaper = { viewModel.cycleDailyWallpaper() },
+                                    onRandomizeDailyWallpaper = { viewModel.randomizeDailyWallpaper() },
+                                    onUpdateDailyWallpaperScaleMode = { viewModel.setDailyWallpaperScaleMode(it) },
+                                    dailyWallpaperStatus = if (dailyWallpaperState.totalCount > 0) {
+                                        "Active: #${dailyWallpaperState.activeIndex + 1}/${dailyWallpaperState.totalCount} (${dailyWallpaperState.activeEntry?.id ?: ""}) · Tap to switch"
+                                    } else {
+                                        "Tap to fetch & switch wallpaper"
+                                    },
                                     onUpdateWallpaperDimLevel = { viewModel.setWallpaperDimLevel(it) },
                                     onUpdateAccentColor = { viewModel.setAccentColor(it) },
                                     onUpdateHapticFeedbackLevel = { viewModel.setHapticFeedbackLevel(it) },
@@ -621,6 +651,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    }
                 }
             }
         }
@@ -642,6 +673,9 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // App list is kept in memory and refreshed strictly via PackageChangeReceiver / LauncherApps.Callback.
         val settings = viewModel.settings.value
+        if (settings.enableDailyWallpaper) {
+            viewModel.syncDailyWallpaper()
+        }
         val hasActiveHomeFeed = settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns || settings.showNounsAuction
         if (settings.cryptoPriceEnabled || settings.showHomeNouns || settings.showNounsAuction) {
             val isHome = currentScreenState.value == Screen.Home

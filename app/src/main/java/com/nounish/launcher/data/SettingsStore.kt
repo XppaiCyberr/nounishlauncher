@@ -93,6 +93,9 @@ data class LauncherSettings(
     val showRecentApps: Boolean = true,
     val recentApps: List<String> = emptyList(),
     val showWallpaper: Boolean = false,
+    val enableDailyWallpaper: Boolean = false,
+    val dailyWallpaperOffset: Int = 0,
+    val dailyWallpaperScaleMode: String = "center_crop", // "center_crop", "fit_center", "fit_xy"
     val wallpaperDimLevel: Float = 0.80f,
     val accentColor: String = "monochrome", // "monochrome", "nounish_red", "warm_amber", "mint_green", "slate_blue", "lavender"
     val hapticFeedbackLevel: String = "standard", // "standard", "subtle", "firm", "off"
@@ -201,6 +204,9 @@ class SettingsStore(private val context: Context) {
         private val KEY_USE_WEBSOCKET_ON_HOME = booleanPreferencesKey("use_websocket_on_home")
         private val KEY_LIGHT_THEME = booleanPreferencesKey("is_light_theme")
         private val KEY_SHOW_WALLPAPER = booleanPreferencesKey("show_wallpaper")
+        private val KEY_ENABLE_DAILY_WALLPAPER = booleanPreferencesKey("enable_daily_wallpaper")
+        private val KEY_DAILY_WALLPAPER_OFFSET = intPreferencesKey("daily_wallpaper_offset")
+        private val KEY_DAILY_WALLPAPER_SCALE_MODE = stringPreferencesKey("daily_wallpaper_scale_mode")
         private val KEY_WALLPAPER_DIM_LEVEL = floatPreferencesKey("wallpaper_dim_level")
         private val KEY_ACCENT_COLOR = stringPreferencesKey("accent_color")
         private val KEY_HAPTIC_FEEDBACK_LEVEL = stringPreferencesKey("haptic_feedback_level")
@@ -303,6 +309,9 @@ class SettingsStore(private val context: Context) {
         val useWebSocket = prefs[KEY_USE_WEBSOCKET_ON_HOME] ?: false
         val isLight = prefs[KEY_LIGHT_THEME] ?: false
         val showWallpaper = prefs[KEY_SHOW_WALLPAPER] ?: false
+        val enableDailyWallpaper = prefs[KEY_ENABLE_DAILY_WALLPAPER] ?: false
+        val dailyWallpaperOffset = prefs[KEY_DAILY_WALLPAPER_OFFSET] ?: 0
+        val dailyWallpaperScaleMode = prefs[KEY_DAILY_WALLPAPER_SCALE_MODE] ?: "center_crop"
         val wallpaperDimLevel = prefs[KEY_WALLPAPER_DIM_LEVEL] ?: 0.80f
         val accentColor = prefs[KEY_ACCENT_COLOR] ?: "monochrome"
         val hapticFeedbackLevel = prefs[KEY_HAPTIC_FEEDBACK_LEVEL] ?: "standard"
@@ -391,6 +400,9 @@ class SettingsStore(private val context: Context) {
             showRecentApps = showRecentApps,
             recentApps = recentApps,
             showWallpaper = showWallpaper,
+            enableDailyWallpaper = enableDailyWallpaper,
+            dailyWallpaperOffset = dailyWallpaperOffset,
+            dailyWallpaperScaleMode = dailyWallpaperScaleMode,
             wallpaperDimLevel = wallpaperDimLevel,
             accentColor = accentColor,
             hapticFeedbackLevel = hapticFeedbackLevel,
@@ -598,6 +610,29 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setShowWallpaper(enabled: Boolean) {
         context.dataStore.edit { it[KEY_SHOW_WALLPAPER] = enabled }
+    }
+
+    suspend fun setEnableDailyWallpaper(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_ENABLE_DAILY_WALLPAPER] = enabled }
+    }
+
+    suspend fun incrementDailyWallpaperOffset() {
+        context.dataStore.edit { prefs ->
+            val current = prefs[KEY_DAILY_WALLPAPER_OFFSET] ?: 0
+            prefs[KEY_DAILY_WALLPAPER_OFFSET] = current + 1
+        }
+    }
+
+    suspend fun setDailyWallpaperOffset(offset: Int) {
+        context.dataStore.edit { it[KEY_DAILY_WALLPAPER_OFFSET] = offset }
+    }
+
+    suspend fun setDailyWallpaperScaleMode(mode: String) {
+        val normalized = when (mode) {
+            "fit_center", "fit_xy" -> mode
+            else -> "center_crop"
+        }
+        context.dataStore.edit { it[KEY_DAILY_WALLPAPER_SCALE_MODE] = normalized }
     }
 
     suspend fun setWallpaperDimLevel(level: Float) {
@@ -1004,6 +1039,9 @@ class SettingsStore(private val context: Context) {
 
         root.put("isLightTheme", settings.isLightTheme)
         root.put("showWallpaper", settings.showWallpaper)
+        root.put("enableDailyWallpaper", settings.enableDailyWallpaper)
+        root.put("dailyWallpaperOffset", settings.dailyWallpaperOffset)
+        root.put("dailyWallpaperScaleMode", settings.dailyWallpaperScaleMode)
         root.put("wallpaperDimLevel", settings.wallpaperDimLevel.toDouble())
         root.put("accentColor", settings.accentColor)
         root.put("hapticFeedbackLevel", settings.hapticFeedbackLevel)
@@ -1121,6 +1159,9 @@ class SettingsStore(private val context: Context) {
 
                 if (root.has("isLightTheme")) prefs[KEY_LIGHT_THEME] = root.getBoolean("isLightTheme")
                 if (root.has("showWallpaper")) prefs[KEY_SHOW_WALLPAPER] = root.getBoolean("showWallpaper")
+                if (root.has("enableDailyWallpaper")) prefs[KEY_ENABLE_DAILY_WALLPAPER] = root.getBoolean("enableDailyWallpaper")
+                if (root.has("dailyWallpaperOffset")) prefs[KEY_DAILY_WALLPAPER_OFFSET] = root.getInt("dailyWallpaperOffset")
+                if (root.has("dailyWallpaperScaleMode")) prefs[KEY_DAILY_WALLPAPER_SCALE_MODE] = root.getString("dailyWallpaperScaleMode")
                 if (root.has("wallpaperDimLevel")) prefs[KEY_WALLPAPER_DIM_LEVEL] = root.getDouble("wallpaperDimLevel").toFloat()
                 if (root.has("accentColor")) prefs[KEY_ACCENT_COLOR] = root.getString("accentColor")
                 if (root.has("hapticFeedbackLevel")) prefs[KEY_HAPTIC_FEEDBACK_LEVEL] = root.getString("hapticFeedbackLevel")

@@ -15,6 +15,7 @@ class RecentAppsAndWallpaperTest {
         assertTrue(settings.recentApps.isEmpty())
         assertFalse(settings.showWallpaper)
         assertEquals(0.80f, settings.wallpaperDimLevel, 0.001f)
+        assertEquals("center_crop", settings.dailyWallpaperScaleMode)
     }
 
     @Test

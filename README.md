@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.45` (versionCode `46`) · **Release APK Footprint**: `~1.21 MB` (1,273,572 bytes)
+**Version**: `1.1` (versionCode `47`) · **Release APK Footprint**: `~1.24 MB` (1,297,453 bytes)
 
 ---
 

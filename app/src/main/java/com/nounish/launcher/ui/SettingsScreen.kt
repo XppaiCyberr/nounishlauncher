@@ -124,6 +124,11 @@ fun SettingsScreen(
     onUpdateCryptoQuote: (String) -> Unit,
     onToggleLightTheme: (Boolean) -> Unit,
     onToggleShowWallpaper: (Boolean) -> Unit = {},
+    onToggleEnableDailyWallpaper: (Boolean) -> Unit = {},
+    onCycleDailyWallpaper: () -> Unit = {},
+    onRandomizeDailyWallpaper: () -> Unit = {},
+    onUpdateDailyWallpaperScaleMode: (String) -> Unit = {},
+    dailyWallpaperStatus: String = "",
     onUpdateWallpaperDimLevel: (Float) -> Unit = {},
     onUpdateAccentColor: (String) -> Unit = {},
     onUpdateHapticFeedbackLevel: (String) -> Unit = {},
@@ -166,6 +171,7 @@ fun SettingsScreen(
     var showIdxSymbolsDialog by remember { mutableStateOf(false) }
     var showClockFormatDialog by remember { mutableStateOf(false) }
     var showWallpaperDimDialog by remember { mutableStateOf(false) }
+    var showWallpaperScaleDialog by remember { mutableStateOf(false) }
     var showChangeWallpaperDialog by remember { mutableStateOf(false) }
     var showAccentColorDialog by remember { mutableStateOf(false) }
     var showHapticDialog by remember { mutableStateOf(false) }
@@ -275,7 +281,7 @@ fun SettingsScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Nounish Launcher 1.0.45",
+                                    text = "Nounish Launcher 1.1",
                                     style = typography.settingsItem,
                                     color = colors.textPrimary
                                 )
@@ -864,7 +870,51 @@ fun SettingsScreen(
                                     )
                                 }
 
-                                if (settings.showWallpaper) {
+                                item {
+                                    SettingsSwitchRow(
+                                        title = "Daily animated wallpaper",
+                                        subtitle = if (settings.enableDailyWallpaper) {
+                                            "Auto-rotates daily from pip.xpp.wtf (WebP)"
+                                        } else {
+                                            "Disabled · Streams & caches daily WebP"
+                                        },
+                                        checked = settings.enableDailyWallpaper,
+                                        onCheckedChange = onToggleEnableDailyWallpaper
+                                    )
+                                }
+
+                                if (settings.enableDailyWallpaper) {
+                                    item {
+                                        SettingsActionRow(
+                                            title = "Switch daily wallpaper now",
+                                            subtitle = dailyWallpaperStatus.ifBlank { "Tap to cycle to next wallpaper" },
+                                            onClick = onCycleDailyWallpaper
+                                        )
+                                    }
+
+                                    item {
+                                        SettingsActionRow(
+                                            title = "Randomize wallpaper",
+                                            subtitle = "Pick a random wallpaper from xpp.json manifest",
+                                            onClick = onRandomizeDailyWallpaper
+                                        )
+                                    }
+
+                                    item {
+                                        val scaleLabel = when (settings.dailyWallpaperScaleMode) {
+                                            "fit_center" -> "Fit screen (Show full artwork)"
+                                            "fit_xy" -> "Stretch to fill"
+                                            else -> "Fill screen (Center crop)"
+                                        }
+                                        SettingsActionRow(
+                                            title = "Wallpaper scale / fit",
+                                            subtitle = scaleLabel,
+                                            onClick = { showWallpaperScaleDialog = true }
+                                        )
+                                    }
+                                }
+
+                                if (settings.showWallpaper || settings.enableDailyWallpaper) {
                                     item {
                                         SettingsActionRow(
                                             title = "Wallpaper dark scrim level",
@@ -1832,6 +1882,62 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showWallpaperDimDialog = false }) {
+                    Text("Cancel", color = colors.textSecondary)
+                }
+            }
+        )
+    }
+
+    // Wallpaper Scale / Fit Dialog
+    if (showWallpaperScaleDialog) {
+        val scaleModes = listOf(
+            Triple("center_crop", "Fill screen (Center crop)", "Fills screen edge-to-edge, crops overflowing sides"),
+            Triple("fit_center", "Fit screen (Show full artwork)", "Shows full image without cropping"),
+            Triple("fit_xy", "Stretch to fill", "Stretches to exact screen dimensions")
+        )
+        AlertDialog(
+            onDismissRequest = { showWallpaperScaleDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "Wallpaper Scale / Fit",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    scaleModes.forEach { (key, title, desc) ->
+                        val isSelected = settings.dailyWallpaperScaleMode == key ||
+                            (key == "center_crop" && settings.dailyWallpaperScaleMode !in listOf("fit_center", "fit_xy"))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onUpdateDailyWallpaperScaleMode(key)
+                                    showWallpaperScaleDialog = false
+                                }
+                                .padding(vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = title,
+                                style = typography.settingsItem.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = if (isSelected) colors.textPrimary else colors.textSecondary
+                            )
+                            Text(
+                                text = desc,
+                                style = typography.settingsDescription,
+                                color = colors.textSecondary
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showWallpaperScaleDialog = false }) {
                     Text("Cancel", color = colors.textSecondary)
                 }
             }
