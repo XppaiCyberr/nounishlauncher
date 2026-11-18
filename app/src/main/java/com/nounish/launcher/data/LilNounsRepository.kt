@@ -17,6 +17,9 @@ data class LilDigestEvent(
     val proposalId: String = "",
     val proposalTitle: String = "",
     val actor: String = "",
+    val counterpart: String = "",
+    val undelegated: Boolean = false,
+    val nounIds: List<String> = emptyList(),
     val support: Int? = null,
     val voteWeight: Int? = null,
     val timestamp: Long = 0L,
@@ -37,6 +40,10 @@ data class LilDigestEventUi(
     val proposalTitle: String,
     val actor: String,
     val actorFormatted: String,
+    val counterpart: String = "",
+    val counterpartFormatted: String = "",
+    val undelegated: Boolean = false,
+    val nounIds: List<String> = emptyList(),
     val support: Int?,
     val voteWeight: Int?,
     val timestamp: Long,
@@ -299,13 +306,22 @@ class LilNounsRepository {
                         val proposalId = item.optString("proposalId", "")
                         val proposalTitle = item.optString("proposalTitle", "")
                         val actor = item.optString("actor", "")
+                        val counterpart = item.optString("counterpart", "")
+                        val undelegated = item.optBoolean("undelegated", false)
                         val support = if (item.has("support")) item.optInt("support") else null
                         val voteWeight = if (item.has("voteWeight")) item.optInt("voteWeight") else null
                         val timestamp = item.optLong("timestamp", 0L)
                         val href = item.optString("href", "")
                         val endsAt = if (item.has("endsAt")) item.optLong("endsAt") else null
-                        val nounIds = item.optJSONArray("nounIds")
-                        val nounIdsCount = nounIds?.length() ?: 0
+                        val nounIdsJson = item.optJSONArray("nounIds")
+                        val nounIds = mutableListOf<String>()
+                        if (nounIdsJson != null) {
+                            for (n in 0 until nounIdsJson.length()) {
+                                val nId = nounIdsJson.optString(n, "").trim()
+                                if (nId.isNotEmpty()) nounIds.add(nId)
+                            }
+                        }
+                        val nounIdsCount = if (nounIds.isNotEmpty()) nounIds.size else item.optInt("nounIdsCount", 0)
 
                         if (id.isNotEmpty()) {
                             list.add(
@@ -315,6 +331,9 @@ class LilNounsRepository {
                                     proposalId = proposalId,
                                     proposalTitle = proposalTitle,
                                     actor = actor,
+                                    counterpart = counterpart,
+                                    undelegated = undelegated,
+                                    nounIds = nounIds,
                                     support = support,
                                     voteWeight = voteWeight,
                                     timestamp = timestamp,

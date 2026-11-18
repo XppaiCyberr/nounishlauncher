@@ -491,8 +491,10 @@ class MainViewModel(
 
         val nowSeconds = System.currentTimeMillis() / 1000L
         combined.map { e ->
-            val ens = NounsRepository.getCachedEns(e.actor)
-            val actorFormatted = if (e.actor.isNotBlank()) NounsRepository.formatAddress(e.actor, ens) else ""
+            val ensActor = NounsRepository.getCachedEns(e.actor)
+            val actorFormatted = if (e.actor.isNotBlank()) NounsRepository.formatAddress(e.actor, ensActor) else ""
+            val ensCounterpart = NounsRepository.getCachedEns(e.counterpart)
+            val counterpartFormatted = if (e.counterpart.isNotBlank()) NounsRepository.formatAddress(e.counterpart, ensCounterpart) else ""
             val diffSec = (nowSeconds - e.timestamp).coerceAtLeast(0L)
             val timeAgoFormatted = formatDigestTimeAgo(diffSec)
 
@@ -503,6 +505,10 @@ class MainViewModel(
                 proposalTitle = e.proposalTitle,
                 actor = e.actor,
                 actorFormatted = actorFormatted,
+                counterpart = e.counterpart,
+                counterpartFormatted = counterpartFormatted,
+                undelegated = e.undelegated,
+                nounIds = e.nounIds,
                 support = e.support,
                 voteWeight = e.voteWeight,
                 timestamp = e.timestamp,
@@ -1343,9 +1349,13 @@ class MainViewModel(
         val page = result.getOrNull()
         if (page != null && page.events.isNotEmpty()) {
             val now = System.currentTimeMillis()
-            val actors = page.events.map { it.actor }.filter { it.isNotBlank() }
-            if (actors.isNotEmpty()) {
-                nounsRepository.resolveEnsNames(actors)
+            val addressesToResolve = mutableListOf<String>()
+            page.events.forEach { e ->
+                if (e.actor.isNotBlank()) addressesToResolve.add(e.actor)
+                if (e.counterpart.isNotBlank()) addressesToResolve.add(e.counterpart)
+            }
+            if (addressesToResolve.isNotEmpty()) {
+                nounsRepository.resolveEnsNames(addressesToResolve)
             }
             _lilDigestCursor.value = page.nextCursor
             val cachedList = page.events.map { e ->
@@ -1355,6 +1365,9 @@ class MainViewModel(
                     proposalId = e.proposalId,
                     proposalTitle = e.proposalTitle,
                     actor = e.actor,
+                    counterpart = e.counterpart,
+                    undelegated = e.undelegated,
+                    nounIds = e.nounIds,
                     support = e.support,
                     voteWeight = e.voteWeight,
                     timestamp = e.timestamp,
@@ -1390,9 +1403,13 @@ class MainViewModel(
                 val result = lilNounsRepository.fetchDigestPage(limit = 20, cursor = cursor)
                 val page = result.getOrNull()
                 if (page != null && page.events.isNotEmpty()) {
-                    val actors = page.events.map { it.actor }.filter { it.isNotBlank() }
-                    if (actors.isNotEmpty()) {
-                        nounsRepository.resolveEnsNames(actors)
+                    val addressesToResolve = mutableListOf<String>()
+                    page.events.forEach { e ->
+                        if (e.actor.isNotBlank()) addressesToResolve.add(e.actor)
+                        if (e.counterpart.isNotBlank()) addressesToResolve.add(e.counterpart)
+                    }
+                    if (addressesToResolve.isNotEmpty()) {
+                        nounsRepository.resolveEnsNames(addressesToResolve)
                     }
                     _lilDigestCursor.value = page.nextCursor
                     if (page.nextCursor == null) {
@@ -1405,6 +1422,9 @@ class MainViewModel(
                             proposalId = e.proposalId,
                             proposalTitle = e.proposalTitle,
                             actor = e.actor,
+                            counterpart = e.counterpart,
+                            undelegated = e.undelegated,
+                            nounIds = e.nounIds,
                             support = e.support,
                             voteWeight = e.voteWeight,
                             timestamp = e.timestamp,

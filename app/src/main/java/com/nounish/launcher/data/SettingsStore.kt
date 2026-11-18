@@ -165,6 +165,9 @@ data class CachedLilDigestEvent(
     val proposalId: String = "",
     val proposalTitle: String = "",
     val actor: String = "",
+    val counterpart: String = "",
+    val undelegated: Boolean = false,
+    val nounIds: List<String> = emptyList(),
     val support: Int? = null,
     val voteWeight: Int? = null,
     val timestamp: Long = 0L,
@@ -897,6 +900,13 @@ class SettingsStore(private val context: Context) {
                 obj.put("proposalId", e.proposalId)
                 obj.put("proposalTitle", e.proposalTitle)
                 obj.put("actor", e.actor)
+                obj.put("counterpart", e.counterpart)
+                obj.put("undelegated", e.undelegated)
+                if (e.nounIds.isNotEmpty()) {
+                    val nArr = JSONArray()
+                    e.nounIds.forEach { nArr.put(it) }
+                    obj.put("nounIds", nArr)
+                }
                 e.support?.let { obj.put("support", it) }
                 e.voteWeight?.let { obj.put("voteWeight", it) }
                 obj.put("timestamp", e.timestamp)
@@ -1358,6 +1368,14 @@ class SettingsStore(private val context: Context) {
             val list = ArrayList<CachedLilDigestEvent>(arr.length())
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
+                val nounIdsJson = obj.optJSONArray("nounIds")
+                val nounIdsList = mutableListOf<String>()
+                if (nounIdsJson != null) {
+                    for (j in 0 until nounIdsJson.length()) {
+                        val nId = nounIdsJson.optString(j, "").trim()
+                        if (nId.isNotEmpty()) nounIdsList.add(nId)
+                    }
+                }
                 list.add(
                     CachedLilDigestEvent(
                         id = obj.optString("id", ""),
@@ -1365,6 +1383,9 @@ class SettingsStore(private val context: Context) {
                         proposalId = obj.optString("proposalId", ""),
                         proposalTitle = obj.optString("proposalTitle", ""),
                         actor = obj.optString("actor", ""),
+                        counterpart = obj.optString("counterpart", ""),
+                        undelegated = obj.optBoolean("undelegated", false),
+                        nounIds = nounIdsList,
                         support = if (obj.has("support")) obj.optInt("support") else null,
                         voteWeight = if (obj.has("voteWeight")) obj.optInt("voteWeight") else null,
                         timestamp = obj.optLong("timestamp", 0L),

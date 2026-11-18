@@ -158,6 +158,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 ### 3. Lil Nouns Digest Activity Timeline (Swipe Right)
 - **Live On-Chain Activity Feed**: Pulls live timeline activity directly from `https://db.lilnouns.wtf/api/digest` with automatic fallback to Goldsky Subgraph (`GetDigestCore`).
 - **Category Filter Chips**: Filter events on the fly with smooth horizontal chips: `All`, `Votes`, `Proposals`, and `Delegations`.
+- **Transparent Delegation & Identity Clarity**: Delegations display explicit `From: <delegator> -> To: <delegatee>` relationships (or `-> Undelegated`), specific delegated Lil Noun token IDs (e.g. `Lil #6887, #6258, #4357`), and on-chain reverse ENS names for both accounts, completely eliminating ambiguous raw "actor" labels.
 - **On-Chain Reverse ENS Resolution**: Actor and voter Ethereum addresses resolve to human-readable ENS domains (e.g. `stripymofo.eth`, `vitalik.eth`) via the canonical Ethereum `ReverseRecords` contract.
 - **Direct Web3 Action Links**: One-tap links open live proposals and actions directly on `https://lilnouns.wtf/vote/{id}` and `https://lilnouns.wtf/digest`.
 - **Infinite Scroll Cursor Pagination**: Bottom scrolling automatically loads older activity events using cursor pagination.

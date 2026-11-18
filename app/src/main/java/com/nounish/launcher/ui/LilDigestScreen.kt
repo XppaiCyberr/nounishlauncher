@@ -430,7 +430,10 @@ private fun LilDigestEventCard(
         "proposal-created" -> "NEW PROPOSAL" to CryptoGreen
         "voting-started" -> "VOTING ACTIVE" to colors.accent
         "closing-soon" -> "CLOSING SOON" to CryptoRed.copy(alpha = 0.85f)
-        "delegate" -> "DELEGATION" to colors.textSecondary
+        "delegate" -> {
+            if (event.undelegated) "UNDELEGATED" to CryptoRed
+            else "DELEGATION" to colors.accent
+        }
         "auction-bid", "auction-created", "auction-settled" -> "AUCTION" to colors.accent
         else -> event.kind.uppercase(Locale.US) to colors.textSecondary
     }
@@ -489,10 +492,20 @@ private fun LilDigestEventCard(
                             color = if (event.support == 1) CryptoGreen else if (event.support == 0) CryptoRed else colors.textPrimary
                         )
                     } else if (event.nounIdsCount > 0) {
+                        val nounTokenText = if (event.nounIds.isNotEmpty()) {
+                            if (event.nounIds.size <= 3) {
+                                "Lil #${event.nounIds.joinToString(", #")}"
+                            } else {
+                                "Lil #${event.nounIds.take(2).joinToString(", #")} +${event.nounIds.size - 2} more"
+                            }
+                        } else {
+                            "${event.nounIdsCount} Lil ${if (event.nounIdsCount == 1) "Noun" else "Nouns"}"
+                        }
                         Text(
-                            text = "${event.nounIdsCount} Lil Nouns",
+                            text = nounTokenText,
                             style = typography.clock,
-                            color = colors.textSecondary.copy(alpha = 0.8f)
+                            color = colors.textSecondary.copy(alpha = 0.85f),
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -521,20 +534,213 @@ private fun LilDigestEventCard(
                 )
             }
 
-            // Actor / Voter / Proposer address (with ENS)
-            if (event.actorFormatted.isNotBlank() || event.actor.isNotBlank()) {
-                val actorLabel = if (event.kind == "vote") "Voter: " else if (event.kind == "proposal-created") "Proposer: " else "Actor: "
-                val shortActor = if (event.actorFormatted.isNotBlank()) {
-                    event.actorFormatted
-                } else if (event.actor.length >= 10) {
-                    "${event.actor.take(6)}...${event.actor.takeLast(4)}"
-                } else event.actor
+            // Sender / Recipient / Voter / Proposer / Delegator details
+            when (event.kind.lowercase(Locale.US)) {
+                "delegate" -> {
+                    val fromActor = if (event.actorFormatted.isNotBlank()) event.actorFormatted
+                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
+                        else event.actor
 
-                Text(
-                    text = "$actorLabel$shortActor",
-                    style = typography.clock,
-                    color = colors.textSecondary.copy(alpha = 0.65f)
-                )
+                    val toCounterpart = if (event.counterpartFormatted.isNotBlank()) event.counterpartFormatted
+                        else if (event.counterpart.length >= 10) "${event.counterpart.take(6)}...${event.counterpart.takeLast(4)}"
+                        else event.counterpart
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if (event.undelegated) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "From: ",
+                                    style = typography.clock,
+                                    color = colors.textSecondary.copy(alpha = 0.55f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = fromActor,
+                                    style = typography.clock,
+                                    color = colors.textPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "-> Undelegated",
+                                    style = typography.clock,
+                                    color = CryptoRed,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            if (toCounterpart.isNotBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "Previous delegate: ",
+                                        style = typography.clock,
+                                        color = colors.textSecondary.copy(alpha = 0.5f)
+                                    )
+                                    Text(
+                                        text = toCounterpart,
+                                        style = typography.clock,
+                                        color = colors.textSecondary.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "From: ",
+                                    style = typography.clock,
+                                    color = colors.textSecondary.copy(alpha = 0.55f),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = fromActor,
+                                    style = typography.clock,
+                                    color = colors.textPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            if (toCounterpart.isNotBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "To: ",
+                                        style = typography.clock,
+                                        color = colors.textSecondary.copy(alpha = 0.55f),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = toCounterpart,
+                                        style = typography.clock,
+                                        color = colors.accent,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                "vote" -> {
+                    val voterText = if (event.actorFormatted.isNotBlank()) event.actorFormatted
+                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
+                        else event.actor
+                    if (voterText.isNotBlank()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Voter: ",
+                                style = typography.clock,
+                                color = colors.textSecondary.copy(alpha = 0.55f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = voterText,
+                                style = typography.clock,
+                                color = colors.textPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+                "proposal-created" -> {
+                    val proposerText = if (event.actorFormatted.isNotBlank()) event.actorFormatted
+                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
+                        else event.actor
+                    if (proposerText.isNotBlank()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Proposer: ",
+                                style = typography.clock,
+                                color = colors.textSecondary.copy(alpha = 0.55f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = proposerText,
+                                style = typography.clock,
+                                color = colors.textPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+                "transfer" -> {
+                    val fromActor = if (event.actorFormatted.isNotBlank()) event.actorFormatted
+                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
+                        else event.actor
+                    val toCounterpart = if (event.counterpartFormatted.isNotBlank()) event.counterpartFormatted
+                        else if (event.counterpart.length >= 10) "${event.counterpart.take(6)}...${event.counterpart.takeLast(4)}"
+                        else event.counterpart
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Transfer: $fromActor -> $toCounterpart",
+                            style = typography.clock,
+                            color = colors.textSecondary.copy(alpha = 0.75f)
+                        )
+                    }
+                }
+                "sale" -> {
+                    val buyerText = if (event.actorFormatted.isNotBlank()) event.actorFormatted
+                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
+                        else event.actor
+                    if (buyerText.isNotBlank()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Buyer: ",
+                                style = typography.clock,
+                                color = colors.textSecondary.copy(alpha = 0.55f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = buyerText,
+                                style = typography.clock,
+                                color = colors.textPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    if (event.actor.isNotBlank()) {
+                        val userText = if (event.actorFormatted.isNotBlank()) event.actorFormatted
+                            else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
+                            else event.actor
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Account: ",
+                                style = typography.clock,
+                                color = colors.textSecondary.copy(alpha = 0.55f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = userText,
+                                style = typography.clock,
+                                color = colors.textPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
             }
 
             // Action links
@@ -548,6 +754,8 @@ private fun LilDigestEventCard(
             val actionLabel = when (event.kind) {
                 "vote", "voting-started", "closing-soon" -> "Vote on lilnouns.wtf ->"
                 "proposal-created" -> "View proposal on lilnouns.wtf ->"
+                "delegate" -> "View profile on lilnouns.wtf ->"
+                "sale" -> "View auction on lilnouns.wtf ->"
                 else -> "lilnouns.wtf ->"
             }
 
