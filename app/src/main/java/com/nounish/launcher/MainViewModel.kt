@@ -8,6 +8,7 @@ import com.nounish.launcher.data.AppRepository
 import com.nounish.launcher.data.BinanceWebSocketClient
 import com.nounish.launcher.data.CachedCoinPrice
 import com.nounish.launcher.data.CachedIdxQuote
+import com.nounish.launcher.data.CachedLilDigestEvent
 import com.nounish.launcher.data.CachedNounsAuction
 import com.nounish.launcher.data.CachedNounsCandidate
 import com.nounish.launcher.data.CachedNounsProposal
@@ -15,6 +16,7 @@ import com.nounish.launcher.data.CoinTicker
 import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.data.IdxRepository
 import com.nounish.launcher.data.LauncherSettings
+import com.nounish.launcher.data.LilDigestEventUi
 import com.nounish.launcher.data.LilNounsRepository
 import com.nounish.launcher.data.NetworkHelper
 import com.nounish.launcher.data.NounsAuctionUi
@@ -467,6 +469,51 @@ class MainViewModel(
         }.sortedByDescending { it.id }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    private val _olderLilDigestEvents = MutableStateFlow<List<CachedLilDigestEvent>>(emptyList())
+    private val _isLoadingOlderLilDigest = MutableStateFlow(false)
+    val isLoadingOlderLilDigest: StateFlow<Boolean> = _isLoadingOlderLilDigest.asStateFlow()
+    private val _hasMoreLilDigest = MutableStateFlow(true)
+    val hasMoreLilDigest: StateFlow<Boolean> = _hasMoreLilDigest.asStateFlow()
+    private val _lilDigestCursor = MutableStateFlow<String?>(null)
+
+    val lilDigestEventsList: StateFlow<List<LilDigestEventUi>> = combine(
+        settings,
+        _olderLilDigestEvents,
+        _ensResolvedTrigger
+    ) { pref, olderList, _ ->
+        val cached = pref.cachedLilNounsDigest
+        val combined = if (olderList.isEmpty()) {
+            cached
+        } else {
+            val existingIds = cached.map { it.id }.toSet()
+            cached + olderList.filter { it.id !in existingIds }
+        }
+
+        val nowSeconds = System.currentTimeMillis() / 1000L
+        combined.map { e ->
+            val ens = NounsRepository.getCachedEns(e.actor)
+            val actorFormatted = if (e.actor.isNotBlank()) NounsRepository.formatAddress(e.actor, ens) else ""
+            val diffSec = (nowSeconds - e.timestamp).coerceAtLeast(0L)
+            val timeAgoFormatted = formatDigestTimeAgo(diffSec)
+
+            LilDigestEventUi(
+                id = e.id,
+                kind = e.kind,
+                proposalId = e.proposalId,
+                proposalTitle = e.proposalTitle,
+                actor = e.actor,
+                actorFormatted = actorFormatted,
+                support = e.support,
+                voteWeight = e.voteWeight,
+                timestamp = e.timestamp,
+                timeAgoFormatted = timeAgoFormatted,
+                href = e.href,
+                endsAt = e.endsAt,
+                nounIdsCount = e.nounIdsCount
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     private val _isRefreshingData = MutableStateFlow(false)
     val isRefreshingData: StateFlow<Boolean> = _isRefreshingData.asStateFlow()
 
@@ -681,6 +728,9 @@ class MainViewModel(
                     if (settings.value.enableLilGovernanceScreen) {
                         launch { fetchLilProposals() }
                     }
+                    if (settings.value.enableLilDigestScreen) {
+                        launch { fetchLilDigest() }
+                    }
                 }
                 delay(60_000L)
             }
@@ -787,6 +837,9 @@ class MainViewModel(
             launch { fetchNounsCandidates() }
             if (currentSettings.enableLilGovernanceScreen) {
                 launch { fetchLilProposals() }
+            }
+            if (currentSettings.enableLilDigestScreen) {
+                launch { fetchLilDigest() }
             }
         }
 
@@ -1094,10 +1147,13 @@ class MainViewModel(
         _olderProposals.value = emptyList()
         _olderCandidates.value = emptyList()
         _olderLilProposals.value = emptyList()
+        _olderLilDigestEvents.value = emptyList()
         _candidateNextPageKey.value = null
+        _lilDigestCursor.value = null
         _hasMoreProposals.value = true
         _hasMoreCandidates.value = true
         _hasMoreLilProposals.value = true
+        _hasMoreLilDigest.value = true
     }
 
     fun loadOlderProposals() {
@@ -1270,6 +1326,107 @@ class MainViewModel(
         }
     }
 
+    private fun formatDigestTimeAgo(diffSec: Long): String {
+        return when {
+            diffSec < 60L -> "just now"
+            diffSec < 3600L -> "${diffSec / 60L}m ago"
+            diffSec < 86400L -> "${diffSec / 3600L}h ago"
+            else -> "${diffSec / 86400L}d ago"
+        }
+    }
+
+    private suspend fun fetchLilDigest() {
+        val currentSettings = settings.value
+        if (!currentSettings.enableLilDigestScreen) return
+
+        val result = lilNounsRepository.fetchDigestPage(limit = 30)
+        val page = result.getOrNull()
+        if (page != null && page.events.isNotEmpty()) {
+            val now = System.currentTimeMillis()
+            val actors = page.events.map { it.actor }.filter { it.isNotBlank() }
+            if (actors.isNotEmpty()) {
+                nounsRepository.resolveEnsNames(actors)
+            }
+            _lilDigestCursor.value = page.nextCursor
+            val cachedList = page.events.map { e ->
+                CachedLilDigestEvent(
+                    id = e.id,
+                    kind = e.kind,
+                    proposalId = e.proposalId,
+                    proposalTitle = e.proposalTitle,
+                    actor = e.actor,
+                    support = e.support,
+                    voteWeight = e.voteWeight,
+                    timestamp = e.timestamp,
+                    href = e.href,
+                    endsAt = e.endsAt,
+                    nounIdsCount = e.nounIdsCount
+                )
+            }
+            settingsStore.updateCachedLilNounsDigest(cachedList, now)
+            _ensResolvedTrigger.value = now
+        }
+    }
+
+    fun refreshLilDigest() {
+        _olderLilDigestEvents.value = emptyList()
+        _lilDigestCursor.value = null
+        _hasMoreLilDigest.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            fetchLilDigest()
+        }
+    }
+
+    fun loadOlderLilDigest() {
+        if (_isLoadingOlderLilDigest.value || !_hasMoreLilDigest.value) return
+        val cursor = _lilDigestCursor.value
+        if (cursor == null && lilDigestEventsList.value.isNotEmpty()) {
+            _hasMoreLilDigest.value = false
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoadingOlderLilDigest.value = true
+            try {
+                val result = lilNounsRepository.fetchDigestPage(limit = 20, cursor = cursor)
+                val page = result.getOrNull()
+                if (page != null && page.events.isNotEmpty()) {
+                    val actors = page.events.map { it.actor }.filter { it.isNotBlank() }
+                    if (actors.isNotEmpty()) {
+                        nounsRepository.resolveEnsNames(actors)
+                    }
+                    _lilDigestCursor.value = page.nextCursor
+                    if (page.nextCursor == null) {
+                        _hasMoreLilDigest.value = false
+                    }
+                    val newCached = page.events.map { e ->
+                        CachedLilDigestEvent(
+                            id = e.id,
+                            kind = e.kind,
+                            proposalId = e.proposalId,
+                            proposalTitle = e.proposalTitle,
+                            actor = e.actor,
+                            support = e.support,
+                            voteWeight = e.voteWeight,
+                            timestamp = e.timestamp,
+                            href = e.href,
+                            endsAt = e.endsAt,
+                            nounIdsCount = e.nounIdsCount
+                        )
+                    }
+                    _olderLilDigestEvents.update { current ->
+                        (current + newCached).distinctBy { it.id }
+                    }
+                    _ensResolvedTrigger.value = System.currentTimeMillis()
+                } else {
+                    _hasMoreLilDigest.value = false
+                }
+            } catch (_: Exception) {
+            } finally {
+                _isLoadingOlderLilDigest.value = false
+            }
+        }
+    }
+
     private suspend fun fetchNounsCandidates() {
         val currentSettings = settings.value
         if (!currentSettings.showHomeNouns && !currentSettings.enableGovernanceScreen) return
@@ -1321,6 +1478,9 @@ class MainViewModel(
                     }
                     if (currentSettings.enableLilGovernanceScreen) {
                         launch { fetchLilProposals() }
+                    }
+                    if (currentSettings.enableLilDigestScreen) {
+                        launch { fetchLilDigest() }
                     }
 
                     // 4. Fetch Binance Crypto prices & sparklines (if cryptoPriceEnabled)
@@ -1863,6 +2023,9 @@ class MainViewModel(
                     if (settings.value.enableLilGovernanceScreen) {
                         launch { fetchLilProposals() }
                     }
+                    if (settings.value.enableLilDigestScreen) {
+                        launch { fetchLilDigest() }
+                    }
                 }
             }
         }
@@ -1873,6 +2036,15 @@ class MainViewModel(
             settingsStore.setEnableLilGovernanceScreen(enable)
             if (enable) {
                 fetchLilProposals()
+            }
+        }
+    }
+
+    fun setEnableLilDigestScreen(enable: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setEnableLilDigestScreen(enable)
+            if (enable) {
+                fetchLilDigest()
             }
         }
     }

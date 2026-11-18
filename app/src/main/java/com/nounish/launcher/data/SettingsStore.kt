@@ -151,9 +151,26 @@ data class LauncherSettings(
     val homeScreenNotePosition: String = "top_right", // "top_right", "bottom_right"
     val enableGovernanceScreen: Boolean = true,
     val enableLilGovernanceScreen: Boolean = true,
+    val enableLilDigestScreen: Boolean = true,
     val fullScreenGestureMode: Boolean = false,
     val cachedLilNounsProposals: List<CachedNounsProposal> = emptyList(),
-    val cachedLilNounsTimestamp: Long = 0L
+    val cachedLilNounsTimestamp: Long = 0L,
+    val cachedLilNounsDigest: List<CachedLilDigestEvent> = emptyList(),
+    val cachedLilNounsDigestTimestamp: Long = 0L
+)
+
+data class CachedLilDigestEvent(
+    val id: String,
+    val kind: String,
+    val proposalId: String = "",
+    val proposalTitle: String = "",
+    val actor: String = "",
+    val support: Int? = null,
+    val voteWeight: Int? = null,
+    val timestamp: Long = 0L,
+    val href: String = "",
+    val endsAt: Long? = null,
+    val nounIdsCount: Int = 0
 )
 
 class SettingsStore(private val context: Context) {
@@ -239,6 +256,9 @@ class SettingsStore(private val context: Context) {
         private val KEY_FULL_SCREEN_GESTURE_MODE = booleanPreferencesKey("full_screen_gesture_mode")
         private val KEY_CACHED_LIL_NOUNS_PROPOSALS = stringPreferencesKey("cached_lil_nouns_proposals_json")
         private val KEY_CACHED_LIL_NOUNS_TIMESTAMP = longPreferencesKey("cached_lil_nouns_timestamp")
+        private val KEY_ENABLE_LIL_DIGEST_SCREEN = booleanPreferencesKey("enable_lil_digest_screen")
+        private val KEY_CACHED_LIL_DIGEST = stringPreferencesKey("cached_lil_nouns_digest_json")
+        private val KEY_CACHED_LIL_DIGEST_TIMESTAMP = longPreferencesKey("cached_lil_nouns_digest_timestamp")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -341,9 +361,12 @@ class SettingsStore(private val context: Context) {
         val homeScreenNotePosition = prefs[KEY_HOME_SCREEN_NOTE_POSITION] ?: "top_right"
         val enableGovernanceScreen = prefs[KEY_ENABLE_GOVERNANCE_SCREEN] ?: true
         val enableLilGovernanceScreen = prefs[KEY_ENABLE_LIL_GOVERNANCE_SCREEN] ?: true
+        val enableLilDigestScreen = prefs[KEY_ENABLE_LIL_DIGEST_SCREEN] ?: true
         val fullScreenGestureMode = prefs[KEY_FULL_SCREEN_GESTURE_MODE] ?: false
         val cachedLilNounsProposals = parseNounsProposalsJson(prefs[KEY_CACHED_LIL_NOUNS_PROPOSALS] ?: "")
         val cachedLilNounsTimestamp = prefs[KEY_CACHED_LIL_NOUNS_TIMESTAMP] ?: 0L
+        val cachedLilNounsDigest = parseLilDigestJson(prefs[KEY_CACHED_LIL_DIGEST] ?: "")
+        val cachedLilNounsDigestTimestamp = prefs[KEY_CACHED_LIL_DIGEST_TIMESTAMP] ?: 0L
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -423,9 +446,12 @@ class SettingsStore(private val context: Context) {
             homeScreenNotePosition = homeScreenNotePosition,
             enableGovernanceScreen = enableGovernanceScreen,
             enableLilGovernanceScreen = enableLilGovernanceScreen,
+            enableLilDigestScreen = enableLilDigestScreen,
             fullScreenGestureMode = fullScreenGestureMode,
             cachedLilNounsProposals = cachedLilNounsProposals,
-            cachedLilNounsTimestamp = cachedLilNounsTimestamp
+            cachedLilNounsTimestamp = cachedLilNounsTimestamp,
+            cachedLilNounsDigest = cachedLilNounsDigest,
+            cachedLilNounsDigestTimestamp = cachedLilNounsDigestTimestamp
         )
     }
 
@@ -861,6 +887,33 @@ class SettingsStore(private val context: Context) {
         }
     }
 
+    suspend fun updateCachedLilNounsDigest(events: List<CachedLilDigestEvent>, timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            val arr = JSONArray()
+            events.forEach { e ->
+                val obj = JSONObject()
+                obj.put("id", e.id)
+                obj.put("kind", e.kind)
+                obj.put("proposalId", e.proposalId)
+                obj.put("proposalTitle", e.proposalTitle)
+                obj.put("actor", e.actor)
+                e.support?.let { obj.put("support", it) }
+                e.voteWeight?.let { obj.put("voteWeight", it) }
+                obj.put("timestamp", e.timestamp)
+                obj.put("href", e.href)
+                e.endsAt?.let { obj.put("endsAt", it) }
+                obj.put("nounIdsCount", e.nounIdsCount)
+                arr.put(obj)
+            }
+            prefs[KEY_CACHED_LIL_DIGEST] = arr.toString()
+            prefs[KEY_CACHED_LIL_DIGEST_TIMESTAMP] = timestamp
+        }
+    }
+
+    suspend fun setEnableLilDigestScreen(enable: Boolean) {
+        context.dataStore.edit { it[KEY_ENABLE_LIL_DIGEST_SCREEN] = enable }
+    }
+
     suspend fun updateCachedNounsAuction(auction: CachedNounsAuction?, timestamp: Long) {
         context.dataStore.edit { prefs ->
             if (auction != null) {
@@ -970,6 +1023,7 @@ class SettingsStore(private val context: Context) {
         root.put("homeScreenNotePosition", settings.homeScreenNotePosition)
         root.put("enableGovernanceScreen", settings.enableGovernanceScreen)
         root.put("enableLilGovernanceScreen", settings.enableLilGovernanceScreen)
+        root.put("enableLilDigestScreen", settings.enableLilDigestScreen)
         root.put("fullScreenGestureMode", settings.fullScreenGestureMode)
 
         return root.toString(2)
@@ -1091,6 +1145,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("homeScreenNotePosition")) prefs[KEY_HOME_SCREEN_NOTE_POSITION] = root.getString("homeScreenNotePosition")
                 if (root.has("enableGovernanceScreen")) prefs[KEY_ENABLE_GOVERNANCE_SCREEN] = root.getBoolean("enableGovernanceScreen")
                 if (root.has("enableLilGovernanceScreen")) prefs[KEY_ENABLE_LIL_GOVERNANCE_SCREEN] = root.getBoolean("enableLilGovernanceScreen")
+                if (root.has("enableLilDigestScreen")) prefs[KEY_ENABLE_LIL_DIGEST_SCREEN] = root.getBoolean("enableLilDigestScreen")
                 if (root.has("fullScreenGestureMode")) prefs[KEY_FULL_SCREEN_GESTURE_MODE] = root.getBoolean("fullScreenGestureMode")
             }
             true
@@ -1293,6 +1348,35 @@ class SettingsStore(private val context: Context) {
             )
         } catch (_: Exception) {
             null
+        }
+    }
+
+    private fun parseLilDigestJson(raw: String): List<CachedLilDigestEvent> {
+        if (raw.isBlank()) return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            val list = ArrayList<CachedLilDigestEvent>(arr.length())
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                list.add(
+                    CachedLilDigestEvent(
+                        id = obj.optString("id", ""),
+                        kind = obj.optString("kind", ""),
+                        proposalId = obj.optString("proposalId", ""),
+                        proposalTitle = obj.optString("proposalTitle", ""),
+                        actor = obj.optString("actor", ""),
+                        support = if (obj.has("support")) obj.optInt("support") else null,
+                        voteWeight = if (obj.has("voteWeight")) obj.optInt("voteWeight") else null,
+                        timestamp = obj.optLong("timestamp", 0L),
+                        href = obj.optString("href", ""),
+                        endsAt = if (obj.has("endsAt")) obj.optLong("endsAt") else null,
+                        nounIdsCount = obj.optInt("nounIdsCount", 0)
+                    )
+                )
+            }
+            list
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 }

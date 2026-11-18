@@ -11,11 +11,48 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
 
+data class LilDigestEvent(
+    val id: String,
+    val kind: String,
+    val proposalId: String = "",
+    val proposalTitle: String = "",
+    val actor: String = "",
+    val support: Int? = null,
+    val voteWeight: Int? = null,
+    val timestamp: Long = 0L,
+    val href: String = "",
+    val endsAt: Long? = null,
+    val nounIdsCount: Int = 0
+)
+
+data class LilDigestPage(
+    val events: List<LilDigestEvent>,
+    val nextCursor: String? = null
+)
+
+data class LilDigestEventUi(
+    val id: String,
+    val kind: String,
+    val proposalId: String,
+    val proposalTitle: String,
+    val actor: String,
+    val actorFormatted: String,
+    val support: Int?,
+    val voteWeight: Int?,
+    val timestamp: Long,
+    val timeAgoFormatted: String,
+    val href: String,
+    val endsAt: Long?,
+    val nounIdsCount: Int
+)
+
 class LilNounsRepository {
 
     companion object {
         const val SUBGRAPH_URL =
             "https://api.goldsky.com/api/public/project_cldjvjgtylso13swq3dre13sf/subgraphs/lil-nouns-subgraph/1.0.10/gn"
+
+        const val DIGEST_API_URL = "https://db.lilnouns.wtf/api/digest"
 
         const val LIL_DAO_PROXY_CONTRACT = "0x5d2C31ce16924C2a71D317e5BbFd5ce387854039"
 
@@ -235,6 +272,178 @@ class LilNounsRepository {
             6 -> "Vetoed"
             7 -> "Executed"
             else -> "Active"
+        }
+    }
+
+    suspend fun fetchDigestPage(
+        limit: Int = 30,
+        cursor: String? = null
+    ): Result<LilDigestPage> = withContext(Dispatchers.IO) {
+        // 1. Primary: Lil Nouns Digest REST API (https://db.lilnouns.wtf/api/digest)
+        try {
+            val urlBuilder = StringBuilder(DIGEST_API_URL).append("?limit=").append(limit.coerceIn(5, 50))
+            if (!cursor.isNullOrBlank()) {
+                urlBuilder.append("&cursor=").append(cursor)
+            }
+            val respStr = getJson(urlBuilder.toString())
+            if (!respStr.isNullOrBlank()) {
+                val root = JSONObject(respStr)
+                val eventsArr = root.optJSONArray("events")
+                val nextCursor = root.optString("nextCursor", "").takeIf { it.isNotBlank() }
+                if (eventsArr != null) {
+                    val list = mutableListOf<LilDigestEvent>()
+                    for (i in 0 until eventsArr.length()) {
+                        val item = eventsArr.optJSONObject(i) ?: continue
+                        val id = item.optString("id", "")
+                        val kind = item.optString("kind", "event")
+                        val proposalId = item.optString("proposalId", "")
+                        val proposalTitle = item.optString("proposalTitle", "")
+                        val actor = item.optString("actor", "")
+                        val support = if (item.has("support")) item.optInt("support") else null
+                        val voteWeight = if (item.has("voteWeight")) item.optInt("voteWeight") else null
+                        val timestamp = item.optLong("timestamp", 0L)
+                        val href = item.optString("href", "")
+                        val endsAt = if (item.has("endsAt")) item.optLong("endsAt") else null
+                        val nounIds = item.optJSONArray("nounIds")
+                        val nounIdsCount = nounIds?.length() ?: 0
+
+                        if (id.isNotEmpty()) {
+                            list.add(
+                                LilDigestEvent(
+                                    id = id,
+                                    kind = kind,
+                                    proposalId = proposalId,
+                                    proposalTitle = proposalTitle,
+                                    actor = actor,
+                                    support = support,
+                                    voteWeight = voteWeight,
+                                    timestamp = timestamp,
+                                    href = href,
+                                    endsAt = endsAt,
+                                    nounIdsCount = nounIdsCount
+                                )
+                            )
+                        }
+                    }
+                    if (list.isNotEmpty()) {
+                        return@withContext Result.success(LilDigestPage(events = list, nextCursor = nextCursor))
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Fallback: Goldsky Subgraph GetDigestCore
+        try {
+            val queryPayload = JSONObject().apply {
+                put(
+                    "query",
+                    """
+                    query GetDigestCore(${'$'}first: Int!) {
+                      votes(first: ${'$'}first, orderBy: blockTimestamp, orderDirection: desc) {
+                        id
+                        voter { id }
+                        supportDetailed
+                        votes
+                        blockTimestamp
+                        proposal { id title }
+                      }
+                      proposals(first: ${'$'}first, orderBy: createdTimestamp, orderDirection: desc) {
+                        id
+                        title
+                        proposer { id }
+                        createdTimestamp
+                      }
+                    }
+                    """.trimIndent()
+                )
+                put("variables", JSONObject().apply {
+                    put("first", limit.coerceIn(5, 30))
+                })
+            }
+            val respStr = postJson(SUBGRAPH_URL, queryPayload.toString())
+            if (!respStr.isNullOrBlank()) {
+                val root = JSONObject(respStr)
+                val data = root.optJSONObject("data")
+                val list = mutableListOf<LilDigestEvent>()
+                val votesArr = data?.optJSONArray("votes")
+                if (votesArr != null) {
+                    for (i in 0 until votesArr.length()) {
+                        val item = votesArr.optJSONObject(i) ?: continue
+                        val vId = item.optString("id", "")
+                        val voter = item.optJSONObject("voter")?.optString("id", "") ?: ""
+                        val support = item.optInt("supportDetailed", 1)
+                        val votes = item.optString("votes", "0").toIntOrNull() ?: 0
+                        val ts = item.optLong("blockTimestamp", 0L)
+                        val propObj = item.optJSONObject("proposal")
+                        val pId = propObj?.optString("id", "") ?: ""
+                        val pTitle = propObj?.optString("title", "") ?: ""
+
+                        list.add(
+                            LilDigestEvent(
+                                id = "vote-$vId",
+                                kind = "vote",
+                                proposalId = pId,
+                                proposalTitle = pTitle,
+                                actor = voter,
+                                support = support,
+                                voteWeight = votes,
+                                timestamp = ts,
+                                href = "/vote/$pId"
+                            )
+                        )
+                    }
+                }
+                val propsArr = data?.optJSONArray("proposals")
+                if (propsArr != null) {
+                    for (i in 0 until propsArr.length()) {
+                        val item = propsArr.optJSONObject(i) ?: continue
+                        val pId = item.optString("id", "")
+                        val title = item.optString("title", "")
+                        val proposer = item.optJSONObject("proposer")?.optString("id", "") ?: ""
+                        val ts = item.optLong("createdTimestamp", 0L)
+
+                        list.add(
+                            LilDigestEvent(
+                                id = "proposal-created-$pId",
+                                kind = "proposal-created",
+                                proposalId = pId,
+                                proposalTitle = title,
+                                actor = proposer,
+                                timestamp = ts,
+                                href = "/vote/$pId"
+                            )
+                        )
+                    }
+                }
+                list.sortByDescending { it.timestamp }
+                if (list.isNotEmpty()) {
+                    return@withContext Result.success(LilDigestPage(events = list, nextCursor = null))
+                }
+            }
+        } catch (_: Exception) {}
+
+        Result.failure(RuntimeException("Failed to fetch Lil Nouns digest"))
+    }
+
+    private fun getJson(urlStr: String, timeoutMs: Int = 8_000): String? {
+        var conn: HttpURLConnection? = null
+        return try {
+            conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = timeoutMs
+                readTimeout = timeoutMs
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("User-Agent", "NounishLauncher/1.0")
+            }
+            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader(InputStreamReader(conn.inputStream)).use { it.readText() }
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        } finally {
+            conn?.disconnect()
         }
     }
 

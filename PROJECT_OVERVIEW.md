@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.44` (versionCode `45`) · **Optimized Release APK**: `~1.20 MB` (1,258,746 bytes)
+**Current Version**: `v1.0.45` (versionCode `46`) · **Optimized Release APK**: `~1.21 MB` (1,273,572 bytes)
 
 ---
 
@@ -29,7 +29,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 7. **Strict Background Discipline**: App lists are cached in memory and refreshed exclusively on package broadcast events. All network polling and WebSocket connections terminate immediately on `onPause()` or when navigating away from Home.
 8. **Window Hardware Alpha Compositing Architecture (Zero-Ghosting)**: Translucent RGBA_8888 window surface composited directly by SurfaceFlinger against the system wallpaper, paired with a single static root scrim layer and sequential `AnimatedContent` transitions that prevent afterimage ghosting.
 9. **Canonical Nouns Glasses App Icon**: The app launcher icon implements the official Nouns DAO glasses (`glasses-square-black-eyes-red`: black square frames, crisp white eyes, red pupils) against a high-contrast white adaptive background. Vector-drawn with an exact 16x6 pixel grid centered in Android's 72dp safe zone for zero clipping on any OEM mask shape, accompanied by themed monochrome icon support and full multi-density legacy mipmaps.
-10. **Multi-Home Screen Architecture & Dedicated Governance Canvases**: 3-page horizontal navigation providing dedicated full-screen spaces for both Nouns DAO and Lil Nouns DAO governance proposals with interactive page indicators, DAO switcher pills, dedicated status filtering, visual voting ratio bars, and reverse ENS proposer names.
+10. **Multi-Home Screen Architecture, Governance Canvases & Lil Nouns Digest**: 4-screen horizontal slide navigation providing dedicated full-screen spaces for Home, Nouns DAO Governance, Lil Nouns DAO Governance, and Lil Nouns Digest live timeline with interactive page indicators, DAO switcher pills, category filters, visual voting ratio bars, and on-chain reverse ENS resolution.
 
 ---
 
@@ -153,8 +153,18 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Dedicated Top Navigation Bar**: Clean `<- Home` and `<- Nouns` navigation bars with quick on-chain refresh on governance screens.
 - **Ergonomic Gesture Navigation**: Swipe right returns to the previous screen (Lil Nouns -> Nouns -> Home), swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings. The App Drawer is intentionally disabled on governance screens to ensure uninterrupted vertical list scrolling even when swiping near corners.
 - **Dedicated Default Gestures**: Swipe left on Home defaults directly to opening fullscreen Governance proposals, cleanly toggleable in Settings under **Gestures -> Swipe left** or **Nouns DAO -> Second home screen (Governance)** and **Third home screen (Lil Nouns DAO)**.
+- **Lil Nouns Digest Swipe-Right Gesture**: Swipe right on Home slides directly into the Lil Nouns Digest timeline screen, displaying real-time on-chain votes, proposals created, voting active, closing soon, delegations, and auctions. Toggleable in Settings under **Gestures -> Swipe right** and **Nouns DAO -> Swipe right gesture (Lil Nouns Digest)**.
 
-### 3. App Drawer & Search
+### 3. Lil Nouns Digest Activity Timeline (Swipe Right)
+- **Live On-Chain Activity Feed**: Pulls live timeline activity directly from `https://db.lilnouns.wtf/api/digest` with automatic fallback to Goldsky Subgraph (`GetDigestCore`).
+- **Category Filter Chips**: Filter events on the fly with smooth horizontal chips: `All`, `Votes`, `Proposals`, and `Delegations`.
+- **On-Chain Reverse ENS Resolution**: Actor and voter Ethereum addresses resolve to human-readable ENS domains (e.g. `stripymofo.eth`, `vitalik.eth`) via the canonical Ethereum `ReverseRecords` contract.
+- **Direct Web3 Action Links**: One-tap links open live proposals and actions directly on `https://lilnouns.wtf/vote/{id}` and `https://lilnouns.wtf/digest`.
+- **Infinite Scroll Cursor Pagination**: Bottom scrolling automatically loads older activity events using cursor pagination.
+- **Animated Noggles Refresh & Loading**: Features breathing `⌐◨-◨` loaders when paginating and syncing fresh on-chain activity.
+- **Ergonomic Slide Transitions**: Seamless spatial slide-in from the left on swipe-right, with swipe-left or back tap returning to Home.
+
+### 4. App Drawer & Search
 - **Multi-Activity & Work Profile Support**:
   - Uses Android's official `LauncherApps` API across all user profiles (personal, work profile, secondary users).
   - Work profile apps are identified with a clean `(Work)` label suffix and launched directly into the managed profile via `launcherApps.startMainActivity`.
@@ -214,16 +224,16 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **App Info** (Opens system application details)
   - **Uninstall** (Prompts system uninstallation)
 
-### 4. Hidden Apps
+### 5. Hidden Apps
 - Hide distracting or rarely used apps from the main drawer list.
 - Hidden apps only appear when explicitly typed into the search bar or in the **Hidden Apps** manager in Settings.
 
-### 5. Settings Backup & Restore (JSON)
+### 6. Settings Backup & Restore (JSON)
 - **Zero-Telemetry Local Backup**: Export all pinned apps, hidden apps, custom app labels, and settings into an offline JSON file.
 - **Storage Access Framework (SAF)**: Integrates seamlessly with Android's system document picker (`CreateDocument` and `OpenDocument`) for safe, permissionless file import and export.
 - **Backwards Compatible**: Parses existing and future setting backups gracefully.
 
-### 6. Gestures
+### 7. Gestures
 - **Swipe Up**: Open App Drawer.
 - **Swipe Down on Home**: Fully configurable action:
   - **Refresh Market & Nouns Data** (default): Manually refresh market and Nouns data (Binance Crypto, IDX, Nouns DAO) with animated `⌐◨-◨` pull, breathing pulse, and character typing indicator. When selected, automatic background polling is paused.
@@ -232,14 +242,14 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
   - **Disabled**: Turns off downward swipe on Home.
 - **Swipe Down in Drawer**: Close App Drawer.
 - **Swipe Left**: Open Governance Proposals space (or user-assigned quick app).
-- **Swipe Right**: Launch user-assigned quick app.
+- **Swipe Right**: Open Lil Nouns Digest timeline (live votes, proposals, delegations) or launch optional user-assigned quick app.
 - **Double-Tap**: Screen lock trigger via `LockScreenService`.
 - **Long-Press**: Open Settings.
 - **System Navigation Support (Gestures & 3-Button)**: Fully compatible with Android 10+ gesture navigation and legacy 3-button navigation. Implements official Android 13/14+ Predictive Back gesture animations (`enableOnBackInvokedCallback="true"`) and zero-contrast transparent bars (`enforceNavigationBarContrast="false"`). Includes a direct System Navigation action in Settings -> Gestures to open the device's navigation settings.
 - **Full-Screen Gesture Mode**: Toggleable setting in Settings -> Gestures that hides the system navigation bar for an immersive edge-to-edge experience across all launcher screens, allowing pinned apps and widgets to expand to full height while preserving transient swipe gesture access.
 - **System Back Button**: Prevents accidentally closing the launcher; returns to Home from Governance, Drawer, or Settings.
 
-### 7. Crypto Price Ticker & Live Streaming
+### 8. Crypto Price Ticker & Live Streaming
 - **Zero API Key Required**: Queries Binance's public 24-hour ticker endpoint (`https://data-api.binance.vision/api/v3/ticker/24hr` with automatic failover to `api.binance.com` and `api.binance.me`).
 - **Custom Coin Watchlist**: Add any coin symbol (e.g. `BTC`, `ETH`, `SOL`, `PEPE`) or full trading pair (e.g. `BTCUSDT`, `ETHBIDR`).
 - **Quote Currency Selector**: Supports presets for `USDT`, `USDC`, `EUR`, `BIDR` (IDR), `TRY`, `BRL`, `GBP`, `AUD`, `BTC`, or any custom quote currency.
@@ -249,7 +259,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Optional Live WebSocket on Home**: Built-in zero-dependency RFC 6455 WebSocket client connecting to `data-stream.binance.vision:443`. Streams real-time price updates tick-by-tick directly to the Home screen. Closed immediately on pause, screen lock, or when navigating away.
 - **Stale-Data Indicator**: When offline or if API calls fail, cached prices are clearly marked with their age (`·now`, `·5m`, `·1h`) and dimmed.
 
-### 8. Aesthetics, Wallpaper & Personalization
+### 9. Aesthetics, Wallpaper & Personalization
 - **Signature Nounish Accent Colors**: Choose between Pure Monochrome, Nounish Red `⌐◨-◨` (`#E53935`), Warm Amber (`#FFB300`), AMOLED Mint Green (`#00E676`), Muted Slate (`#90A4AE`), and Soft Lavender (`#B39DDB`).
 - **Customizable Haptic Feedback Intensity**: Choose between `Standard`, `Subtle (Light Tick)`, `Firm (Strong)`, and `Off (Disabled)` for tactile feedback across gestures, alphabet scrubbing, pull-to-refresh, and copying.
 - **Wallpaper Change Support**: Direct integration with Gallery / Photos (crop-and-set) and Android System Wallpaper & Style picker from within Settings.
@@ -494,6 +504,7 @@ Accessible by long-pressing any empty area on the Home screen. The Settings expe
 - `Proposal status filter`: Filter proposals by status (`All`, `Active`, `Executed`).
 - `Second home screen (Governance)`: Toggle Nouns DAO full-screen governance space with dual proposals and candidates tabs.
 - `Third home screen (Lil Nouns DAO)`: Toggle Lil Nouns DAO full-screen governance space querying Goldsky Subgraph.
+- `Swipe right gesture (Lil Nouns Digest)`: Toggle live Lil Nouns activity timeline screen on swipe right from Home.
 
 ### 5. Theme & Aesthetics
 - `Theme mode`: Switch between AMOLED Black (`#000000`) and Light theme.

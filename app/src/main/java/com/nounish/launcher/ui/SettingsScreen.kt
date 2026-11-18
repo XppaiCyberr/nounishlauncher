@@ -106,6 +106,7 @@ fun SettingsScreen(
     onToggleShowNounsAuction: (Boolean) -> Unit = {},
     onToggleEnableGovernanceScreen: (Boolean) -> Unit = {},
     onToggleEnableLilGovernanceScreen: (Boolean) -> Unit = {},
+    onToggleEnableLilDigestScreen: (Boolean) -> Unit = {},
     onToggleShowNounsAuctionImage: (Boolean) -> Unit = {},
     onUpdateNounsAuctionPosition: (String) -> Unit = {},
     onUpdateNounsDisplayMode: (String) -> Unit = {},
@@ -244,7 +245,7 @@ fun SettingsScreen(
                         val badge = when (cat) {
                             SettingsCategory.CRYPTO -> if (settings.cryptoPriceEnabled) "Active" else null
                             SettingsCategory.IDX -> if (settings.showHomeIdx) "Active" else null
-                            SettingsCategory.NOUNS -> if (settings.showHomeNouns || settings.showNounsAuction || settings.enableGovernanceScreen || settings.enableLilGovernanceScreen) "Active" else null
+                            SettingsCategory.NOUNS -> if (settings.showHomeNouns || settings.showNounsAuction || settings.enableGovernanceScreen || settings.enableLilGovernanceScreen || settings.enableLilDigestScreen) "Active" else null
                             SettingsCategory.APPS_BACKUP -> "${settings.pinnedApps.size}/8 pinned"
                             else -> null
                         }
@@ -274,7 +275,7 @@ fun SettingsScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Nounish Launcher 1.0.44",
+                                    text = "Nounish Launcher 1.0.45",
                                     style = typography.settingsItem,
                                     color = colors.textPrimary
                                 )
@@ -516,11 +517,22 @@ fun SettingsScreen(
                                 }
 
                                 item {
-                                    SettingsActionRow(
-                                        title = "Swipe right app",
-                                        subtitle = swipeRightAppName,
-                                        onClick = { showAppPickerForSwipe = "right" }
+                                    SettingsSwitchRow(
+                                        title = "Swipe right",
+                                        subtitle = if (settings.enableLilDigestScreen) "Lil Nouns Digest" else if (!settings.swipeRightPackage.isNullOrEmpty()) "App: $swipeRightAppName" else "Disabled",
+                                        checked = settings.enableLilDigestScreen,
+                                        onCheckedChange = onToggleEnableLilDigestScreen
                                     )
+                                }
+
+                                if (!settings.enableLilDigestScreen) {
+                                    item {
+                                        SettingsActionRow(
+                                            title = "Swipe right app",
+                                            subtitle = swipeRightAppName,
+                                            onClick = { showAppPickerForSwipe = "right" }
+                                        )
+                                    }
                                 }
 
                                 item {
@@ -816,6 +828,15 @@ fun SettingsScreen(
                                         subtitle = if (settings.enableLilGovernanceScreen) "Swipe left on Nouns Governance to view Lil Nouns proposals" else "Disabled",
                                         checked = settings.enableLilGovernanceScreen,
                                         onCheckedChange = onToggleEnableLilGovernanceScreen
+                                    )
+                                }
+
+                                item {
+                                    SettingsSwitchRow(
+                                        title = "Swipe right gesture (Lil Nouns Digest)",
+                                        subtitle = if (settings.enableLilDigestScreen) "Swipe right on Home to view live Lil Nouns activity timeline" else "Disabled",
+                                        checked = settings.enableLilDigestScreen,
+                                        onCheckedChange = onToggleEnableLilDigestScreen
                                     )
                                 }
                             }
