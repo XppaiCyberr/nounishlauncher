@@ -89,7 +89,7 @@ fun GovernanceScreen(
     val haptic = LocalHapticFeedback.current
 
     var selectedTab by remember { mutableStateOf("proposals") } // "proposals" or "candidates"
-    var proposalFilter by remember { mutableStateOf("All") } // "All", "Active", "Succeeded", "Defeated", "Executed"
+    var proposalFilter by remember { mutableStateOf("All") } // "All", "Active", "Defeated", "Executed"
 
     val proposalsListState = rememberLazyListState()
     val candidatesListState = rememberLazyListState()
@@ -161,9 +161,6 @@ fun GovernanceScreen(
         when (proposalFilter) {
             "All" -> proposals
             "Active" -> proposals.filter { it.statusLabel.equals("Active", ignoreCase = true) }
-            "Succeeded" -> proposals.filter {
-                it.statusLabel.equals("Succeeded", ignoreCase = true) || it.statusLabel.equals("Queued", ignoreCase = true)
-            }
             "Defeated" -> proposals.filter {
                 it.statusLabel.equals("Defeated", ignoreCase = true) ||
                     it.statusLabel.equals("Canceled", ignoreCase = true) ||
@@ -378,7 +375,7 @@ fun GovernanceScreen(
 
             // Filter Chips (when on Proposals tab)
             if (selectedTab == "proposals" && proposals.isNotEmpty()) {
-                val filters = listOf("All", "Active", "Succeeded", "Defeated", "Executed")
+                val filters = listOf("All", "Active", "Defeated", "Executed")
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()

@@ -273,7 +273,7 @@ fun SettingsScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Nounish Launcher 1.0.42",
+                                    text = "Nounish Launcher 1.0.43",
                                     style = typography.settingsItem,
                                     color = colors.textPrimary
                                 )

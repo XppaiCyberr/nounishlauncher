@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.42` (versionCode `43`) · **Optimized Release APK**: `~1.18 MB` (1,245,397 bytes)
+**Current Version**: `v1.0.43` (versionCode `44`) · **Optimized Release APK**: `~1.18 MB` (1,245,329 bytes)
 
 ---
 
@@ -140,7 +140,7 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 ### 2. Multi-Home Screen & Full-Screen Governance Proposals Space
 - **Swipe-Left Secondary Home Screen**: Swipe left from anywhere on Home to access a dedicated, full-screen Nouns DAO Governance space with fluid hardware-accelerated horizontal slide transitions.
 - **Proposals & Candidates Dual Tabs**: Toggle seamlessly between active governance Proposals and community Candidates via clean top tabs.
-- **Real-Time Status Filters**: Filter on-chain proposals instantly across All, Active, Succeeded, Defeated, and Executed.
+- **Real-Time Status Filters**: Filter on-chain proposals instantly across All, Active, Defeated, and Executed.
 - **Complete On-Chain Voting Breakdown**: Displays proposal token IDs, status badges (color-coded in AMOLED Green/Red/Amber), full titles, reverse ENS proposer names (e.g. `stripymofo.eth`), exact vote counts (For, Against, Abstain, Quorum), and an inline visual voting ratio bar.
 - **Lazy Loading of Historical Proposals & Candidates**: Scrolling to the bottom automatically paginates and lazily loads older on-chain proposals and community candidates using batch RPC queries and Alchemy asset transfer pagination.
 - **Animated Noggles Loading Indicator**: While loading older items at the bottom, an animated `⌐◨-◨` indicator types character-by-character with organic breathing scaling, pulsing alpha, and cycling progress dots in the user's accent color.
@@ -580,7 +580,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 
 ### Outputs
-- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,245,397 bytes)
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,245,329 bytes)
 - **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 - **Release App Bundle**: `app/build/outputs/bundle/release/app-release.aab`
 
