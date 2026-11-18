@@ -150,7 +150,10 @@ data class LauncherSettings(
     val nounsAuctionPosition: String = "top_right", // "top_right", "below_clock"
     val homeScreenNotePosition: String = "top_right", // "top_right", "bottom_right"
     val enableGovernanceScreen: Boolean = true,
-    val fullScreenGestureMode: Boolean = false
+    val enableLilGovernanceScreen: Boolean = true,
+    val fullScreenGestureMode: Boolean = false,
+    val cachedLilNounsProposals: List<CachedNounsProposal> = emptyList(),
+    val cachedLilNounsTimestamp: Long = 0L
 )
 
 class SettingsStore(private val context: Context) {
@@ -232,7 +235,10 @@ class SettingsStore(private val context: Context) {
         private val KEY_NOUNS_AUCTION_POSITION = stringPreferencesKey("nouns_auction_position")
         private val KEY_HOME_SCREEN_NOTE_POSITION = stringPreferencesKey("home_screen_note_position")
         private val KEY_ENABLE_GOVERNANCE_SCREEN = booleanPreferencesKey("enable_governance_screen")
+        private val KEY_ENABLE_LIL_GOVERNANCE_SCREEN = booleanPreferencesKey("enable_lil_governance_screen")
         private val KEY_FULL_SCREEN_GESTURE_MODE = booleanPreferencesKey("full_screen_gesture_mode")
+        private val KEY_CACHED_LIL_NOUNS_PROPOSALS = stringPreferencesKey("cached_lil_nouns_proposals_json")
+        private val KEY_CACHED_LIL_NOUNS_TIMESTAMP = longPreferencesKey("cached_lil_nouns_timestamp")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -334,7 +340,10 @@ class SettingsStore(private val context: Context) {
         val nounsAuctionPosition = prefs[KEY_NOUNS_AUCTION_POSITION] ?: "top_right"
         val homeScreenNotePosition = prefs[KEY_HOME_SCREEN_NOTE_POSITION] ?: "top_right"
         val enableGovernanceScreen = prefs[KEY_ENABLE_GOVERNANCE_SCREEN] ?: true
+        val enableLilGovernanceScreen = prefs[KEY_ENABLE_LIL_GOVERNANCE_SCREEN] ?: true
         val fullScreenGestureMode = prefs[KEY_FULL_SCREEN_GESTURE_MODE] ?: false
+        val cachedLilNounsProposals = parseNounsProposalsJson(prefs[KEY_CACHED_LIL_NOUNS_PROPOSALS] ?: "")
+        val cachedLilNounsTimestamp = prefs[KEY_CACHED_LIL_NOUNS_TIMESTAMP] ?: 0L
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -413,7 +422,10 @@ class SettingsStore(private val context: Context) {
             nounsAuctionPosition = nounsAuctionPosition,
             homeScreenNotePosition = homeScreenNotePosition,
             enableGovernanceScreen = enableGovernanceScreen,
-            fullScreenGestureMode = fullScreenGestureMode
+            enableLilGovernanceScreen = enableLilGovernanceScreen,
+            fullScreenGestureMode = fullScreenGestureMode,
+            cachedLilNounsProposals = cachedLilNounsProposals,
+            cachedLilNounsTimestamp = cachedLilNounsTimestamp
         )
     }
 
@@ -749,6 +761,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_ENABLE_GOVERNANCE_SCREEN] = enable }
     }
 
+    suspend fun setEnableLilGovernanceScreen(enable: Boolean) {
+        context.dataStore.edit { it[KEY_ENABLE_LIL_GOVERNANCE_SCREEN] = enable }
+    }
+
     suspend fun setFullScreenGestureMode(enable: Boolean) {
         context.dataStore.edit { it[KEY_FULL_SCREEN_GESTURE_MODE] = enable }
     }
@@ -820,6 +836,28 @@ class SettingsStore(private val context: Context) {
             }
             prefs[KEY_CACHED_NOUNS_PROPOSALS] = arr.toString()
             prefs[KEY_CACHED_NOUNS_TIMESTAMP] = timestamp
+        }
+    }
+
+    suspend fun updateCachedLilNounsProposals(proposals: List<CachedNounsProposal>, timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            val arr = JSONArray()
+            proposals.forEach { p ->
+                val obj = JSONObject()
+                obj.put("id", p.id)
+                obj.put("title", p.title)
+                obj.put("statusLabel", p.statusLabel)
+                obj.put("statusIndex", p.statusIndex)
+                obj.put("proposer", p.proposer)
+                obj.put("forVotes", p.forVotes)
+                obj.put("againstVotes", p.againstVotes)
+                obj.put("abstainVotes", p.abstainVotes)
+                obj.put("quorum", p.quorum)
+                obj.put("timestamp", p.timestamp)
+                arr.put(obj)
+            }
+            prefs[KEY_CACHED_LIL_NOUNS_PROPOSALS] = arr.toString()
+            prefs[KEY_CACHED_LIL_NOUNS_TIMESTAMP] = timestamp
         }
     }
 
@@ -931,6 +969,7 @@ class SettingsStore(private val context: Context) {
         root.put("nounsAuctionPosition", settings.nounsAuctionPosition)
         root.put("homeScreenNotePosition", settings.homeScreenNotePosition)
         root.put("enableGovernanceScreen", settings.enableGovernanceScreen)
+        root.put("enableLilGovernanceScreen", settings.enableLilGovernanceScreen)
         root.put("fullScreenGestureMode", settings.fullScreenGestureMode)
 
         return root.toString(2)
@@ -1051,6 +1090,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("nounsAuctionPosition")) prefs[KEY_NOUNS_AUCTION_POSITION] = root.getString("nounsAuctionPosition")
                 if (root.has("homeScreenNotePosition")) prefs[KEY_HOME_SCREEN_NOTE_POSITION] = root.getString("homeScreenNotePosition")
                 if (root.has("enableGovernanceScreen")) prefs[KEY_ENABLE_GOVERNANCE_SCREEN] = root.getBoolean("enableGovernanceScreen")
+                if (root.has("enableLilGovernanceScreen")) prefs[KEY_ENABLE_LIL_GOVERNANCE_SCREEN] = root.getBoolean("enableLilGovernanceScreen")
                 if (root.has("fullScreenGestureMode")) prefs[KEY_FULL_SCREEN_GESTURE_MODE] = root.getBoolean("fullScreenGestureMode")
             }
             true

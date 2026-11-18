@@ -49,18 +49,18 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **On-Chain Write Transactions Specification**: Full EIP-1193 unsigned payload specification and ABI encoding for `createBid(nounId)` and `settleCurrentAndCreateNewAuction()` detailed in [NOUNS_TRANSACTION_PAYLOAD.md](NOUNS_TRANSACTION_PAYLOAD.md).
 - **Offline DataStore Caching**: Caches full auction state in Jetpack DataStore preferences for zero-latency frame-1 presentation on launch.
 
-### 2. Multi-Home Screen & Full-Screen Governance Proposals Space
-- **Swipe-Left Secondary Home Screen**: Swipe left from anywhere on Home to access a dedicated, full-screen Nouns DAO Governance space with fluid hardware-accelerated horizontal slide transitions.
-- **Proposals & Candidates Dual Tabs**: Toggle seamlessly between active governance Proposals and community Candidates via clean top tabs.
-- **Real-Time Status Filters**: Filter on-chain proposals instantly across All, Active, Defeated, and Executed.
-- **Complete On-Chain Voting Breakdown**: Displays proposal token IDs, status badges (color-coded in AMOLED Green/Red/Amber), full titles, reverse ENS proposer names (e.g. `stripymofo.eth`), exact vote counts (For, Against, Abstain, Quorum), and an inline visual voting ratio bar.
-- **Lazy Loading of Historical Proposals & Candidates**: Scrolling to the bottom automatically paginates and lazily loads older on-chain proposals and community candidates using batch RPC queries and Alchemy asset transfer pagination.
+### 2. Multi-Home Screen & Full-Screen Governance Proposals Space (Nouns & Lil Nouns DAO)
+- **3-Screen Horizontal Slide Architecture**: Seamless hardware-accelerated horizontal navigation across Home (Page 1), Nouns DAO Governance (Page 2), and Lil Nouns DAO Governance (Page 3).
+- **Interactive Page Indicator Dots & DAO Switcher Pills**: Top navigation features interactive indicator dots for one-tap screen switching and quick DAO switcher pills (`NOUNS DAO` | `LIL NOUNS`).
+- **Nouns DAO Full-Screen Governance**: Dual tabs for active proposals and community candidates, real-time status filtering (All, Active, Defeated, Executed), visual voting ratio bars, reverse ENS proposer names, and direct voting links (`nouns.wtf`, `nouncil.club`, `nouns.game`).
+- **Lil Nouns DAO Full-Screen Governance**: Dedicated full-screen space querying the Goldsky Subgraph (`lil-nouns-subgraph/1.0.10/gn`) with multi-RPC fallback to Ethereum Mainnet (`0x5d2C31ce16924C2a71D317e5BbFd5ce387854039`). Displays proposal titles, status badges (Active and Executed in green, Defeated/Canceled in red), reverse ENS proposer resolution, quorum statistics, visual voting bars, and direct voting actions linking to `https://lilnouns.wtf/vote/{id}`.
+- **Lazy Loading of Historical Proposals**: Scrolling to the bottom automatically paginates and lazily loads older on-chain proposals for both DAOs.
 - **Animated Noggles Loading Indicator**: While loading older items at the bottom, an animated `⌐◨-◨` indicator types character-by-character with organic breathing scaling, pulsing alpha, and cycling progress dots in the user's accent color.
-- **Top-Right Noggles Refresh Button**: The top-right refresh action displays `Refresh ⌐◨-◨` when idle and pulses with animated breathing noggles (`Syncing... ⌐◨-◨`) while syncing from Ethereum Mainnet.
-- **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->`, `nouncil.club ->`, and `nouns.game ->`) open verified decentralized governance frontends directly in the browser (`https://nouns.wtf/vote/{id}`, `https://nouncil.club/proposal/{id}`, and `https://nouns.game/proposals/{id}`).
-- **Dedicated Top Navigation Bar**: Clean `<- Home` navigation bar with quick on-chain refresh on Governance.
-- **Ergonomic Gesture Navigation**: Swipe right anywhere on Governance to return to Home, swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings. The App Drawer is intentionally disabled on Governance to ensure uninterrupted vertical list scrolling even when swiping near corners.
-- **Dedicated Default Gesture**: Swipe left on Home defaults directly to opening fullscreen Governance proposals, cleanly toggleable in Settings under **Gestures -> Swipe left** or **Nouns DAO -> Second home screen (Governance)**.
+- **Top-Right Noggles Refresh Button**: The top-right refresh action displays `Refresh ⌐◨-◨` when idle and pulses with animated breathing noggles (`Syncing... ⌐◨-◨`) while syncing from the blockchain.
+- **Direct Web3 Voting Actions**: One-tap links (`Vote on nouns.wtf ->`, `nouncil.club ->`, `nouns.game ->`, and `Vote on lilnouns.wtf ->`) open verified decentralized governance frontends directly in the browser.
+- **Dedicated Top Navigation Bar**: Clean `<- Home` and `<- Nouns` navigation bars with quick on-chain refresh on governance screens.
+- **Ergonomic Gesture Navigation**: Swipe right returns to the previous screen (Lil Nouns -> Nouns -> Home), swipe down to pull-to-refresh on-chain data, double-tap to lock screen, or long-press to open Settings. The App Drawer is intentionally disabled on governance screens to ensure uninterrupted vertical list scrolling even when swiping near corners.
+- **Dedicated Default Gestures**: Swipe left on Home defaults directly to opening fullscreen Governance proposals, cleanly toggleable in Settings under **Gestures -> Swipe left** or **Nouns DAO -> Second home screen (Governance)** and **Third home screen (Lil Nouns DAO)**.
 
 ### 3. Signature Nounish Aesthetics & Accent Colors
 - **Official Nouns Glasses App Icon**: Features the canonical Nouns DAO glasses brandmark (`glasses-square-black-eyes-red`: black square frames, crisp white eyes, and vibrant red pupils) set against a high-contrast white adaptive background. Built as an exact 16x6 pixel-grid vector centered symmetrically within Android's 72dp adaptive safe zone to prevent edge clipping under all OEM launcher shapes (circle, squircle, round rectangle). Includes Android 13+ Themed Icon monochrome support and multi-density legacy mipmaps.
@@ -197,12 +197,14 @@ nounishlauncher/
 │       │   │   │   ├── PriceRepository.kt       # Binance 24hr ticker, sparklines, rate-limit backoff
 │       │   │   │   ├── IdxRepository.kt         # IDX stock quotes, indices, top gainers/losers, formatting
 │       │   │   │   ├── NounsRepository.kt       # Nouns DAO governance proposals & candidates loader
+│       │   │   │   ├── LilNounsRepository.kt    # Lil Nouns DAO subgraph & Ethereum RPC proposals loader
 │       │   │   │   ├── BinanceWebSocketClient.kt# Native RFC 6455 WebSocket client for live Home stream
 │       │   │   │   ├── IconCache.kt             # LRU memory cache for app icons
 │       │   │   │   └── NetworkHelper.kt         # Metered network and battery saver detection
 │       │   │   ├── ui/
 │       │   │   │   ├── HomeScreen.kt            # Clock, date, market overview, text sparklines, pinned apps
 │       │   │   │   ├── GovernanceScreen.kt      # Full-screen Nouns DAO governance proposals & candidates space
+│       │   │   │   ├── LilGovernanceScreen.kt   # Full-screen Lil Nouns DAO governance proposals space
 │       │   │   │   ├── DrawerScreen.kt          # Search bar, recent apps, calculator row, Niagara wave index
 │       │   │   │   ├── SettingsScreen.kt        # Settings hub, accent dialog, wallpaper, haptic level, SAF
 │       │   │   │   ├── GestureModifier.kt       # Gesture detection for swipes, taps, and long-presses

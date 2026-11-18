@@ -75,10 +75,12 @@ fun GovernanceScreen(
     isLoadingOlderCandidates: Boolean = false,
     hasMoreProposals: Boolean = true,
     hasMoreCandidates: Boolean = true,
+    enableLilGovernance: Boolean = false,
     hapticFeedbackLevel: String = "standard",
     onRefresh: () -> Unit,
     onLoadOlderProposals: () -> Unit = {},
     onLoadOlderCandidates: () -> Unit = {},
+    onNavigateToLilGovernance: () -> Unit = {},
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
     onDoubleTap: () -> Unit
@@ -178,6 +180,12 @@ fun GovernanceScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
             .launcherGestures(
                 onSwipeRight = onBack,
+                onSwipeLeft = {
+                    if (enableLilGovernance) {
+                        LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
+                        onNavigateToLilGovernance()
+                    }
+                },
                 onSwipeDown = {
                     LauncherHaptic.performStrong(haptic, hapticFeedbackLevel)
                     onRefresh()
@@ -214,7 +222,7 @@ fun GovernanceScreen(
                     )
                 }
 
-                // Page Indicator Dots: Page 1 (Home) & Page 2 (Governance)
+                // Page Indicator Dots: Page 1 (Home), Page 2 (Governance), Page 3 (Lil Nouns)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -241,6 +249,21 @@ fun GovernanceScreen(
                                 shape = CircleShape
                             )
                     )
+                    if (enableLilGovernance) {
+                        // Page 3 (Lil Nouns) - Clickable
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .background(
+                                    color = colors.textSecondary.copy(alpha = 0.35f),
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
+                                    onNavigateToLilGovernance()
+                                }
+                        )
+                    }
                 }
 
                 // Refresh Status or Action with Noggles
@@ -312,6 +335,64 @@ fun GovernanceScreen(
             )
 
             Spacer(modifier = Modifier.height(14.dp))
+
+            // DAO Switcher Pills (when Lil Nouns Governance is enabled)
+            if (enableLilGovernance) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Nouns DAO pill (Active)
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = colors.accent.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = colors.accent,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .padding(horizontal = 14.dp, vertical = 7.dp)
+                    ) {
+                        Text(
+                            text = "NOUNS DAO",
+                            style = typography.priceLabel,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
+                    }
+
+                    // Lil Nouns pill
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = colors.surface.copy(alpha = 0.45f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .border(
+                                width = 0.5.dp,
+                                color = colors.border.copy(alpha = 0.35f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .clickable {
+                                LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
+                                onNavigateToLilGovernance()
+                            }
+                            .padding(horizontal = 14.dp, vertical = 7.dp)
+                    ) {
+                        Text(
+                            text = "LIL NOUNS",
+                            style = typography.priceLabel,
+                            fontWeight = FontWeight.Normal,
+                            color = colors.textSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+            }
 
             // Tab Selector: Proposals vs Candidates
             Row(

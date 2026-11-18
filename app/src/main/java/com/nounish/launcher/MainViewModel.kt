@@ -15,6 +15,7 @@ import com.nounish.launcher.data.CoinTicker
 import com.nounish.launcher.data.IdxItemUi
 import com.nounish.launcher.data.IdxRepository
 import com.nounish.launcher.data.LauncherSettings
+import com.nounish.launcher.data.LilNounsRepository
 import com.nounish.launcher.data.NetworkHelper
 import com.nounish.launcher.data.NounsAuctionUi
 import com.nounish.launcher.data.NounsCandidateUi
@@ -421,6 +422,51 @@ class MainViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val lilNounsRepository = LilNounsRepository()
+    private val _olderLilProposals = MutableStateFlow<List<CachedNounsProposal>>(emptyList())
+    private val _isLoadingOlderLilProposals = MutableStateFlow(false)
+    val isLoadingOlderLilProposals: StateFlow<Boolean> = _isLoadingOlderLilProposals.asStateFlow()
+    private val _hasMoreLilProposals = MutableStateFlow(true)
+    val hasMoreLilProposals: StateFlow<Boolean> = _hasMoreLilProposals.asStateFlow()
+
+    val lilGovernanceProposalsList: StateFlow<List<NounsProposalUi>> = combine(
+        settings,
+        _olderLilProposals,
+        _ensResolvedTrigger
+    ) { pref, olderList, _ ->
+        val now = System.currentTimeMillis()
+        val cached = pref.cachedLilNounsProposals
+        val timestamp = pref.cachedLilNounsTimestamp
+        val isStale = timestamp <= 0L || (now - timestamp) > 300_000L
+        val ageMarker = if (isStale && timestamp > 0L) PriceRepository.formatAgeMarker(timestamp) else ""
+
+        val combined = if (olderList.isEmpty()) {
+            cached
+        } else {
+            val existingIds = cached.map { it.id }.toSet()
+            cached + olderList.filter { it.id !in existingIds }
+        }
+
+        combined.map { p ->
+            val ens = NounsRepository.getCachedEns(p.proposer)
+            val proposerFormatted = NounsRepository.formatAddress(p.proposer, ens)
+            NounsProposalUi(
+                id = p.id,
+                title = p.title,
+                statusLabel = p.statusLabel,
+                statusIndex = p.statusIndex,
+                proposer = p.proposer,
+                proposerFormatted = proposerFormatted,
+                forVotes = p.forVotes,
+                againstVotes = p.againstVotes,
+                abstainVotes = p.abstainVotes,
+                quorum = p.quorum,
+                isStale = isStale,
+                ageMarker = ageMarker
+            )
+        }.sortedByDescending { it.id }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     private val _isRefreshingData = MutableStateFlow(false)
     val isRefreshingData: StateFlow<Boolean> = _isRefreshingData.asStateFlow()
 
@@ -632,6 +678,9 @@ class MainViewModel(
                     launch { fetchNounsAuction() }
                     launch { fetchNounsProposals() }
                     launch { fetchNounsCandidates() }
+                    if (settings.value.enableLilGovernanceScreen) {
+                        launch { fetchLilProposals() }
+                    }
                 }
                 delay(60_000L)
             }
@@ -736,6 +785,9 @@ class MainViewModel(
             launch { fetchNounsAuction() }
             launch { fetchNounsProposals() }
             launch { fetchNounsCandidates() }
+            if (currentSettings.enableLilGovernanceScreen) {
+                launch { fetchLilProposals() }
+            }
         }
 
         if (currentSettings.cryptoSymbols.isEmpty()) return
@@ -1041,9 +1093,11 @@ class MainViewModel(
     private fun resetGovernancePagination() {
         _olderProposals.value = emptyList()
         _olderCandidates.value = emptyList()
+        _olderLilProposals.value = emptyList()
         _candidateNextPageKey.value = null
         _hasMoreProposals.value = true
         _hasMoreCandidates.value = true
+        _hasMoreLilProposals.value = true
     }
 
     fun loadOlderProposals() {
@@ -1133,6 +1187,89 @@ class MainViewModel(
         }
     }
 
+    private suspend fun fetchLilProposals() {
+        val currentSettings = settings.value
+        if (!currentSettings.enableLilGovernanceScreen) return
+
+        val result = lilNounsRepository.fetchProposals(limit = 15, skip = 0)
+        val proposals = result.getOrNull()
+        if (!proposals.isNullOrEmpty()) {
+            val now = System.currentTimeMillis()
+            nounsRepository.resolveEnsNames(proposals.map { it.proposer })
+            val cachedList = proposals.map { p ->
+                CachedNounsProposal(
+                    id = p.id,
+                    title = p.title,
+                    statusLabel = p.statusLabel,
+                    statusIndex = p.statusIndex,
+                    proposer = p.proposer,
+                    forVotes = p.forVotes,
+                    againstVotes = p.againstVotes,
+                    abstainVotes = p.abstainVotes,
+                    quorum = p.quorum,
+                    timestamp = now
+                )
+            }
+            settingsStore.updateCachedLilNounsProposals(cachedList, now)
+            _ensResolvedTrigger.value = now
+        }
+    }
+
+    fun refreshLilProposals() {
+        _olderLilProposals.value = emptyList()
+        _hasMoreLilProposals.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            fetchLilProposals()
+        }
+    }
+
+    fun loadOlderLilProposals() {
+        if (_isLoadingOlderLilProposals.value || !_hasMoreLilProposals.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoadingOlderLilProposals.value = true
+            try {
+                val currentMinId = lilGovernanceProposalsList.value.minOfOrNull { it.id } ?: 0
+                if (currentMinId <= 1) {
+                    _hasMoreLilProposals.value = false
+                    return@launch
+                }
+                val currentLoadedCount = lilGovernanceProposalsList.value.size
+                val result = lilNounsRepository.fetchProposals(limit = 12, skip = currentLoadedCount)
+                val newProps = result.getOrNull()
+                if (!newProps.isNullOrEmpty()) {
+                    nounsRepository.resolveEnsNames(newProps.map { it.proposer })
+                    val newCached = newProps.map { p ->
+                        CachedNounsProposal(
+                            id = p.id,
+                            title = p.title,
+                            statusLabel = p.statusLabel,
+                            statusIndex = p.statusIndex,
+                            proposer = p.proposer,
+                            forVotes = p.forVotes,
+                            againstVotes = p.againstVotes,
+                            abstainVotes = p.abstainVotes,
+                            quorum = p.quorum,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    }
+                    _olderLilProposals.update { current ->
+                        (current + newCached).distinctBy { it.id }
+                    }
+                    _ensResolvedTrigger.value = System.currentTimeMillis()
+                    val newMin = newProps.minOfOrNull { it.id } ?: 0
+                    if (newMin <= 1 || newProps.size < 12) {
+                        _hasMoreLilProposals.value = false
+                    }
+                } else {
+                    _hasMoreLilProposals.value = false
+                }
+            } catch (_: Exception) {
+            } finally {
+                _isLoadingOlderLilProposals.value = false
+            }
+        }
+    }
+
     private suspend fun fetchNounsCandidates() {
         val currentSettings = settings.value
         if (!currentSettings.showHomeNouns && !currentSettings.enableGovernanceScreen) return
@@ -1181,6 +1318,9 @@ class MainViewModel(
                     if (currentSettings.showHomeNouns || currentSettings.enableGovernanceScreen) {
                         launch { fetchNounsProposals() }
                         launch { fetchNounsCandidates() }
+                    }
+                    if (currentSettings.enableLilGovernanceScreen) {
+                        launch { fetchLilProposals() }
                     }
 
                     // 4. Fetch Binance Crypto prices & sparklines (if cryptoPriceEnabled)
@@ -1720,7 +1860,19 @@ class MainViewModel(
                     launch { fetchNounsAuction() }
                     launch { fetchNounsProposals() }
                     launch { fetchNounsCandidates() }
+                    if (settings.value.enableLilGovernanceScreen) {
+                        launch { fetchLilProposals() }
+                    }
                 }
+            }
+        }
+    }
+
+    fun setEnableLilGovernanceScreen(enable: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setEnableLilGovernanceScreen(enable)
+            if (enable) {
+                fetchLilProposals()
             }
         }
     }

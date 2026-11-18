@@ -105,6 +105,7 @@ fun SettingsScreen(
     onToggleShowHomeNouns: (Boolean) -> Unit = {},
     onToggleShowNounsAuction: (Boolean) -> Unit = {},
     onToggleEnableGovernanceScreen: (Boolean) -> Unit = {},
+    onToggleEnableLilGovernanceScreen: (Boolean) -> Unit = {},
     onToggleShowNounsAuctionImage: (Boolean) -> Unit = {},
     onUpdateNounsAuctionPosition: (String) -> Unit = {},
     onUpdateNounsDisplayMode: (String) -> Unit = {},
@@ -243,7 +244,7 @@ fun SettingsScreen(
                         val badge = when (cat) {
                             SettingsCategory.CRYPTO -> if (settings.cryptoPriceEnabled) "Active" else null
                             SettingsCategory.IDX -> if (settings.showHomeIdx) "Active" else null
-                            SettingsCategory.NOUNS -> if (settings.showHomeNouns || settings.showNounsAuction || settings.enableGovernanceScreen) "Active" else null
+                            SettingsCategory.NOUNS -> if (settings.showHomeNouns || settings.showNounsAuction || settings.enableGovernanceScreen || settings.enableLilGovernanceScreen) "Active" else null
                             SettingsCategory.APPS_BACKUP -> "${settings.pinnedApps.size}/8 pinned"
                             else -> null
                         }
@@ -273,7 +274,7 @@ fun SettingsScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Nounish Launcher 1.0.43",
+                                    text = "Nounish Launcher 1.0.44",
                                     style = typography.settingsItem,
                                     color = colors.textPrimary
                                 )
@@ -508,7 +509,7 @@ fun SettingsScreen(
                                 item {
                                     SettingsSwitchRow(
                                         title = "Swipe left",
-                                        subtitle = if (settings.enableGovernanceScreen) "Fullscreen governance (Nouns DAO)" else "Disabled",
+                                        subtitle = if (settings.enableGovernanceScreen) "Fullscreen governance (Nouns DAO)" else if (settings.enableLilGovernanceScreen) "Fullscreen governance (Lil Nouns)" else "Disabled",
                                         checked = settings.enableGovernanceScreen,
                                         onCheckedChange = onToggleEnableGovernanceScreen
                                     )
@@ -806,6 +807,15 @@ fun SettingsScreen(
                                         subtitle = if (settings.enableGovernanceScreen) "Swipe left on Home to view full-screen proposals" else "Disabled",
                                         checked = settings.enableGovernanceScreen,
                                         onCheckedChange = onToggleEnableGovernanceScreen
+                                    )
+                                }
+
+                                item {
+                                    SettingsSwitchRow(
+                                        title = "Third home screen (Lil Nouns DAO)",
+                                        subtitle = if (settings.enableLilGovernanceScreen) "Swipe left on Nouns Governance to view Lil Nouns proposals" else "Disabled",
+                                        checked = settings.enableLilGovernanceScreen,
+                                        onCheckedChange = onToggleEnableLilGovernanceScreen
                                     )
                                 }
                             }

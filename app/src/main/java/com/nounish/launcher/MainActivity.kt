@@ -39,6 +39,7 @@ import com.nounish.launcher.service.LockScreenService
 import com.nounish.launcher.ui.DrawerScreen
 import com.nounish.launcher.ui.GovernanceScreen
 import com.nounish.launcher.ui.HomeScreen
+import com.nounish.launcher.ui.LilGovernanceScreen
 import com.nounish.launcher.ui.SettingsScreen
 import com.nounish.launcher.ui.theme.LauncherTheme
 import com.nounish.launcher.ui.theme.NounishLauncherTheme
@@ -49,6 +50,7 @@ import kotlinx.coroutines.withContext
 enum class Screen {
     Home,
     Governance,
+    LilGovernance,
     Drawer,
     Settings
 }
@@ -181,10 +183,13 @@ class MainActivity : ComponentActivity() {
             val homeNounsCandidatesList by viewModel.homeNounsCandidatesList.collectAsState()
             val governanceProposalsList by viewModel.governanceProposalsList.collectAsState()
             val governanceCandidatesList by viewModel.governanceCandidatesList.collectAsState()
+            val lilGovernanceProposalsList by viewModel.lilGovernanceProposalsList.collectAsState()
             val isLoadingOlderProposals by viewModel.isLoadingOlderProposals.collectAsState()
             val isLoadingOlderCandidates by viewModel.isLoadingOlderCandidates.collectAsState()
+            val isLoadingOlderLilProposals by viewModel.isLoadingOlderLilProposals.collectAsState()
             val hasMoreProposals by viewModel.hasMoreProposals.collectAsState()
             val hasMoreCandidates by viewModel.hasMoreCandidates.collectAsState()
+            val hasMoreLilProposals by viewModel.hasMoreLilProposals.collectAsState()
             val homeNounsAuction by viewModel.homeNounsAuction.collectAsState()
             val isRefreshingData by viewModel.isRefreshingData.collectAsState()
 
@@ -215,13 +220,13 @@ class MainActivity : ComponentActivity() {
             }
 
             // Manage price refresh lifecycle: runs while drawer or home crypto/idx/nouns is active
-            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.showNounsAuction, settings.enableGovernanceScreen, settings.useWebSocketOnHome, settings.swipeDownAction, settings.swipeDownToRefresh) {
+            LaunchedEffect(currentScreen, settings.cryptoPriceEnabled, settings.showHomeCrypto, settings.showHomeIdx, settings.showHomeNouns, settings.showNounsAuction, settings.enableGovernanceScreen, settings.enableLilGovernanceScreen, settings.useWebSocketOnHome, settings.swipeDownAction, settings.swipeDownToRefresh) {
                 when {
-                    !settings.cryptoPriceEnabled && !settings.showHomeNouns && !settings.showNounsAuction && !settings.showHomeIdx && !settings.enableGovernanceScreen -> {
+                    !settings.cryptoPriceEnabled && !settings.showHomeNouns && !settings.showNounsAuction && !settings.showHomeIdx && !settings.enableGovernanceScreen && !settings.enableLilGovernanceScreen -> {
                         viewModel.stopAllPriceUpdates()
                     }
-                    (currentScreen == Screen.Home || currentScreen == Screen.Governance) &&
-                        (settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns || settings.showNounsAuction || settings.enableGovernanceScreen) -> {
+                    (currentScreen == Screen.Home || currentScreen == Screen.Governance || currentScreen == Screen.LilGovernance) &&
+                        (settings.showHomeCrypto || settings.showHomeIdx || settings.showHomeNouns || settings.showNounsAuction || settings.enableGovernanceScreen || settings.enableLilGovernanceScreen) -> {
                         viewModel.startPriceRefresh(isHomeActive = true)
                     }
                     currentScreen == Screen.Drawer -> {
@@ -258,7 +263,17 @@ class MainActivity : ComponentActivity() {
                     AnimatedContent(
                         targetState = currentScreen,
                         transitionSpec = {
-                            if (initialState == Screen.Home && targetState == Screen.Governance) {
+                            val forwardTransitions = listOf(
+                                (Screen.Home to Screen.Governance),
+                                (Screen.Governance to Screen.LilGovernance),
+                                (Screen.Home to Screen.LilGovernance)
+                            )
+                            val backwardTransitions = listOf(
+                                (Screen.LilGovernance to Screen.Governance),
+                                (Screen.LilGovernance to Screen.Home),
+                                (Screen.Governance to Screen.Home)
+                            )
+                            if ((initialState to targetState) in forwardTransitions) {
                                 slideInHorizontally(
                                     initialOffsetX = { it },
                                     animationSpec = tween(durationMillis = 200)
@@ -267,7 +282,7 @@ class MainActivity : ComponentActivity() {
                                         targetOffsetX = { -it / 3 },
                                         animationSpec = tween(durationMillis = 180)
                                     ) + fadeOut(animationSpec = tween(durationMillis = 150))
-                            } else if (initialState == Screen.Governance && targetState == Screen.Home) {
+                            } else if ((initialState to targetState) in backwardTransitions) {
                                 slideInHorizontally(
                                     initialOffsetX = { -it / 3 },
                                     animationSpec = tween(durationMillis = 200)
@@ -353,6 +368,8 @@ class MainActivity : ComponentActivity() {
                                     onSwipeLeft = {
                                         if (settings.enableGovernanceScreen) {
                                             currentScreen = Screen.Governance
+                                        } else if (settings.enableLilGovernanceScreen) {
+                                            currentScreen = Screen.LilGovernance
                                         }
                                     },
                                     onSwipeRight = {
@@ -381,11 +398,49 @@ class MainActivity : ComponentActivity() {
                                     isLoadingOlderCandidates = isLoadingOlderCandidates,
                                     hasMoreProposals = hasMoreProposals,
                                     hasMoreCandidates = hasMoreCandidates,
+                                    enableLilGovernance = settings.enableLilGovernanceScreen,
                                     hapticFeedbackLevel = settings.hapticFeedbackLevel,
                                     onRefresh = { viewModel.refreshMarketAndNounsData() },
                                     onLoadOlderProposals = { viewModel.loadOlderProposals() },
                                     onLoadOlderCandidates = { viewModel.loadOlderCandidates() },
+                                    onNavigateToLilGovernance = {
+                                        if (settings.enableLilGovernanceScreen) {
+                                            currentScreen = Screen.LilGovernance
+                                        }
+                                    },
                                     onBack = { currentScreen = Screen.Home },
+                                    onOpenSettings = { currentScreen = Screen.Settings },
+                                    onDoubleTap = {
+                                        if (settings.doubleTapLock) {
+                                            LockScreenService.lockScreen(this@MainActivity)
+                                        }
+                                    }
+                                )
+                            }
+
+                            Screen.LilGovernance -> {
+                                LilGovernanceScreen(
+                                    proposals = lilGovernanceProposalsList,
+                                    isRefreshing = isRefreshingData,
+                                    isLoadingOlderProposals = isLoadingOlderLilProposals,
+                                    hasMoreProposals = hasMoreLilProposals,
+                                    enableNounsGovernance = settings.enableGovernanceScreen,
+                                    hapticFeedbackLevel = settings.hapticFeedbackLevel,
+                                    onRefresh = { viewModel.refreshMarketAndNounsData() },
+                                    onLoadOlderProposals = { viewModel.loadOlderLilProposals() },
+                                    onBack = {
+                                        if (settings.enableGovernanceScreen) {
+                                            currentScreen = Screen.Governance
+                                        } else {
+                                            currentScreen = Screen.Home
+                                        }
+                                    },
+                                    onBackHome = { currentScreen = Screen.Home },
+                                    onNavigateToNounsGovernance = {
+                                        if (settings.enableGovernanceScreen) {
+                                            currentScreen = Screen.Governance
+                                        }
+                                    },
                                     onOpenSettings = { currentScreen = Screen.Settings },
                                     onDoubleTap = {
                                         if (settings.doubleTapLock) {
@@ -487,6 +542,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleShowHomeNouns = { viewModel.setShowHomeNouns(it) },
                                     onToggleShowNounsAuction = { viewModel.setShowNounsAuction(it) },
                                     onToggleEnableGovernanceScreen = { viewModel.setEnableGovernanceScreen(it) },
+                                    onToggleEnableLilGovernanceScreen = { viewModel.setEnableLilGovernanceScreen(it) },
                                     onToggleShowNounsAuctionImage = { viewModel.setShowNounsAuctionImage(it) },
                                     onUpdateNounsAuctionPosition = { viewModel.setNounsAuctionPosition(it) },
                                     onUpdateNounsDisplayMode = { viewModel.setNounsDisplayMode(it) },
