@@ -2,7 +2,7 @@
 
 A calm, distraction-free, text-only Android launcher designed for pure focus and AMOLED battery efficiency. No icons, no widgets, no ads, no telemetry, and offline by default.
 
-**Version**: `1.0.41` (versionCode `42`) · **Release APK Footprint**: `~1.18 MB` (1,243,062 bytes)
+**Version**: `1.0.42` (versionCode `43`) · **Release APK Footprint**: `~1.18 MB` (1,245,397 bytes)
 
 ---
 
@@ -146,6 +146,8 @@ A calm, distraction-free, text-only Android launcher designed for pure focus and
 - **Swipe Right**: Launch user-assigned quick app.
 - **Double-Tap**: Screen lock.
 - **Long-Press Background**: Open Settings.
+- **System Navigation Support (Gestures & 3-Button)**: Fully compatible with Android 10+ gesture navigation and legacy 3-button navigation. Features official Android 13/14+ Predictive Back gesture animations (`enableOnBackInvokedCallback="true"`) and zero-contrast transparent bars (`enforceNavigationBarContrast="false"`). Includes a direct System Navigation action in Settings -> Gestures to open the device's navigation settings.
+- **Full-Screen Gesture Mode**: Toggleable setting in Settings -> Gestures that hides the system navigation bar for an immersive edge-to-edge experience across all launcher screens, allowing pinned apps and widgets to expand to full height while preserving transient swipe gesture access.
 - **Minimalist App Icons & Monochrome Filter**: Display subtle icons beside apps in Home and Drawer, apply an AMOLED monochrome/grayscale filter, or disable icons entirely for pure text mode.
 - **Custom App Renaming**: Assign custom aliases to any app (e.g. "Chrome" -> "web", "Spotify" -> "music") with one-tap reset.
 - **Hidden Apps**: Hide distracting apps from the drawer; access them via search or Settings -> Hidden Apps.
@@ -274,7 +276,7 @@ Output: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat assembleRelease
 ```
-Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,243,062 bytes)
+Output: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,245,397 bytes)
 
 ### Build Android App Bundle (.aab) for Google Play
 ```powershell

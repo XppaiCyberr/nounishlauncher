@@ -149,7 +149,8 @@ data class LauncherSettings(
     val topRightCard: String = "auction",
     val nounsAuctionPosition: String = "top_right", // "top_right", "below_clock"
     val homeScreenNotePosition: String = "top_right", // "top_right", "bottom_right"
-    val enableGovernanceScreen: Boolean = true
+    val enableGovernanceScreen: Boolean = true,
+    val fullScreenGestureMode: Boolean = false
 )
 
 class SettingsStore(private val context: Context) {
@@ -231,6 +232,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_NOUNS_AUCTION_POSITION = stringPreferencesKey("nouns_auction_position")
         private val KEY_HOME_SCREEN_NOTE_POSITION = stringPreferencesKey("home_screen_note_position")
         private val KEY_ENABLE_GOVERNANCE_SCREEN = booleanPreferencesKey("enable_governance_screen")
+        private val KEY_FULL_SCREEN_GESTURE_MODE = booleanPreferencesKey("full_screen_gesture_mode")
     }
 
     val settingsFlow: Flow<LauncherSettings> = context.dataStore.data.map { prefs ->
@@ -332,6 +334,7 @@ class SettingsStore(private val context: Context) {
         val nounsAuctionPosition = prefs[KEY_NOUNS_AUCTION_POSITION] ?: "top_right"
         val homeScreenNotePosition = prefs[KEY_HOME_SCREEN_NOTE_POSITION] ?: "top_right"
         val enableGovernanceScreen = prefs[KEY_ENABLE_GOVERNANCE_SCREEN] ?: true
+        val fullScreenGestureMode = prefs[KEY_FULL_SCREEN_GESTURE_MODE] ?: false
 
         LauncherSettings(
             pinnedApps = pinnedList,
@@ -409,7 +412,8 @@ class SettingsStore(private val context: Context) {
             topRightCard = topRightCard,
             nounsAuctionPosition = nounsAuctionPosition,
             homeScreenNotePosition = homeScreenNotePosition,
-            enableGovernanceScreen = enableGovernanceScreen
+            enableGovernanceScreen = enableGovernanceScreen,
+            fullScreenGestureMode = fullScreenGestureMode
         )
     }
 
@@ -745,6 +749,10 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { it[KEY_ENABLE_GOVERNANCE_SCREEN] = enable }
     }
 
+    suspend fun setFullScreenGestureMode(enable: Boolean) {
+        context.dataStore.edit { it[KEY_FULL_SCREEN_GESTURE_MODE] = enable }
+    }
+
     suspend fun setShowHomeNouns(show: Boolean) {
         context.dataStore.edit { it[KEY_SHOW_HOME_NOUNS] = show }
     }
@@ -923,6 +931,7 @@ class SettingsStore(private val context: Context) {
         root.put("nounsAuctionPosition", settings.nounsAuctionPosition)
         root.put("homeScreenNotePosition", settings.homeScreenNotePosition)
         root.put("enableGovernanceScreen", settings.enableGovernanceScreen)
+        root.put("fullScreenGestureMode", settings.fullScreenGestureMode)
 
         return root.toString(2)
     }
@@ -1042,6 +1051,7 @@ class SettingsStore(private val context: Context) {
                 if (root.has("nounsAuctionPosition")) prefs[KEY_NOUNS_AUCTION_POSITION] = root.getString("nounsAuctionPosition")
                 if (root.has("homeScreenNotePosition")) prefs[KEY_HOME_SCREEN_NOTE_POSITION] = root.getString("homeScreenNotePosition")
                 if (root.has("enableGovernanceScreen")) prefs[KEY_ENABLE_GOVERNANCE_SCREEN] = root.getBoolean("enableGovernanceScreen")
+                if (root.has("fullScreenGestureMode")) prefs[KEY_FULL_SCREEN_GESTURE_MODE] = root.getBoolean("fullScreenGestureMode")
             }
             true
         } catch (_: Exception) {

@@ -13,6 +13,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -196,6 +199,18 @@ class MainActivity : ComponentActivity() {
                 } else {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
                     window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.BLACK))
+                }
+            }
+
+            // Full-screen gesture navigation mode (hide system navigation bars)
+            LaunchedEffect(settings.fullScreenGestureMode) {
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                if (settings.fullScreenGestureMode) {
+                    insetsController.hide(WindowInsetsCompat.Type.navigationBars())
+                    insetsController.systemBarsBehavior =
+                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                } else {
+                    insetsController.show(WindowInsetsCompat.Type.navigationBars())
                 }
             }
 
@@ -461,6 +476,7 @@ class MainActivity : ComponentActivity() {
                                     onSelectSwipeLeftApp = { viewModel.setSwipeLeft(it) },
                                     onSelectSwipeRightApp = { viewModel.setSwipeRight(it) },
                                     onUpdateSwipeDownAction = { viewModel.setSwipeDownAction(it) },
+                                    onToggleFullScreenGestureMode = { viewModel.setFullScreenGestureMode(it) },
                                     onToggleDoubleTapLock = { viewModel.setDoubleTapLock(it) },
                                     onToggleCryptoEnabled = { viewModel.setCryptoPriceEnabled(it) },
                                     onToggleShowHomeCrypto = { viewModel.setShowHomeCrypto(it) },
@@ -554,5 +570,15 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         // Immediately terminate WebSocket and polling when launcher is paused or asleep
         viewModel.stopAllPriceUpdates()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && viewModel.settings.value.fullScreenGestureMode) {
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            insetsController.hide(WindowInsetsCompat.Type.navigationBars())
+            insetsController.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
     }
 }

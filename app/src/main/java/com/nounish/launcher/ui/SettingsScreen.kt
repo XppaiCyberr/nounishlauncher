@@ -54,6 +54,9 @@ import com.nounish.launcher.R
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.model.AppItem
 import com.nounish.launcher.service.LockScreenService
+import com.nounish.launcher.util.SystemNavigationHelper
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.nounish.launcher.ui.theme.CryptoGreen
 import com.nounish.launcher.ui.theme.LauncherTheme
 import java.text.SimpleDateFormat
@@ -91,6 +94,7 @@ fun SettingsScreen(
     onSelectSwipeLeftApp: (String?) -> Unit,
     onSelectSwipeRightApp: (String?) -> Unit,
     onUpdateSwipeDownAction: (String) -> Unit = {},
+    onToggleFullScreenGestureMode: (Boolean) -> Unit = {},
     onToggleDoubleTapLock: (Boolean) -> Unit,
     onToggleCryptoEnabled: (Boolean) -> Unit,
     onToggleShowHomeCrypto: (Boolean) -> Unit,
@@ -153,6 +157,7 @@ fun SettingsScreen(
     // Dialog state variables
     var showAppPickerForSwipe by remember { mutableStateOf<String?>(null) }
     var showSwipeDownDialog by remember { mutableStateOf(false) }
+    var showSystemNavDialog by remember { mutableStateOf(false) }
     var showEditCoinsDialog by remember { mutableStateOf(false) }
     var showEditQuoteDialog by remember { mutableStateOf(false) }
     var showIdxModeDialog by remember { mutableStateOf(false) }
@@ -268,7 +273,7 @@ fun SettingsScreen(
                             )
                             Column {
                                 Text(
-                                    text = "Nounish Launcher 1.0.41",
+                                    text = "Nounish Launcher 1.0.42",
                                     style = typography.settingsItem,
                                     color = colors.textPrimary
                                 )
@@ -528,6 +533,23 @@ fun SettingsScreen(
                                             }
                                             onToggleDoubleTapLock(enabled)
                                         }
+                                    )
+                                }
+
+                                item {
+                                    SettingsActionRow(
+                                        title = "System navigation (Gestures / Buttons)",
+                                        subtitle = "Configure device full-screen gestures or 3-button navigation",
+                                        onClick = { showSystemNavDialog = true }
+                                    )
+                                }
+
+                                item {
+                                    SettingsSwitchRow(
+                                        title = "Full screen gesture mode",
+                                        subtitle = "Hide system navigation bar for an immersive full-screen view",
+                                        checked = settings.fullScreenGestureMode,
+                                        onCheckedChange = onToggleFullScreenGestureMode
                                     )
                                 }
 
@@ -1171,6 +1193,70 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = { showSwipeDownDialog = false }) {
                     Text("Close", color = colors.textPrimary)
+                }
+            }
+        )
+    }
+
+    // System Navigation Dialog
+    if (showSystemNavDialog) {
+        AlertDialog(
+            onDismissRequest = { showSystemNavDialog = false },
+            containerColor = colors.surface,
+            title = {
+                Text(
+                    text = "System Navigation",
+                    style = typography.settingsHeading,
+                    color = colors.textPrimary
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Android supports two navigation styles: 3-Button Navigation (Back, Home, Recents) and Full Screen Gestures (swipe up for Home, swipe and hold for Recents, swipe from side for Back).",
+                        style = typography.settingsItem,
+                        color = colors.textSecondary
+                    )
+                    Text(
+                        text = "Device Compatibility:",
+                        style = typography.settingsItem,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                    Text(
+                        text = "• Google Pixel, Samsung Galaxy (One UI), Motorola, OnePlus, Asus: Full screen gesture navigation works seamlessly with third-party launchers out of the box.\n\n• Xiaomi / Redmi / Poco (HyperOS / MIUI): Xiaomi restrictions default third-party launchers to 3-button navigation. You can enable 'Full screen gesture mode' right below to hide the buttons for an edge-to-edge experience, or use an overlay gesture app (such as FNG or Edge Gestures).\n\n• Full Screen Gesture Mode: Hides the system navigation buttons across all launcher screens and expands pinned shortcuts to the full display height.",
+                        style = typography.settingsItem,
+                        color = colors.textSecondary
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSystemNavDialog = false
+                        SystemNavigationHelper.openSystemNavigationSettings(context)
+                    }
+                ) {
+                    Text(
+                        text = "Open System Settings",
+                        style = typography.settingsItem,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.accent
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSystemNavDialog = false }) {
+                    Text(
+                        text = "Close",
+                        style = typography.settingsItem,
+                        color = colors.textSecondary
+                    )
                 }
             }
         )

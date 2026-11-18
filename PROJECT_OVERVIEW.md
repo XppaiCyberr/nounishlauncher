@@ -2,7 +2,7 @@
 
 Nounish Launcher is a calm, distraction-free, text-only Android launcher built with **Kotlin** and **Jetpack Compose**. It strips away app icons, badges, notifications, and dopamine triggers to provide a focused, AMOLED-optimized interface that saves battery and honors your attention.
 
-**Current Version**: `v1.0.41` (versionCode `42`) · **Optimized Release APK**: `~1.18 MB` (1,243,062 bytes)
+**Current Version**: `v1.0.42` (versionCode `43`) · **Optimized Release APK**: `~1.18 MB` (1,245,397 bytes)
 
 ---
 
@@ -231,6 +231,8 @@ Nounish Launcher is a calm, distraction-free, text-only Android launcher built w
 - **Swipe Right**: Launch user-assigned quick app.
 - **Double-Tap**: Screen lock trigger via `LockScreenService`.
 - **Long-Press**: Open Settings.
+- **System Navigation Support (Gestures & 3-Button)**: Fully compatible with Android 10+ gesture navigation and legacy 3-button navigation. Implements official Android 13/14+ Predictive Back gesture animations (`enableOnBackInvokedCallback="true"`) and zero-contrast transparent bars (`enforceNavigationBarContrast="false"`). Includes a direct System Navigation action in Settings -> Gestures to open the device's navigation settings.
+- **Full-Screen Gesture Mode**: Toggleable setting in Settings -> Gestures that hides the system navigation bar for an immersive edge-to-edge experience across all launcher screens, allowing pinned apps and widgets to expand to full height while preserving transient swipe gesture access.
 - **System Back Button**: Prevents accidentally closing the launcher; returns to Home from Governance, Drawer, or Settings.
 
 ### 7. Crypto Price Ticker & Live Streaming
@@ -544,6 +546,8 @@ The codebase includes an extensive suite of unit tests validating core algorithm
    - Canonical Ethereum reverse ENS lookup logic and batch resolution format.
    - Auction widget placement (`Top right (Default)` vs `Below clock`) and passive learning note position settings (`Top right` vs `Bottom right`).
    - Smart de-duplication preventing duplicate auctions in middle carousel.
+7. **`SystemNavigationTest`**:
+   - Verifies default `fullScreenGestureMode` state (false), dynamic state toggling, and fallback resolution logic.
 
 Run unit tests via Gradle:
 ```powershell
@@ -576,7 +580,7 @@ $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ```
 
 ### Outputs
-- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,242,061 bytes)
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk` (**~1.18 MB** / 1,245,397 bytes)
 - **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk` (~8.7 MB)
 - **Release App Bundle**: `app/build/outputs/bundle/release/app-release.aab`
 

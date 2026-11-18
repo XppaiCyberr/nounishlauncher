@@ -1725,6 +1725,12 @@ class MainViewModel(
         }
     }
 
+    fun setFullScreenGestureMode(enable: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsStore.setFullScreenGestureMode(enable)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         PackageChangeReceiver.onPackageChangedListener = null
