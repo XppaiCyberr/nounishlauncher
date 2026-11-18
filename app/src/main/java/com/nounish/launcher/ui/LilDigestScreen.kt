@@ -51,8 +51,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nounish.launcher.data.LilDigestEventUi
@@ -163,10 +166,10 @@ fun LilDigestScreen(
                 onDoubleTap = onDoubleTap,
                 onLongPress = onOpenSettings
             )
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 16.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Navigation Bar with Back Button, Title, and Refresh Action
             Row(
@@ -182,7 +185,7 @@ fun LilDigestScreen(
                             LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
                             onBack()
                         }
-                        .padding(vertical = 4.dp, horizontal = 2.dp)
+                        .padding(vertical = 2.dp, horizontal = 2.dp)
                 ) {
                     Text(
                         text = "<- Home",
@@ -195,7 +198,7 @@ fun LilDigestScreen(
                 // Digest indicator dot
                 Box(
                     modifier = Modifier
-                        .size(7.dp)
+                        .size(6.dp)
                         .background(
                             color = colors.accent,
                             shape = CircleShape
@@ -206,8 +209,8 @@ fun LilDigestScreen(
                 if (isRefreshing) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(vertical = 2.dp, horizontal = 2.dp)
                     ) {
                         Text(
                             text = "Syncing...",
@@ -228,14 +231,14 @@ fun LilDigestScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .clickable {
                                 LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
                                 onRefresh()
                             }
-                            .padding(vertical = 4.dp, horizontal = 2.dp)
+                            .padding(vertical = 2.dp, horizontal = 2.dp)
                     ) {
                         Text(
                             text = "Refresh",
@@ -253,33 +256,28 @@ fun LilDigestScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Title and Subtitle
+            // Compact Title + External Link Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "LIL NOUNS DIGEST",
-                        style = typography.clock,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary,
-                        fontSize = 22.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Live Activity Timeline · lilnouns.wtf/digest",
-                        style = typography.priceLabel,
-                        color = colors.textSecondary.copy(alpha = 0.65f)
-                    )
-                }
+                Text(
+                    text = "LIL NOUNS DIGEST",
+                    style = typography.clock,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary,
+                    fontSize = 18.sp
+                )
 
                 Text(
-                    text = "lilnouns.wtf ↗",
-                    style = typography.clock,
+                    text = "lilnouns.wtf/digest ↗",
+                    style = typography.clock.copy(
+                        fontSize = typography.clock.fontSize * 0.82f,
+                        lineHeight = typography.clock.lineHeight * 0.82f
+                    ),
                     color = colors.accent,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
@@ -287,16 +285,20 @@ fun LilDigestScreen(
                             LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
                             openDigestUrl(context, "https://lilnouns.wtf/digest")
                         }
-                        .padding(bottom = 2.dp)
+                        .padding(vertical = 2.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Filter Chips
+            // Compact Filter Chips
             val filters = listOf("All", "Votes", "Proposals", "Delegations")
+            val chipStyle = typography.clock.copy(
+                fontSize = typography.clock.fontSize * 0.82f,
+                lineHeight = typography.clock.lineHeight * 0.82f
+            )
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(filters) { f ->
@@ -305,22 +307,22 @@ fun LilDigestScreen(
                         modifier = Modifier
                             .background(
                                 color = if (isSelected) colors.textPrimary.copy(alpha = 0.12f) else Color.Transparent,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(6.dp)
                             )
                             .border(
                                 width = 0.5.dp,
                                 color = if (isSelected) colors.textPrimary.copy(alpha = 0.4f) else colors.border.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(6.dp)
                             )
                             .clickable {
                                 LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
                                 selectedFilter = f
                             }
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = f,
-                            style = typography.clock,
+                            style = chipStyle,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (isSelected) colors.textPrimary else colors.textSecondary
                         )
@@ -328,7 +330,7 @@ fun LilDigestScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Events Timeline List
             if (filteredEvents.isEmpty()) {
@@ -358,7 +360,7 @@ fun LilDigestScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     items(filteredEvents, key = { "digest_${it.id}" }) { event ->
                         LilDigestEventCard(
@@ -412,12 +414,21 @@ private fun LilDigestEventCard(
     val typography = LauncherTheme.typography
     val haptic = LocalHapticFeedback.current
 
+    val metaStyle = typography.clock.copy(
+        fontSize = typography.clock.fontSize * 0.80f,
+        lineHeight = typography.clock.lineHeight * 0.80f
+    )
+    val titleStyle = typography.clock.copy(
+        fontSize = typography.clock.fontSize * 0.93f,
+        lineHeight = typography.clock.lineHeight * 0.88f
+    )
+
     val (badgeText, badgeColor) = when (event.kind.lowercase(Locale.US)) {
         "vote" -> {
             val supportText = when (event.support) {
-                1 -> "VOTED FOR"
-                0 -> "VOTED AGAINST"
-                2 -> "ABSTAINED"
+                1 -> "FOR"
+                0 -> "AGAINST"
+                2 -> "ABSTAIN"
                 else -> "VOTE"
             }
             val color = when (event.support) {
@@ -427,33 +438,46 @@ private fun LilDigestEventCard(
             }
             supportText to color
         }
-        "proposal-created" -> "NEW PROPOSAL" to CryptoGreen
-        "voting-started" -> "VOTING ACTIVE" to colors.accent
-        "closing-soon" -> "CLOSING SOON" to CryptoRed.copy(alpha = 0.85f)
+        "proposal-created" -> "NEW PROP" to CryptoGreen
+        "voting-started" -> "ACTIVE" to colors.accent
+        "closing-soon" -> "CLOSING" to CryptoRed.copy(alpha = 0.85f)
+        "proposal-concluded" -> "CONCLUDED" to colors.textSecondary
         "delegate" -> {
-            if (event.undelegated) "UNDELEGATED" to CryptoRed
-            else "DELEGATION" to colors.accent
+            if (event.undelegated) "UNDELEGATE" to CryptoRed
+            else "DELEGATE" to colors.accent
         }
         "auction-bid", "auction-created", "auction-settled" -> "AUCTION" to colors.accent
         else -> event.kind.uppercase(Locale.US) to colors.textSecondary
     }
 
+    val targetUrl = when {
+        event.href.isNotBlank() && event.href.startsWith("http") -> event.href
+        event.href.isNotBlank() && event.href.startsWith("/") -> "https://lilnouns.wtf${event.href}"
+        event.proposalId.isNotBlank() -> "https://lilnouns.wtf/vote/${event.proposalId}"
+        else -> "https://lilnouns.wtf/digest"
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
             .background(
-                color = colors.surface.copy(alpha = 0.55f),
-                shape = RoundedCornerShape(12.dp)
+                color = colors.surface.copy(alpha = 0.50f),
+                shape = RoundedCornerShape(8.dp)
             )
             .border(
                 width = 0.5.dp,
-                color = colors.border.copy(alpha = 0.4f),
-                shape = RoundedCornerShape(12.dp)
+                color = colors.border.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(8.dp)
             )
-            .padding(13.dp)
+            .clickable {
+                LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
+                openDigestUrl(context, targetUrl)
+            }
+            .padding(horizontal = 10.dp, vertical = 7.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            // Header: Badge + Weight + Relative Time
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            // Row 1: Compact Badge + Weight/Tokens + Time ↗
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -461,24 +485,25 @@ private fun LilDigestEventCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f, fill = false)
                 ) {
                     Box(
                         modifier = Modifier
                             .background(
                                 color = badgeColor.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(6.dp)
+                                shape = RoundedCornerShape(4.dp)
                             )
                             .border(
                                 width = 0.5.dp,
                                 color = badgeColor.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(6.dp)
+                                shape = RoundedCornerShape(4.dp)
                             )
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
                     ) {
                         Text(
                             text = badgeText,
-                            style = typography.clock,
+                            style = metaStyle,
                             fontWeight = FontWeight.Bold,
                             color = badgeColor
                         )
@@ -487,39 +512,43 @@ private fun LilDigestEventCard(
                     if (event.voteWeight != null && event.voteWeight > 0) {
                         Text(
                             text = "${event.voteWeight} votes",
-                            style = typography.clock,
+                            style = metaStyle,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (event.support == 1) CryptoGreen else if (event.support == 0) CryptoRed else colors.textPrimary
+                            color = if (event.support == 1) CryptoGreen else if (event.support == 0) CryptoRed else colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     } else if (event.nounIdsCount > 0) {
                         val nounTokenText = if (event.nounIds.isNotEmpty()) {
                             if (event.nounIds.size <= 3) {
                                 "Lil #${event.nounIds.joinToString(", #")}"
                             } else {
-                                "Lil #${event.nounIds.take(2).joinToString(", #")} +${event.nounIds.size - 2} more"
+                                "Lil #${event.nounIds.take(2).joinToString(", #")} +${event.nounIds.size - 2}"
                             }
                         } else {
                             "${event.nounIdsCount} Lil ${if (event.nounIdsCount == 1) "Noun" else "Nouns"}"
                         }
                         Text(
                             text = nounTokenText,
-                            style = typography.clock,
+                            style = metaStyle,
                             color = colors.textSecondary.copy(alpha = 0.85f),
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                if (event.timeAgoFormatted.isNotEmpty()) {
-                    Text(
-                        text = event.timeAgoFormatted,
-                        style = typography.clock,
-                        color = colors.textSecondary.copy(alpha = 0.55f)
-                    )
-                }
+                val timeRight = if (event.timeAgoFormatted.isNotEmpty()) "${event.timeAgoFormatted} ↗" else "↗"
+                Text(
+                    text = timeRight,
+                    style = metaStyle,
+                    color = colors.textSecondary.copy(alpha = 0.55f),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
             }
 
-            // Proposal Title (if available)
+            // Row 2: Proposal Title (single compact line)
             if (event.proposalTitle.isNotBlank()) {
                 val fullTitle = if (event.proposalId.isNotBlank() && !event.proposalTitle.startsWith("#")) {
                     "#${event.proposalId} ${event.proposalTitle}"
@@ -527,250 +556,112 @@ private fun LilDigestEventCard(
 
                 Text(
                     text = fullTitle,
-                    style = typography.settingsItem,
+                    style = titleStyle,
+                    fontWeight = FontWeight.Medium,
                     color = colors.textPrimary,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Sender / Recipient / Voter / Proposer / Delegator details
-            when (event.kind.lowercase(Locale.US)) {
-                "delegate" -> {
-                    val fromActor = if (event.actorFormatted.isNotBlank()) event.actorFormatted
-                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
-                        else event.actor
+            // Row 3: Single-line Identity / From -> To
+            val fromActor = if (event.actorFormatted.isNotBlank()) event.actorFormatted
+                else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
+                else event.actor
 
-                    val toCounterpart = if (event.counterpartFormatted.isNotBlank()) event.counterpartFormatted
-                        else if (event.counterpart.length >= 10) "${event.counterpart.take(6)}...${event.counterpart.takeLast(4)}"
-                        else event.counterpart
+            val toCounterpart = if (event.counterpartFormatted.isNotBlank()) event.counterpartFormatted
+                else if (event.counterpart.length >= 10) "${event.counterpart.take(6)}...${event.counterpart.takeLast(4)}"
+                else event.counterpart
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        if (event.undelegated) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "From: ",
-                                    style = typography.clock,
-                                    color = colors.textSecondary.copy(alpha = 0.55f),
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = fromActor,
-                                    style = typography.clock,
-                                    color = colors.textPrimary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = "-> Undelegated",
-                                    style = typography.clock,
-                                    color = CryptoRed,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                            if (toCounterpart.isNotBlank()) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Previous delegate: ",
-                                        style = typography.clock,
-                                        color = colors.textSecondary.copy(alpha = 0.5f)
-                                    )
-                                    Text(
-                                        text = toCounterpart,
-                                        style = typography.clock,
-                                        color = colors.textSecondary.copy(alpha = 0.85f)
-                                    )
-                                }
-                            }
-                        } else {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "From: ",
-                                    style = typography.clock,
-                                    color = colors.textSecondary.copy(alpha = 0.55f),
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = fromActor,
-                                    style = typography.clock,
-                                    color = colors.textPrimary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            if (toCounterpart.isNotBlank()) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = "To: ",
-                                        style = typography.clock,
-                                        color = colors.textSecondary.copy(alpha = 0.55f),
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Text(
-                                        text = toCounterpart,
-                                        style = typography.clock,
-                                        color = colors.accent,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
+            val identityText = when (event.kind.lowercase(Locale.US)) {
+                "delegate" -> buildAnnotatedString {
+                    withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.6f))) {
+                        append("From ")
+                    }
+                    withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.SemiBold)) {
+                        append(fromActor)
+                    }
+                    if (event.undelegated) {
+                        withStyle(SpanStyle(color = CryptoRed, fontWeight = FontWeight.Medium)) {
+                            append(" -> Undelegated")
+                        }
+                        if (toCounterpart.isNotBlank()) {
+                            withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.65f))) {
+                                append(" ($toCounterpart)")
                             }
                         }
-                    }
-                }
-                "vote" -> {
-                    val voterText = if (event.actorFormatted.isNotBlank()) event.actorFormatted
-                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
-                        else event.actor
-                    if (voterText.isNotBlank()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Voter: ",
-                                style = typography.clock,
-                                color = colors.textSecondary.copy(alpha = 0.55f),
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = voterText,
-                                style = typography.clock,
-                                color = colors.textPrimary,
-                                fontWeight = FontWeight.Medium
-                            )
+                    } else if (toCounterpart.isNotBlank()) {
+                        withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.6f))) {
+                            append(" -> ")
+                        }
+                        withStyle(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold)) {
+                            append(toCounterpart)
                         }
                     }
                 }
-                "proposal-created" -> {
-                    val proposerText = if (event.actorFormatted.isNotBlank()) event.actorFormatted
-                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
-                        else event.actor
-                    if (proposerText.isNotBlank()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Proposer: ",
-                                style = typography.clock,
-                                color = colors.textSecondary.copy(alpha = 0.55f),
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = proposerText,
-                                style = typography.clock,
-                                color = colors.textPrimary,
-                                fontWeight = FontWeight.Medium
-                            )
+                "vote" -> if (fromActor.isNotBlank()) buildAnnotatedString {
+                    withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.6f))) {
+                        append("Voter: ")
+                    }
+                    withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.Medium)) {
+                        append(fromActor)
+                    }
+                } else null
+                "proposal-created" -> if (fromActor.isNotBlank()) buildAnnotatedString {
+                    withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.6f))) {
+                        append("Proposer: ")
+                    }
+                    withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.Medium)) {
+                        append(fromActor)
+                    }
+                } else null
+                "transfer" -> if (fromActor.isNotBlank()) buildAnnotatedString {
+                    withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.Medium)) {
+                        append(fromActor)
+                    }
+                    if (toCounterpart.isNotBlank()) {
+                        withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.6f))) {
+                            append(" -> ")
+                        }
+                        withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.Medium)) {
+                            append(toCounterpart)
                         }
                     }
-                }
-                "transfer" -> {
-                    val fromActor = if (event.actorFormatted.isNotBlank()) event.actorFormatted
-                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
-                        else event.actor
-                    val toCounterpart = if (event.counterpartFormatted.isNotBlank()) event.counterpartFormatted
-                        else if (event.counterpart.length >= 10) "${event.counterpart.take(6)}...${event.counterpart.takeLast(4)}"
-                        else event.counterpart
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Transfer: $fromActor -> $toCounterpart",
-                            style = typography.clock,
-                            color = colors.textSecondary.copy(alpha = 0.75f)
-                        )
+                } else null
+                "sale" -> if (fromActor.isNotBlank()) buildAnnotatedString {
+                    withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.6f))) {
+                        append("Buyer: ")
                     }
-                }
-                "sale" -> {
-                    val buyerText = if (event.actorFormatted.isNotBlank()) event.actorFormatted
-                        else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
-                        else event.actor
-                    if (buyerText.isNotBlank()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Buyer: ",
-                                style = typography.clock,
-                                color = colors.textSecondary.copy(alpha = 0.55f),
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = buyerText,
-                                style = typography.clock,
-                                color = colors.textPrimary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                    withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.Medium)) {
+                        append(fromActor)
                     }
-                }
-                else -> {
-                    if (event.actor.isNotBlank()) {
-                        val userText = if (event.actorFormatted.isNotBlank()) event.actorFormatted
-                            else if (event.actor.length >= 10) "${event.actor.take(6)}...${event.actor.takeLast(4)}"
-                            else event.actor
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Account: ",
-                                style = typography.clock,
-                                color = colors.textSecondary.copy(alpha = 0.55f),
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = userText,
-                                style = typography.clock,
-                                color = colors.textPrimary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                } else null
+                "mint" -> if (fromActor.isNotBlank()) buildAnnotatedString {
+                    withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.6f))) {
+                        append("Minter: ")
                     }
-                }
+                    withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.Medium)) {
+                        append(fromActor)
+                    }
+                } else null
+                else -> if (fromActor.isNotBlank()) buildAnnotatedString {
+                    withStyle(SpanStyle(color = colors.textSecondary.copy(alpha = 0.6f))) {
+                        append("Account: ")
+                    }
+                    withStyle(SpanStyle(color = colors.textPrimary, fontWeight = FontWeight.Medium)) {
+                        append(fromActor)
+                    }
+                } else null
             }
 
-            // Action links
-            val targetUrl = when {
-                event.href.isNotBlank() && event.href.startsWith("http") -> event.href
-                event.href.isNotBlank() && event.href.startsWith("/") -> "https://lilnouns.wtf${event.href}"
-                event.proposalId.isNotBlank() -> "https://lilnouns.wtf/vote/${event.proposalId}"
-                else -> "https://lilnouns.wtf/digest"
+            if (identityText != null) {
+                Text(
+                    text = identityText,
+                    style = metaStyle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-
-            val actionLabel = when (event.kind) {
-                "vote", "voting-started", "closing-soon" -> "Vote on lilnouns.wtf ->"
-                "proposal-created" -> "View proposal on lilnouns.wtf ->"
-                "delegate" -> "View profile on lilnouns.wtf ->"
-                "sale" -> "View auction on lilnouns.wtf ->"
-                else -> "lilnouns.wtf ->"
-            }
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = actionLabel,
-                style = typography.clock,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.accent,
-                modifier = Modifier.clickable {
-                    LauncherHaptic.performTick(haptic, hapticFeedbackLevel)
-                    openDigestUrl(context, targetUrl)
-                }
-            )
         }
     }
 }
