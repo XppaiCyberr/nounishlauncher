@@ -17,6 +17,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -34,9 +35,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.lifecycleScope
 import com.nounish.launcher.model.DEFAULT_PASSIVE_NOTES
-import com.nounish.launcher.service.LockScreenService
+import com.nounish.launcher.util.LauncherHaptic
 import com.nounish.launcher.ui.DailyWallpaperBackground
 import com.nounish.launcher.ui.DrawerScreen
 import com.nounish.launcher.ui.GovernanceScreen
@@ -255,6 +258,14 @@ class MainActivity : ComponentActivity() {
 
             val activeDailyWallpaperFile = if (settings.enableDailyWallpaper) dailyWallpaperState.file else null
             val hasVisibleWallpaper = settings.showWallpaper || activeDailyWallpaperFile != null
+            var isHomeWidgetsHidden by remember { mutableStateOf(false) }
+            val haptic = LocalHapticFeedback.current
+
+            LaunchedEffect(settings.doubleTapHideWidgets) {
+                if (!settings.doubleTapHideWidgets) {
+                    isHomeWidgetsHidden = false
+                }
+            }
 
             NounishLauncherTheme(
                 isLightTheme = settings.isLightTheme,
@@ -264,6 +275,15 @@ class MainActivity : ComponentActivity() {
                 wallpaperDimLevel = settings.wallpaperDimLevel,
                 accentColor = settings.accentColor
             ) {
+                val surfaceColor by animateColorAsState(
+                    targetValue = if (currentScreen == Screen.Home && isHomeWidgetsHidden && hasVisibleWallpaper) {
+                        Color.Transparent
+                    } else {
+                        LauncherTheme.colors.background
+                    },
+                    animationSpec = tween(durationMillis = 220),
+                    label = "SurfaceBackgroundColor"
+                )
                 Box(modifier = Modifier.fillMaxSize()) {
                     if (activeDailyWallpaperFile != null) {
                         DailyWallpaperBackground(
@@ -274,7 +294,7 @@ class MainActivity : ComponentActivity() {
                     }
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = LauncherTheme.colors.background
+                        color = surfaceColor
                     ) {
                     // Back button handling
                     BackHandler(enabled = currentScreen != Screen.Home) {
@@ -410,10 +430,12 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     onDoubleTap = {
-                                        if (settings.doubleTapLock) {
-                                            LockScreenService.lockScreen(this@MainActivity)
+                                        if (settings.doubleTapHideWidgets) {
+                                            LauncherHaptic.performTick(haptic, settings.hapticFeedbackLevel)
+                                            isHomeWidgetsHidden = !isHomeWidgetsHidden
                                         }
                                     },
+                                    hideWidgets = isHomeWidgetsHidden,
                                     isRefreshing = isRefreshingData,
                                     swipeDownAction = settings.swipeDownAction,
                                     hapticFeedbackLevel = settings.hapticFeedbackLevel,
@@ -442,11 +464,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onBack = { currentScreen = Screen.Home },
                                     onOpenSettings = { currentScreen = Screen.Settings },
-                                    onDoubleTap = {
-                                        if (settings.doubleTapLock) {
-                                            LockScreenService.lockScreen(this@MainActivity)
-                                        }
-                                    }
+                                    onDoubleTap = {}
                                 )
                             }
 
@@ -474,11 +492,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     onOpenSettings = { currentScreen = Screen.Settings },
-                                    onDoubleTap = {
-                                        if (settings.doubleTapLock) {
-                                            LockScreenService.lockScreen(this@MainActivity)
-                                        }
-                                    }
+                                    onDoubleTap = {}
                                 )
                             }
 
@@ -493,11 +507,7 @@ class MainActivity : ComponentActivity() {
                                     onLoadOlder = { viewModel.loadOlderLilDigest() },
                                     onBack = { currentScreen = Screen.Home },
                                     onOpenSettings = { currentScreen = Screen.Settings },
-                                    onDoubleTap = {
-                                        if (settings.doubleTapLock) {
-                                            LockScreenService.lockScreen(this@MainActivity)
-                                        }
-                                    }
+                                    onDoubleTap = {}
                                 )
                             }
 
@@ -583,7 +593,7 @@ class MainActivity : ComponentActivity() {
                                     onSelectSwipeRightApp = { viewModel.setSwipeRight(it) },
                                     onUpdateSwipeDownAction = { viewModel.setSwipeDownAction(it) },
                                     onToggleFullScreenGestureMode = { viewModel.setFullScreenGestureMode(it) },
-                                    onToggleDoubleTapLock = { viewModel.setDoubleTapLock(it) },
+                                    onToggleDoubleTapHideWidgets = { viewModel.setDoubleTapHideWidgets(it) },
                                     onToggleCryptoEnabled = { viewModel.setCryptoPriceEnabled(it) },
                                     onToggleShowHomeCrypto = { viewModel.setShowHomeCrypto(it) },
                                     onToggleShowHomeIdx = { viewModel.setShowHomeIdx(it) },

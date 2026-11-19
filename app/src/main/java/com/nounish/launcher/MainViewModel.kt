@@ -1695,9 +1695,9 @@ class MainViewModel(
         }
     }
 
-    fun setDoubleTapLock(enabled: Boolean) {
+    fun setDoubleTapHideWidgets(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            settingsStore.setDoubleTapLock(enabled)
+            settingsStore.setDoubleTapHideWidgets(enabled)
         }
     }
 

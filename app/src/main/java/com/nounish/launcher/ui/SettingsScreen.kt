@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.sp
 import com.nounish.launcher.R
 import com.nounish.launcher.data.LauncherSettings
 import com.nounish.launcher.model.AppItem
-import com.nounish.launcher.service.LockScreenService
 import com.nounish.launcher.util.SystemNavigationHelper
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -95,7 +94,7 @@ fun SettingsScreen(
     onSelectSwipeRightApp: (String?) -> Unit,
     onUpdateSwipeDownAction: (String) -> Unit = {},
     onToggleFullScreenGestureMode: (Boolean) -> Unit = {},
-    onToggleDoubleTapLock: (Boolean) -> Unit,
+    onToggleDoubleTapHideWidgets: (Boolean) -> Unit,
     onToggleCryptoEnabled: (Boolean) -> Unit,
     onToggleShowHomeCrypto: (Boolean) -> Unit,
     onToggleShowHomeIdx: (Boolean) -> Unit = {},
@@ -543,15 +542,10 @@ fun SettingsScreen(
 
                                 item {
                                     SettingsSwitchRow(
-                                        title = "Double tap to lock screen",
-                                        subtitle = "Requires accessibility permission",
-                                        checked = settings.doubleTapLock,
-                                        onCheckedChange = { enabled ->
-                                            if (enabled && !LockScreenService.isServiceRunning()) {
-                                                LockScreenService.lockScreen(context)
-                                            }
-                                            onToggleDoubleTapLock(enabled)
-                                        }
+                                        title = "Double tap to hide / show widgets",
+                                        subtitle = if (settings.doubleTapHideWidgets) "Double-tap homescreen to hide or show all widgets" else "Disabled",
+                                        checked = settings.doubleTapHideWidgets,
+                                        onCheckedChange = onToggleDoubleTapHideWidgets
                                     )
                                 }
 

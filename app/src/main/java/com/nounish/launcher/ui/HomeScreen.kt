@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.AlarmClock
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -143,6 +144,7 @@ fun HomeScreen(
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
     onDoubleTap: () -> Unit,
+    hideWidgets: Boolean = false,
     isRefreshing: Boolean = false,
     swipeDownAction: String = "refresh",
     hapticFeedbackLevel: String = "standard",
@@ -207,7 +209,7 @@ fun HomeScreen(
     var pullDistancePx by remember { mutableFloatStateOf(0f) }
     val haptic = LocalHapticFeedback.current
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
@@ -246,6 +248,15 @@ fun HomeScreen(
             )
             .padding(horizontal = 24.dp)
     ) {
+        AnimatedVisibility(
+            visible = !hideWidgets,
+            enter = fadeIn(animationSpec = tween(220)),
+            exit = fadeOut(animationSpec = tween(180)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
         // Nounish Manual Refresh Indicator (breathing / animated typing ⌐◨-◨)
         if (swipeDownAction == "refresh") {
             NounishRefreshIndicator(
@@ -867,6 +878,8 @@ fun HomeScreen(
                         )
                     }
                 }
+            }
+        }
             }
         }
     }

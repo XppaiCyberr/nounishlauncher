@@ -89,7 +89,7 @@ data class LauncherSettings(
     val swipeRightPackage: String? = null,
     val swipeDownAction: String = "refresh", // "refresh", "notifications", "drawer", "none"
     val swipeDownToRefresh: Boolean = true,
-    val doubleTapLock: Boolean = false,
+    val doubleTapHideWidgets: Boolean = true,
     val showRecentApps: Boolean = true,
     val recentApps: List<String> = emptyList(),
     val showWallpaper: Boolean = false,
@@ -197,7 +197,7 @@ class SettingsStore(private val context: Context) {
         private val KEY_SWIPE_RIGHT = stringPreferencesKey("swipe_right_package")
         private val KEY_SWIPE_DOWN_ACTION = stringPreferencesKey("swipe_down_action")
         private val KEY_SWIPE_DOWN_TO_REFRESH = booleanPreferencesKey("swipe_down_to_refresh")
-        private val KEY_DOUBLE_TAP_LOCK = booleanPreferencesKey("double_tap_lock")
+        private val KEY_DOUBLE_TAP_HIDE_WIDGETS = booleanPreferencesKey("double_tap_hide_widgets")
         private val KEY_CRYPTO_ENABLED = booleanPreferencesKey("crypto_price_enabled")
         private val KEY_CRYPTO_SYMBOLS = stringPreferencesKey("crypto_symbols")
         private val KEY_CRYPTO_QUOTE = stringPreferencesKey("crypto_quote_currency")
@@ -298,7 +298,7 @@ class SettingsStore(private val context: Context) {
             else -> "refresh"
         }
         val swipeDownToRefresh = (swipeDownAction == "refresh")
-        val doubleTap = prefs[KEY_DOUBLE_TAP_LOCK] ?: false
+        val doubleTapHideWidgets = prefs[KEY_DOUBLE_TAP_HIDE_WIDGETS] ?: true
         val cryptoEnabled = prefs[KEY_CRYPTO_ENABLED] ?: true
 
         val symbolsRaw = prefs[KEY_CRYPTO_SYMBOLS] ?: "BTC,ETH,SOL"
@@ -396,7 +396,7 @@ class SettingsStore(private val context: Context) {
             swipeRightPackage = swipeRight,
             swipeDownAction = swipeDownAction,
             swipeDownToRefresh = swipeDownToRefresh,
-            doubleTapLock = doubleTap,
+            doubleTapHideWidgets = doubleTapHideWidgets,
             showRecentApps = showRecentApps,
             recentApps = recentApps,
             showWallpaper = showWallpaper,
@@ -584,8 +584,8 @@ class SettingsStore(private val context: Context) {
         }
     }
 
-    suspend fun setDoubleTapLock(enabled: Boolean) {
-        context.dataStore.edit { it[KEY_DOUBLE_TAP_LOCK] = enabled }
+    suspend fun setDoubleTapHideWidgets(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_DOUBLE_TAP_HIDE_WIDGETS] = enabled }
     }
 
     suspend fun setCryptoPriceEnabled(enabled: Boolean) {
@@ -1016,7 +1016,7 @@ class SettingsStore(private val context: Context) {
         root.put("swipeRightPackage", settings.swipeRightPackage ?: "")
         root.put("swipeDownAction", settings.swipeDownAction)
         root.put("swipeDownToRefresh", settings.swipeDownToRefresh)
-        root.put("doubleTapLock", settings.doubleTapLock)
+        root.put("doubleTapHideWidgets", settings.doubleTapHideWidgets)
 
         root.put("cryptoPriceEnabled", settings.cryptoPriceEnabled)
         root.put("showDrawerUsdRate", settings.showDrawerUsdRate)
@@ -1126,7 +1126,7 @@ class SettingsStore(private val context: Context) {
                     prefs[KEY_SWIPE_DOWN_TO_REFRESH] = isRefresh
                     prefs[KEY_SWIPE_DOWN_ACTION] = if (isRefresh) "refresh" else "notifications"
                 }
-                if (root.has("doubleTapLock")) prefs[KEY_DOUBLE_TAP_LOCK] = root.getBoolean("doubleTapLock")
+                if (root.has("doubleTapHideWidgets")) prefs[KEY_DOUBLE_TAP_HIDE_WIDGETS] = root.getBoolean("doubleTapHideWidgets")
 
                 if (root.has("cryptoPriceEnabled")) prefs[KEY_CRYPTO_ENABLED] = root.getBoolean("cryptoPriceEnabled")
                 if (root.has("showDrawerUsdRate")) prefs[KEY_SHOW_DRAWER_USD_RATE] = root.getBoolean("showDrawerUsdRate")
